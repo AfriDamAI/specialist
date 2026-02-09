@@ -1,7 +1,18 @@
 'use client';
 
+import { Suspense } from 'react'; // Added Suspense
 import RegistrationForm from "@/components/Register";
 import Link from 'next/link';
+
+// Rule #3: Fallback UI for the Specialist Portal initialization
+function RegistrationLoader() {
+  return (
+    <div className="flex flex-col items-center justify-center py-12">
+      <div className="w-8 h-8 border-4 border-[#FF7A59] border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Initializing Workspace...</p>
+    </div>
+  );
+}
 
 export default function RegisterPage() {
   return (
@@ -49,7 +60,10 @@ export default function RegisterPage() {
           </div>
 
           <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100">
-            <RegistrationForm />
+            {/* Rule #3: Wrap RegistrationForm in Suspense to fix Vercel build error */}
+            <Suspense fallback={<RegistrationLoader />}>
+              <RegistrationForm />
+            </Suspense>
           </div>
 
           <p className="text-center text-sm text-gray-500 font-medium">
