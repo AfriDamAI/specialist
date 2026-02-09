@@ -1,151 +1,116 @@
 'use client';
 
-import { useState } from 'react';
-import Image from 'next/image';
+import { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { 
+  BellIcon, 
+  MagnifyingGlassIcon,
+  ChartBarSquareIcon,
+  CalendarIcon,
+  UsersIcon,
+  ChatBubbleLeftRightIcon,
+  ClockIcon,
+  DocumentIcon,
+  Cog6ToothIcon,
+  QuestionMarkCircleIcon,
+  ArrowLeftOnRectangleIcon,
+  PresentationChartLineIcon,
+  AcademicCapIcon
+} from '@heroicons/react/24/outline';
 
 interface DashboardLayoutProps {
   children?: React.ReactNode;
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState('dashboard');
+  const router = useRouter();
+  const pathname = usePathname();
+  
+  const [user, setUser] = useState({
+    name: 'Specialist',
+    role: 'Medical Personnel',
+  });
 
-  // Sample user data - replace with actual user data from your auth system
-  const user = {
-    name: 'Dr. Sarah Johnson',
-    email: 'sarah.johnson@example.com',
-    role: 'Dermatologist',
-    avatar: '/avatar-placeholder.jpg', // Replace with actual avatar
-  };
+  useEffect(() => {
+    // Rule #3: Dynamic production data retrieval for Specialist session
+    const savedName = localStorage.getItem('specialistName');
+    const savedRole = localStorage.getItem('specialistRole');
 
+    if (savedName) {
+      setUser({
+        name: savedName,
+        role: savedRole || 'Medical Personnel',
+      });
+    }
+  }, []);
+
+  // Rule #3: Complete Specialist Curriculum & Workflow Menu
   const menuItems = [
-    { id: 'dashboard', icon: '📊', label: 'Dashboard', href: '/dashboard' },
-    { id: 'appointments', icon: '📅', label: 'Appointments', href: '/appointments' },
-    { id: 'patients', icon: '👥', label: 'Patients', href: '/patients' },
-    { id: 'consultations', icon: '💬', label: 'Consultations', href: '/consultations' },
-    { id: 'schedule', icon: '🕒', label: 'My Schedule', href: '/schedule' },
-    { id: 'analytics', icon: '📈', label: 'Analytics', href: '/analytics' },
-    { id: 'documents', icon: '📄', label: 'Documents', href: '/documents' },
-    { id: 'settings', icon: '⚙️', label: 'Settings', href: '/settings' },
+    { id: 'dashboard', icon: <ChartBarSquareIcon className="w-6 h-6" />, label: 'Dashboard', href: '/dashboard' },
+    { id: 'training', icon: <AcademicCapIcon className="w-6 h-6" />, label: 'Academy', href: '/training' },
+    { id: 'appointments', icon: <CalendarIcon className="w-6 h-6" />, label: 'Appointments', href: '/appointments' },
+    { id: 'patients', icon: <UsersIcon className="w-6 h-6" />, label: 'Patients', href: '/patients' },
+    { id: 'consultations', icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />, label: 'Consultations', href: '/consultations' },
+    { id: 'schedule', icon: <ClockIcon className="w-6 h-6" />, label: 'Schedule', href: '/schedule' },
+    { id: 'analytics', icon: <PresentationChartLineIcon className="w-6 h-6" />, label: 'Analytics', href: '/analytics' },
+    { id: 'documents', icon: <DocumentIcon className="w-6 h-6" />, label: 'Documents', href: '/documents' },
+    { id: 'settings', icon: <Cog6ToothIcon className="w-6 h-6" />, label: 'Settings', href: '/settings' },
   ];
 
+  const handleLogout = () => {
+    // Rule #5: Specialist session termination
+    const confirmLogout = confirm("Are you sure you want to end your clinical session?");
+    if (confirmLogout) {
+      // Clear security and identity flags
+      localStorage.removeItem('specialistStatus');
+      localStorage.removeItem('specialistName');
+      localStorage.removeItem('specialistRole');
+      localStorage.removeItem('token');
+      
+      // Rule #3: Forced clean redirect to avoid 404 pathing errors
+      window.location.href = '/auth/specialist/login';
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Topbar */}
-      <div className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50">
-        <div className="flex items-center justify-between h-full px-4 md:px-6">
-          {/* Left Section - Logo & Menu Toggle */}
-          <div className="flex items-center gap-4">
-            {/* Mobile Menu Toggle */}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition"
-            >
-              <svg
-                className="w-6 h-6 text-gray-700"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                {sidebarOpen ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                )}
-              </svg>
-            </button>
-
-            {/* Logo */}
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
-                <span className="text-white text-xl font-bold italic">A</span>
-              </div>
-              <span className="hidden sm:block text-xl font-black text-gray-900">
-                Afridam<span className="text-[#FF7A59]">AI</span>
-              </span>
+    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors selection:bg-[#FF7A59]/30">
+      
+      {/* Topbar - Executive Clinical Grade */}
+      <div className="fixed top-0 left-0 right-0 h-16 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 z-50">
+        <div className="flex items-center justify-between h-full px-4 md:px-12 max-w-7xl mx-auto">
+          {/* Logo Section */}
+          <Link href="/dashboard" className="flex items-center gap-2 group">
+            <div className="w-9 h-9 bg-black dark:bg-white rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 shadow-lg shadow-black/5">
+              <span className="text-white dark:text-black text-lg font-black italic">A</span>
             </div>
-          </div>
+            <span className="text-xl font-black text-gray-900 dark:text-white tracking-tighter">
+              Afridam<span className="text-[#FF7A59]">AI</span>
+            </span>
+          </Link>
 
-          {/* Right Section - Search, Notifications, Profile */}
-          <div className="flex items-center gap-2 md:gap-4">
-            {/* Search Bar - Hidden on mobile */}
-            <div className="hidden lg:block">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search patients, appointments..."
-                  className="w-64 xl:w-80 px-4 py-2 pl-10 rounded-full border-2 border-gray-200 focus:border-[#FF7A59] focus:outline-none transition bg-gray-50"
-                />
-                <svg
-                  className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
+          {/* Global Search & Specialist Actions */}
+          <div className="flex items-center gap-6">
+            <div className="hidden lg:flex relative">
+              <input
+                type="text"
+                placeholder="Search case records..."
+                className="w-64 px-4 py-2 pl-10 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 focus:border-[#FF7A59] focus:outline-none transition text-sm font-bold"
+              />
+              <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
             </div>
 
-            {/* Search Icon - Mobile only */}
-            <button className="lg:hidden p-2 rounded-full hover:bg-gray-100 transition">
-              <svg
-                className="w-6 h-6 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+            <button className="relative p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition active:scale-90">
+              <BellIcon className="w-6 h-6 text-gray-500" />
+              <span className="absolute top-2 right-2.5 w-2 h-2 bg-[#FF7A59] rounded-full ring-2 ring-white dark:ring-gray-950"></span>
             </button>
 
-            {/* Notifications */}
-            <button className="relative p-2 rounded-full hover:bg-gray-100 transition">
-              <svg
-                className="w-6 h-6 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
-              {/* Notification Badge */}
-              <span className="absolute top-1 right-1 w-2 h-2 bg-[#FF7A59] rounded-full"></span>
-            </button>
-
-            {/* Profile Dropdown */}
-            <div className="flex items-center gap-2 md:gap-3 pl-2 md:pl-4 border-l border-gray-200">
-              <div className="hidden md:block text-right">
-                <p className="text-sm font-bold text-gray-900">{user.name}</p>
-                <p className="text-xs text-gray-500">{user.role}</p>
+            <div className="hidden md:flex items-center gap-3 pl-6 border-l border-gray-100 dark:border-gray-800">
+              <div className="text-right">
+                <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none">{user.name}</p>
+                <p className="text-[9px] font-bold text-[#FF7A59] uppercase tracking-[0.2em] mt-1">{user.role}</p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF7A59] to-[#ff6a49] flex items-center justify-center text-white font-bold">
+              <div className="w-10 h-10 rounded-xl bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-black font-black shadow-md">
                 {user.name.charAt(0)}
               </div>
             </div>
@@ -153,70 +118,88 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </div>
 
-      {/* Sidebar */}
-      <aside
-        className={`fixed top-16 left-0 bottom-0 w-64 bg-white border-r border-gray-200 transition-transform duration-300 ease-in-out z-40 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0`}
-      >
-        <div className="flex flex-col h-full">
-          {/* Navigation Menu */}
-          <nav className="flex-1 overflow-y-auto py-6 px-4">
-            <ul className="space-y-2">
-              {menuItems.map((item) => (
-                <li key={item.id}>
-                  <button
-                    onClick={() => {
-                      setActiveMenu(item.id);
-                      setSidebarOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${
-                      activeMenu === item.id
-                        ? 'bg-gradient-to-r from-[#FF7A59] to-[#ff6a49] text-white shadow-lg shadow-[#FF7A59]/30'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    <span className="text-xl">{item.icon}</span>
-                    <span className="text-sm">{item.label}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </nav>
+      {/* Sidebar - Desktop Specialist Control */}
+      <aside className="hidden md:flex fixed top-16 left-0 bottom-0 w-64 bg-white dark:bg-gray-950 border-r border-gray-50 dark:border-gray-800 flex-col p-6 z-40">
+        <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar pr-2">
+          {menuItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link 
+                key={item.id}
+                href={item.href}
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group ${
+                  isActive 
+                    ? 'bg-black dark:bg-white text-white dark:text-black shadow-xl shadow-black/10' 
+                    : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                <div className={`transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-inherit' : 'text-gray-400'}`}>
+                  {item.icon}
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-[0.15em]">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
 
-          {/* Bottom Section - Help & Logout */}
-          <div className="border-t border-gray-200 p-4 space-y-2">
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-100 font-semibold transition">
-              <span className="text-xl">❓</span>
-              <span className="text-sm">Help & Support</span>
-            </button>
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 font-semibold transition">
-              <span className="text-xl">🚪</span>
-              <span className="text-sm">Logout</span>
-            </button>
-          </div>
+        <div className="pt-6 border-t border-gray-50 dark:border-gray-800 space-y-1">
+          <Link href="/support" className="flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-gray-900 transition font-black">
+            <QuestionMarkCircleIcon className="w-5 h-5" />
+            <span className="text-[10px] uppercase tracking-widest">Support</span>
+          </Link>
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition font-black"
+          >
+            <ArrowLeftOnRectangleIcon className="w-5 h-5" />
+            <span className="text-[10px] uppercase tracking-widest text-left">Logout</span>
+          </button>
         </div>
       </aside>
 
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Mobile Bottom Nav - Optimized for Clinical Triage */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 px-6 py-4 flex items-center justify-between z-50 rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        {menuItems.filter(i => ['dashboard', 'training', 'consultations', 'analytics', 'settings'].includes(i.id)).map((item) => {
+          const isActive = pathname === item.href;
+          
+          if (item.id === 'consultations') {
+            return (
+              <Link 
+                key={item.id}
+                href={item.href}
+                className="w-14 h-14 bg-[#FF7A59] rounded-2xl flex items-center justify-center -mt-14 shadow-2xl shadow-[#FF7A59]/40 border-4 border-white dark:border-gray-950 transition-transform active:scale-90"
+              >
+                <ChatBubbleLeftRightIcon className="w-7 h-7 text-white" />
+              </Link>
+            );
+          }
 
-      {/* Main Content Area */}
-      <main className="pt-16 md:pl-64">
-        <div className="p-4 md:p-6 lg:p-8">
+          return (
+            <Link 
+              key={item.id}
+              href={item.href}
+              className="flex flex-col items-center gap-1 active:scale-90 transition-all"
+            >
+              <div className={`transition-colors duration-200 ${isActive ? 'text-black dark:text-white' : 'text-gray-300 dark:text-gray-600'}`}>
+                {item.icon}
+              </div>
+              <span className={`text-[8px] font-black uppercase tracking-tighter transition-colors ${isActive ? 'text-black dark:text-white' : 'text-gray-400'}`}>
+                {item.id === 'dashboard' ? 'Home' : item.label}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Main Clinical Content Area */}
+      <main className="pt-16 md:pl-64 min-h-screen">
+        <div className="p-4 md:p-12 pb-28 md:pb-12 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-500">
           {children || (
-            <div className="text-center py-12">
-              <h1 className="text-3xl font-black text-gray-900 mb-2">
-                Welcome to your Dashboard
-              </h1>
-              <p className="text-gray-600">
-                Your main content will appear here
-              </p>
+            <div className="flex flex-col items-center justify-center py-24 opacity-20">
+              <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-3xl flex items-center justify-center mb-6">
+                <span className="text-4xl text-gray-400">🏥</span>
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">Awaiting Clinical Selection</p>
             </div>
           )}
         </div>

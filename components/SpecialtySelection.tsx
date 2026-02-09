@@ -39,25 +39,25 @@ export default function SpecialtySelection() {
 
   const specialties = [
     {
-      id: 'dermatologist',
+      id: 'DERMATOLOGIST',
       title: 'Dermatologists',
       description: 'Specialized doctors in skin, hair, and nail conditions',
       icon: '👨‍⚕️',
     },
     {
-      id: 'medical-officer',
+      id: 'MEDICAL_OFFICER',
       title: 'Medical Officers',
       description: 'Licensed medical practitioners providing general healthcare',
       icon: '🩺',
     },
     {
-      id: 'registered-nurse',
+      id: 'REGISTERED_NURSE',
       title: 'Registered Nurses',
       description: 'Qualified nurses providing patient care and support',
       icon: '👩‍⚕️',
     },
     {
-      id: 'skincare-consultant',
+      id: 'CONSULTANT',
       title: 'Skincare Consultants',
       description: 'Experts in skincare treatments and product recommendations',
       icon: '💆‍♀️',
@@ -69,8 +69,6 @@ export default function SpecialtySelection() {
       router.push(`/register?specialty=${selectedSpecialty}`);
     }
   };
-
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">

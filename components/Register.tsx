@@ -254,6 +254,7 @@ export default function RegistrationForm() {
       setLoading(false);
       return false;
     }
+    
 
     // Validate file sizes (5MB = 5 * 1024 * 1024 bytes)
     const maxSize = 5 * 1024 * 1024;
@@ -322,6 +323,7 @@ export default function RegistrationForm() {
     if (!validateStep3()) {
       return;
     }
+
 
     try {
       toast.info("Submitting your application...");
@@ -447,7 +449,7 @@ export default function RegistrationForm() {
         toast.error(
           data.message || "Failed to submit application. Please try again.",
         );
-        setLoading
+        setLoading(false); // FIXED: Added parentheses
       }
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -1020,6 +1022,7 @@ export default function RegistrationForm() {
                     accept=".pdf,.jpg,.jpeg,.png"
                     onChange={(e) => handleDocumentUpload(e, "degreeDocument")}
                     className="hidden"
+                    required
                   />
                 </label>
               </div>
