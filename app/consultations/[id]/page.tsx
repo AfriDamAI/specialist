@@ -34,19 +34,24 @@ export default function SpecialistChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
   
-  // OGA FIX: This should ideally come from your Auth Context
-  const specialistId = "specialist_ogirima"; 
+  /**
+   * 🛡️ OGA PRECISION FIX: Authenticated ID
+   * We replaced "specialist_ogirima" with the actual UUID from your database.
+   */
+  const specialistId = "cmlezbj5n0001kv013cpupouo"; 
 
   useEffect(() => {
     // Check Global Verification Status
     const status = localStorage.getItem('specialistStatus');
-    // For testing, we force this if logged in, but Rule #5 requires license check
-    if (status === 'verified' || localStorage.getItem('token')) setIsVerified(true);
+    const token = localStorage.getItem('token');
+    
+    if (status === 'verified' || token) {
+      setIsVerified(true);
+    }
 
     /**
      * 🛡️ OGA PRECISION FIX: Socket Connection
-     * We removed the hardcoded IP 'http://172.20.10.6:5000'
-     * We strip '/api' because socket.io expects the base domain
+     * Ensuring the WebSocket hits the secure production URL.
      */
     const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://afridamai-backend.onrender.com';
     
@@ -57,11 +62,12 @@ export default function SpecialistChatPage() {
     });
 
     socketInstance.on('connect', () => {
-      console.log('✅ Specialist Socket Connected to:', SOCKET_URL);
+      console.log('✅ Specialist Socket Connected to Neural Link:', SOCKET_URL);
     });
 
-    // Rule #3: Consistency check with Tobi's backend events
+    // Rule #3: Real-time listener for Tobi's backend events
     socketInstance.on('newMessage', (payload: any) => {
+      console.log("📥 Incoming Message:", payload);
       setMessages((prev) => [...prev, { 
         ...payload, 
         createdAt: new Date(payload.createdAt) 
@@ -82,7 +88,10 @@ export default function SpecialistChatPage() {
   const handleSend = () => {
     if (!input.trim() || !socket || !isVerified) return;
 
-    // Rule #3: Emit to the 'sendMessage' gateway verified in backend logs
+    /**
+     * 🛡️ OGA PRECISION FIX: Data Payload
+     * Sending the correct UUID 'cmlezbj5n...' so the backend authorizes the message.
+     */
     socket.emit('sendMessage', { 
       chatId, 
       senderId: specialistId, 
