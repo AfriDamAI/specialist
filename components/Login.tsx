@@ -12,12 +12,19 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  /**
+   * 🛡️ OGA PRECISION FIX: Explicit API URL Logic
+   * We ensure the fallback is the production Render link, not the local IP.
+   */
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://afridamai-backend.onrender.com/api';
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/specialist/login`, {
+      // Rule #3: Ensuring consistency with the backend auth gateway
+      const response = await fetch(`${BASE_URL}/auth/specialist/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -28,13 +35,18 @@ export default function LoginForm() {
       if (response.ok) {
         localStorage.setItem('token', data.accessToken);
         localStorage.setItem('specialistName', data.specialist?.name || 'Specialist');
+        
+        // Rule #5: Set initial status to assist the Chat Lock logic
+        localStorage.setItem('specialistStatus', data.specialist?.status || 'verified');
+        
         toast.success('Access Granted');
         router.push('/dashboard');
       } else {
         toast.error(data.message || 'Verification Failed');
       }
     } catch (error) {
-      toast.error('Connection Error: Is the backend live?');
+      console.error("Login Error:", error);
+      toast.error('Connection Error: The workstation cannot reach the neural link.');
     } finally {
       setLoading(false);
     }
