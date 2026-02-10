@@ -8,7 +8,6 @@ import {
   StarIcon,
   ShieldCheckIcon,
   InformationCircleIcon,
-  ArrowPathIcon,
   XMarkIcon,
   WalletIcon,
   QuestionMarkCircleIcon,
@@ -39,7 +38,7 @@ export default function AnalyticsPage() {
   const [analyticsData, setAnalyticsData] = useState({
     totalEarnings: 0,
     patientCount: 0,
-    successRate: 0,
+    accuracyRate: 0,
     weeklyPulse: [] as number[]
   });
 
@@ -53,12 +52,15 @@ export default function AnalyticsPage() {
 
     async function fetchProductionAnalytics() {
       try {
-        const response = await fetch(`${API_URL}/consultations`);
+        // 🛡️ RE-ENFORCED SINGULAR PATH: Verified via Render Shell
+        const response = await fetch(`${API_URL}/consultation`);
         const data = await response.json();
         
-        if (data.succeeded && data.data) {
-          setRawCases(data.data);
-          const revenue = data.data.reduce((acc: number, item: any) => {
+        if (data.succeeded && data.resultData) {
+          const cases = Array.isArray(data.resultData) ? data.resultData : [];
+          setRawCases(cases);
+          
+          const revenue = cases.reduce((acc: number, item: any) => {
             const tier = (item.planTier || 'Starter') as keyof typeof PAYOUT_MATRIX;
             const payout = PAYOUT_MATRIX[tier]?.[roleKey] || 0;
             return acc + payout;
@@ -66,8 +68,8 @@ export default function AnalyticsPage() {
 
           setAnalyticsData({
             totalEarnings: revenue,
-            patientCount: data.data.length,
-            successRate: data.data.length > 0 ? 98.2 : 0,
+            patientCount: cases.length,
+            accuracyRate: cases.length > 0 ? 98.2 : 0,
             weeklyPulse: Array.from({ length: 12 }, () => Math.floor(Math.random() * 40) + 60)
           });
         }
@@ -86,17 +88,17 @@ export default function AnalyticsPage() {
     const doc = new jsPDF();
     const roleKey = specialistRole.replace(/\s/g, '') as keyof typeof PAYOUT_MATRIX.Instant;
 
-    // Header
+    // Header styling
     doc.setFontSize(22);
-    doc.text('AFRIDAM AI - CLINICAL EARNINGS', 14, 20);
+    doc.text('AFRIDAM AI - EARNINGS REPORT', 14, 20);
     doc.setFontSize(10);
-    doc.text(`Specialist: ${localStorage.getItem('specialistName') || 'Ogirima Obey'}`, 14, 30);
+    doc.text(`Specialist: ${localStorage.getItem('specialistName') || 'Personnel'}`, 14, 30);
     doc.text(`Role: ${specialistRole}`, 14, 35);
     doc.text(`Report Date: ${new Date().toLocaleDateString()}`, 14, 40);
 
     const tableData = rawCases.map((c: any, i) => [
       i + 1,
-      c.name || 'Anonymous',
+      c.patient ? `${c.patient.firstName} ${c.patient.lastName}` : 'Patient',
       c.planTier || 'Starter',
       new Date(c.createdAt).toLocaleDateString(),
       `N${(PAYOUT_MATRIX[(c.planTier || 'Starter') as keyof typeof PAYOUT_MATRIX][roleKey] || 0).toLocaleString()}`
@@ -104,21 +106,22 @@ export default function AnalyticsPage() {
 
     autoTable(doc, {
       startY: 50,
-      head: [['#', 'Patient Name', 'Plan Tier', 'Date', 'Payout']],
+      head: [['#', 'Patient Name', 'Tier', 'Date', 'Amount']],
       body: tableData,
       theme: 'grid',
-      headStyles: { fillStyle: 'F', fillColor: [0, 0, 0] }
+      // ✅ FIXED: Removed 'fillStyle' to satisfy TypeScript compiler
+      headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] }
     });
 
     doc.save(`AfriDam_Earnings_${new Date().getMonth() + 1}_2026.pdf`);
-    toast.success("Earnings Report Downloaded.");
+    toast.success("Earnings Report Saved.");
   };
 
   const handleWithdrawal = () => {
     const amount = parseFloat(withdrawalAmount);
-    if (isNaN(amount) || amount <= 0) return toast.error("Enter valid amount.");
-    if (amount > analyticsData.totalEarnings) return toast.error("Insufficient funds.");
-    toast.success(`Withdrawal of ₦${amount.toLocaleString()} initiated.`);
+    if (isNaN(amount) || amount <= 0) return toast.error("Enter a valid amount.");
+    if (amount > analyticsData.totalEarnings) return toast.error("Insufficient balance.");
+    toast.success(`Withdrawal of ₦${amount.toLocaleString()} requested.`);
     setIsModalOpen(false);
     setWithdrawalAmount('');
   };
@@ -127,15 +130,15 @@ export default function AnalyticsPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-7xl mx-auto space-y-8 pb-24 text-left">
+      <div className="max-w-7xl mx-auto space-y-8 pb-24 text-left italic">
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1">
           <div>
             <h1 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">
-              Performance <span className="text-[#FF7A59]">Pulse</span>
+              Earnings <span className="text-[#FF7A59]">Overview</span>
             </h1>
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mt-1">
-              Revenue Analytics • {specialistRole} Rank
+              Performance Metrics • {specialistRole}
             </p>
           </div>
           
@@ -143,10 +146,10 @@ export default function AnalyticsPage() {
             <div className="flex flex-wrap items-center gap-3">
                <button 
                 onClick={downloadReport}
-                className="flex items-center gap-2 p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-100 transition-all"
+                className="flex items-center gap-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-[#FF7A59] transition-all"
               >
                 <DocumentArrowDownIcon className="w-5 h-5" />
-                Export PDF
+                Save Report
               </button>
                <button 
                 onClick={() => setShowRates(!showRates)}
@@ -156,24 +159,24 @@ export default function AnalyticsPage() {
               </button>
               <button 
                 onClick={() => setIsModalOpen(true)}
-                className="bg-black dark:bg-white text-white dark:text-black px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-2xl active:scale-95 transition-all"
+                className="bg-black dark:bg-white text-white dark:text-black px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-2xl transition-all"
               >
                 <WalletIcon className="w-4 h-4" />
-                Request Payout
+                Withdraw Funds
               </button>
             </div>
           )}
         </div>
 
         {showRates && (
-          <div className="bg-[#FF7A59] rounded-[2.5rem] p-8 text-white animate-in slide-in-from-top-4 duration-500 shadow-xl">
-            <h3 className="text-xs font-black uppercase tracking-widest mb-6 italic">Live Payout Matrix: {specialistRole}</h3>
+          <div className="bg-[#FF7A59] rounded-[2.5rem] p-8 text-white shadow-xl">
+            <h3 className="text-xs font-black uppercase tracking-widest mb-6 italic">Current Rates: {specialistRole}</h3>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {Object.keys(PAYOUT_MATRIX).map((tier) => (
                 <div key={tier} className="bg-white/10 p-4 rounded-2xl backdrop-blur-md">
                   <p className="text-[9px] font-black uppercase opacity-60 tracking-widest">{tier}</p>
                   <p className="text-lg font-black tracking-tighter mt-1">
-                    ₦{PAYOUT_MATRIX[tier as keyof typeof PAYOUT_MATRIX][roleKey]?.toLocaleString() || 'N/A'}
+                    ₦{PAYOUT_MATRIX[tier as keyof typeof PAYOUT_MATRIX][roleKey]?.toLocaleString() || '0'}
                   </p>
                 </div>
               ))}
@@ -182,49 +185,47 @@ export default function AnalyticsPage() {
         )}
 
         <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 transition-all duration-500 ${!isVerified ? 'opacity-50 grayscale' : 'opacity-100'}`}>
-          <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm group">
-            <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-2xl group-hover:bg-[#FF7A59]/10 transition-colors">
+          <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+            <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-2xl w-fit">
               <StarIcon className="w-5 h-5 text-amber-400" />
             </div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6 italic">Clinical Rating</p>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6 italic">Service Rating</p>
             <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter mt-1">4.9 / 5.0</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm group">
-            <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-2xl group-hover:bg-[#FF7A59]/10 transition-colors">
+          <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+            <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-2xl w-fit">
               <BanknotesIcon className="w-5 h-5 text-green-500" />
             </div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6 italic">Net Earnings</p>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6 italic">Available Balance</p>
             <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter mt-1">
               ₦{analyticsData.totalEarnings.toLocaleString()}
             </p>
           </div>
-          <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm group">
-            <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-2xl group-hover:bg-[#FF7A59]/10 transition-colors">
+          <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+            <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-2xl w-fit">
               <ArrowTrendingUpIcon className="w-5 h-5 text-blue-500" />
             </div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6 italic">Growth Velocity</p>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6 italic">System Accuracy</p>
             <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter mt-1">98.2%</p>
           </div>
         </div>
 
-        {/* Dynamic Growth Chart Area */}
-        <div className="relative">
-          {!isVerified && (
-            <div className="absolute inset-0 z-30 backdrop-blur-xl bg-white/20 dark:bg-gray-950/20 flex items-center justify-center rounded-[3.5rem] border-2 border-dashed border-gray-100 dark:border-gray-800">
-              <div className="bg-white dark:bg-gray-900 p-12 rounded-[3.5rem] shadow-2xl text-center max-w-md animate-in zoom-in">
-                <ShieldCheckIcon className="w-12 h-12 text-[#FF7A59] animate-pulse mx-auto mb-6" />
-                <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Identity Locked</h3>
-                <p className="text-xs text-gray-500 font-bold mt-4 uppercase">Complete vetting to unlock specialized revenue data.</p>
-              </div>
-            </div>
-          )}
+        {/* Lock Shield for Unverified */}
+        {!isVerified && (
+          <div className="bg-gray-50 dark:bg-gray-900/50 p-20 rounded-[3.5rem] border-2 border-dashed border-gray-100 dark:border-gray-800 text-center">
+            <ShieldCheckIcon className="w-12 h-12 text-[#FF7A59] mx-auto mb-6" />
+            <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Data Protected</h3>
+            <p className="text-xs text-gray-500 font-bold mt-4 uppercase">Complete verification to view your revenue charts.</p>
+          </div>
+        )}
 
-          <div className={`grid grid-cols-1 lg:grid-cols-12 gap-8 ${!isVerified ? 'opacity-10 pointer-events-none grayscale' : 'opacity-100'}`}>
-            <div className="lg:col-span-8 bg-white dark:bg-gray-800 rounded-[3.5rem] border border-gray-100 dark:border-gray-700 p-10 flex flex-col justify-between min-h-[450px]">
-               <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Growth Curve</h3>
+        {isVerified && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-8 bg-white dark:bg-gray-800 rounded-[3.5rem] border border-gray-100 dark:border-gray-700 p-10 min-h-[400px] flex flex-col justify-between">
+               <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Monthly Growth</h3>
                <div className="flex-1 flex items-end gap-3 pt-10 pb-4">
                   {analyticsData.weeklyPulse.map((h, i) => (
-                    <div key={i} className="flex-1 bg-gray-50 dark:bg-gray-900 rounded-t-xl relative group overflow-hidden">
+                    <div key={i} className="flex-1 bg-gray-50 dark:bg-gray-900 rounded-t-xl relative overflow-hidden">
                        <div className="absolute bottom-0 left-0 right-0 bg-[#FF7A59] rounded-t-xl transition-all duration-1000" style={{ height: `${h}%` }} />
                     </div>
                   ))}
@@ -234,29 +235,27 @@ export default function AnalyticsPage() {
                </div>
             </div>
 
-            <div className="lg:col-span-4 space-y-6">
-               <div className="bg-black dark:bg-white p-8 rounded-[3rem] text-white dark:text-black shadow-2xl transition-colors">
-                  <div className="flex items-center gap-3 mb-6">
-                     <InformationCircleIcon className="w-6 h-6 text-[#FF7A59]" />
-                     <h3 className="text-[10px] font-black uppercase tracking-widest leading-none">Intelligence</h3>
-                  </div>
-                  <p className="text-sm font-bold leading-relaxed tracking-tight uppercase italic">
-                    You have successfully triaged <span className="text-[#FF7A59]">{analyticsData.patientCount}</span> cases. Payouts are processed within 24 hours of request.
-                  </p>
+            <div className="lg:col-span-4 bg-black dark:bg-white p-10 rounded-[3.5rem] text-white dark:text-black">
+               <div className="flex items-center gap-3 mb-6">
+                  <InformationCircleIcon className="w-6 h-6 text-[#FF7A59]" />
+                  <h3 className="text-[10px] font-black uppercase tracking-widest">Summary</h3>
                </div>
+               <p className="text-base font-bold leading-relaxed tracking-tight uppercase italic">
+                 You have handled <span className="text-[#FF7A59]">{analyticsData.patientCount}</span> cases. Payments are usually processed within 24 hours.
+               </p>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Payout Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsModalOpen(false)}></div>
-            <div className="bg-white dark:bg-gray-900 w-full max-w-md p-10 rounded-[3.5rem] relative z-10 shadow-2xl border border-gray-100 dark:border-gray-800 animate-in zoom-in duration-300">
+            <div className="bg-white dark:bg-gray-900 w-full max-w-md p-10 rounded-[3.5rem] relative z-10 shadow-2xl border border-gray-100 dark:border-gray-800">
               <button onClick={() => setIsModalOpen(false)} className="absolute top-8 right-8 text-gray-400 hover:text-black dark:hover:text-white transition-colors">
                 <XMarkIcon className="w-6 h-6" />
               </button>
-              <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Request <span className="text-[#FF7A59]">Payout</span></h2>
+              <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Withdraw <span className="text-[#FF7A59]">Funds</span></h2>
               <p className="text-[10px] font-bold text-gray-400 uppercase mt-2">Available: ₦{analyticsData.totalEarnings.toLocaleString()}</p>
               
               <div className="mt-8 space-y-4">
@@ -264,14 +263,14 @@ export default function AnalyticsPage() {
                   type="number" 
                   value={withdrawalAmount}
                   onChange={(e) => setWithdrawalAmount(e.target.value)}
-                  placeholder="Amount in ₦"
-                  className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-2xl px-6 py-4 text-sm font-black text-gray-900 dark:text-white focus:ring-2 focus:ring-[#FF7A59] outline-none shadow-inner"
+                  placeholder="Enter Amount"
+                  className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-2xl px-6 py-4 text-sm font-black text-gray-900 dark:text-white focus:ring-2 focus:ring-[#FF7A59] outline-none"
                 />
                 <button 
                   onClick={handleWithdrawal}
-                  className="w-full bg-[#FF7A59] text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-[#FF7A59]/20 active:scale-95 transition-all"
+                  className="w-full bg-[#FF7A59] text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl"
                 >
-                  Confirm Transfer
+                  Send Request
                 </button>
               </div>
             </div>
