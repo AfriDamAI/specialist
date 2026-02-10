@@ -7,9 +7,10 @@ import {
   BanknotesIcon, 
   ShieldCheckIcon,
   DocumentCheckIcon,
-  ArrowPathIcon // FIXED: Added missing import
+  ArrowPathIcon 
 } from '@heroicons/react/24/solid';
-import { HotToastService } from '@ngxpert/hot-toast';
+// 🛡️ FIXED: Correct React implementation
+import { toast } from 'react-hot-toast';
 
 interface FinalizeProps {
   patientName: string;
@@ -18,15 +19,13 @@ interface FinalizeProps {
   onClose: () => void;
 }
 
-const toastService = new HotToastService();
-
 export default function FinalizeCaseModal({ patientName, chatId, isOpen, onClose }: FinalizeProps) {
   const [conclusion, setConclusion] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleFinalize = async () => {
     if (!conclusion.trim()) {
-      alert("Please provide a clinical conclusion before closing the case.");
+      toast.error("PLEASE PROVIDE A CLINICAL CONCLUSION");
       return;
     }
 
@@ -34,7 +33,7 @@ export default function FinalizeCaseModal({ patientName, chatId, isOpen, onClose
 
     // Rule #3: Simulate Production Payout & Archive Logic
     setTimeout(() => {
-      toastService.show(`Case Finalized. ₦15,000 added to your revenue.`, {
+      toast.success(`Case Finalized. ₦15,000 added to revenue.`, {
         icon: '💰',
         style: {
           background: '#000',
@@ -43,11 +42,15 @@ export default function FinalizeCaseModal({ patientName, chatId, isOpen, onClose
           fontSize: '10px',
           fontWeight: '900',
           textTransform: 'uppercase',
+          fontStyle: 'italic',
+          border: '1px solid rgba(255,122,89,0.2)'
         }
       });
+      
       setIsProcessing(false);
       onClose();
-      // Rule #5: Redirect to Analytics to see the new earnings
+      
+      // Rule #5: Redirect to verified Analytics path
       window.location.href = '/analytics';
     }, 2500);
   };
@@ -58,14 +61,14 @@ export default function FinalizeCaseModal({ patientName, chatId, isOpen, onClose
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose}></div>
       
-      <div className="bg-white dark:bg-gray-950 w-full max-w-lg rounded-[3.5rem] relative z-10 shadow-2xl border border-gray-100 dark:border-gray-800 p-10 animate-in zoom-in duration-300">
+      <div className="bg-white dark:bg-gray-950 w-full max-w-lg rounded-[3.5rem] relative z-10 shadow-2xl border border-gray-100 dark:border-gray-800 p-10 animate-in zoom-in duration-300 italic text-left">
         
         <button onClick={onClose} className="absolute top-8 right-8 text-gray-400 hover:text-black dark:hover:text-white transition-colors">
           <XMarkIcon className="w-6 h-6" />
         </button>
 
         <div className="text-center space-y-4">
-          <div className="w-20 h-20 bg-green-50 dark:bg-green-900/20 rounded-[2rem] flex items-center justify-center mx-auto text-left">
+          <div className="w-20 h-20 bg-green-50 dark:bg-green-900/20 rounded-[2rem] flex items-center justify-center mx-auto">
             <CheckBadgeIcon className="w-10 h-10 text-green-500" />
           </div>
           <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Finalize <span className="text-[#FF7A59]">Case</span></h2>
@@ -80,7 +83,7 @@ export default function FinalizeCaseModal({ patientName, chatId, isOpen, onClose
               value={conclusion}
               onChange={(e) => setConclusion(e.target.value)}
               placeholder="Enter final diagnosis or advice for the medical record..."
-              className="w-full bg-gray-50 dark:bg-gray-900 border-none rounded-[2rem] px-6 py-4 text-sm font-bold focus:ring-2 focus:ring-[#FF7A59] outline-none"
+              className="w-full bg-gray-50 dark:bg-gray-900 border-none rounded-[2rem] px-6 py-4 text-sm font-bold focus:ring-2 focus:ring-[#FF7A59] outline-none text-gray-900 dark:text-white"
             />
           </div>
 
