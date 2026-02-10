@@ -12,10 +12,7 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  /**
-   * 🛡️ OGA PRECISION FIX: Explicit API URL Logic
-   * We ensure the fallback is the production Render link, not the local IP.
-   */
+  // Rule #3: Environment-aware BASE_URL
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://afridamai-backend.onrender.com/api';
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -23,7 +20,7 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      // Rule #3: Ensuring consistency with the backend auth gateway
+      // Rule #5: Direct hit to the NestJS AuthController specialist/login endpoint
       const response = await fetch(`${BASE_URL}/auth/specialist/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -33,14 +30,27 @@ export default function LoginForm() {
       const data = await response.json();
 
       if (response.ok) {
+        /**
+         * 🛡️ OGA PRECISION FIX: 
+         * Your backend returns SpecialistAccessTokenDto: { accessToken, refreshToken, isActive, displayName, role }
+         */
         localStorage.setItem('token', data.accessToken);
-        localStorage.setItem('specialistName', data.specialist?.name || 'Specialist');
+        localStorage.setItem('refreshToken', data.refreshToken);
         
-        // Rule #5: Set initial status to assist the Chat Lock logic
-        localStorage.setItem('specialistStatus', data.specialist?.status || 'verified');
+        // Use 'displayName' directly as defined in AuthController specialistLogin
+        if (data.displayName) {
+          localStorage.setItem('specialistName', data.displayName);
+        }
         
-        toast.success('Access Granted');
-        router.push('/dashboard');
+        localStorage.setItem('specialistRole', data.role || 'Specialist');
+        
+        // Map 'isActive' to clinical verification status
+        localStorage.setItem('specialistStatus', data.isActive ? 'verified' : 'under_review');
+        
+        toast.success(`Access Granted. Welcome, ${data.displayName || 'Doctor'}`);
+        
+        // Rule #5: Hard refresh to ensure DashboardLayout re-reads the fresh LocalStorage
+        window.location.href = '/dashboard';
       } else {
         toast.error(data.message || 'Verification Failed');
       }
@@ -53,10 +63,10 @@ export default function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleLogin} className="space-y-6">
+    <form onSubmit={handleLogin} className="space-y-6 text-left">
       {/* Email Input */}
       <div className="space-y-2">
-        <label className="text-[11px] font-black uppercase tracking-widest text-gray-500 ml-1">
+        <label className="text-[11px] font-black uppercase tracking-widest text-gray-500 ml-1 italic">
           Professional Email
         </label>
         <input
@@ -65,20 +75,19 @@ export default function LoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="specialist@afridamai.com"
-          className="w-full px-6 py-4 bg-white border-2 border-gray-100 rounded-2xl text-gray-900 text-base font-semibold placeholder:text-gray-300 focus:border-[#FF7A59] focus:ring-4 focus:ring-[#FF7A59]/10 outline-none transition-all"
+          className="w-full px-6 py-4 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-800 rounded-2xl text-gray-900 dark:text-white text-base font-semibold placeholder:text-gray-300 focus:border-[#FF7A59] focus:ring-4 focus:ring-[#FF7A59]/10 outline-none transition-all italic"
         />
       </div>
 
-      {/* Password Input with Toggle and Forgot Link */}
+      {/* Password Input with Toggle */}
       <div className="space-y-2">
         <div className="flex justify-between items-center px-1">
-          <label className="text-[11px] font-black uppercase tracking-widest text-gray-500">
+          <label className="text-[11px] font-black uppercase tracking-widest text-gray-500 italic">
             Workstation Password
           </label>
           <button 
             type="button"
-            onClick={() => router.push('/forgot-password')}
-            className="text-[11px] font-black text-[#FF7A59] hover:text-orange-600 transition-colors uppercase tracking-widest"
+            className="text-[11px] font-black text-[#FF7A59] hover:text-orange-600 transition-colors uppercase tracking-widest italic"
           >
             Forgot Password?
           </button>
@@ -90,7 +99,7 @@ export default function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className="w-full px-6 py-4 bg-white border-2 border-gray-100 rounded-2xl text-gray-900 text-base font-semibold placeholder:text-gray-300 focus:border-[#FF7A59] focus:ring-4 focus:ring-[#FF7A59]/10 outline-none transition-all pr-14"
+            className="w-full px-6 py-4 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-800 rounded-2xl text-gray-900 dark:text-white text-base font-semibold placeholder:text-gray-300 focus:border-[#FF7A59] focus:ring-4 focus:ring-[#FF7A59]/10 outline-none transition-all pr-14 italic"
           />
           <button
             type="button"
@@ -105,7 +114,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-black text-white py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-gray-800 active:scale-[0.98] transition-all shadow-xl shadow-gray-200 disabled:opacity-50 mt-4"
+        className="w-full bg-black dark:bg-white text-white dark:text-black py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:opacity-90 active:scale-[0.98] transition-all shadow-xl shadow-gray-200 dark:shadow-none disabled:opacity-50 mt-4 italic"
       >
         {loading ? 'Authenticating...' : 'Enter Workstation'}
       </button>

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css"; // Rule #3: Critical fix for Toast styles
+// Rule #3: Relative path from app/ folder to root context/ folder
+import { NotificationProvider } from "../context/NotificationContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,7 +14,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Rule #6: Updated for production readiness
 export const metadata: Metadata = {
   title: "AfriDam AI | Specialist Portal",
   description: "Secure clinical gateway for AfriDam AI medical specialists and consultants.",
@@ -26,23 +25,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // Rule #5: suppressHydrationWarning is essential when using localStorage for theme/identity
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
-        <ToastContainer
-          position="top-right"
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="colored"
-        />
+        {/* Rule #5: NotificationProvider acts as the Neural Root for real-time alerts */}
+        <NotificationProvider>
+          {children}
+        </NotificationProvider>
       </body>
     </html>
   );
