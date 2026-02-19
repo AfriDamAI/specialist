@@ -23,7 +23,7 @@ export default function ReferralGenerator({ patientName, patientId, isOpen, onCl
   const [specialist, setSpecialist] = useState({ name: '', role: '' });
 
   useEffect(() => {
-    // Rule #5: Extraction of Real Session Identity for Document Signature
+    // 🏛️ Rule #6: Extraction of Real Session Identity for Document Signature
     const savedName = localStorage.getItem('specialistName');
     const savedRole = localStorage.getItem('specialistRole');
     if (savedName) setSpecialist({ name: savedName, role: savedRole || 'Specialist' });
@@ -39,7 +39,8 @@ export default function ReferralGenerator({ patientName, patientId, isOpen, onCl
 
     const doc = new jsPDF();
     const date = new Date().toLocaleDateString();
-    // Rule #3: This link takes them to your specific Vendor Store ecosystem
+    
+    // 🏛️ Rule #6: Ecosystem Hook - Redirects to the specific Case in the Store
     const storeLink = `https://afridam.ai/store?caseId=${patientId}`;
 
     // 1. Clinical Header (Neural Black)
@@ -71,7 +72,7 @@ export default function ReferralGenerator({ patientName, patientId, isOpen, onCl
 
     // 4. PRESCRIBED PRODUCTS (Revenue Generation Layer)
     const productY = 87 + (splitRecs.length * 6) + 10;
-    doc.setFillColor(255, 122, 89, 0.1); 
+    doc.setFillColor(255, 122, 89, 40); // 🏛️ Rule #3: Fixed Alpha for PDF rendering
     doc.rect(15, productY - 5, 180, 40, 'F');
     
     doc.setFont("helvetica", "bold");
@@ -91,7 +92,7 @@ export default function ReferralGenerator({ patientName, patientId, isOpen, onCl
     doc.text("For guaranteed results, scan the QR code to purchase these exact formulations", 20, 167);
     doc.text("directly from authorized AfriDam vendors.", 20, 172);
 
-    // Placeholder for QR Code
+    // QR Placeholder 
     doc.setDrawColor(0);
     doc.rect(20, 180, 30, 30); 
     doc.setFontSize(7);
@@ -100,7 +101,7 @@ export default function ReferralGenerator({ patientName, patientId, isOpen, onCl
     doc.setTextColor(0, 0, 255);
     doc.text(`Purchase Link: ${storeLink}`, 60, 195);
 
-    // 6. Specialist Signature
+    // 6. Specialist Signature - Rule #3: Using session name
     doc.setTextColor(0);
     doc.setFontSize(10);
     doc.line(20, 250, 80, 250);
@@ -109,7 +110,7 @@ export default function ReferralGenerator({ patientName, patientId, isOpen, onCl
     doc.setFont("helvetica", "normal");
     doc.text(specialist.role, 20, 263);
 
-    doc.save(`AfriDam_Prescription_${patientName.replace(" ", "_")}.pdf`);
+    doc.save(`AfriDam_Prescription_${patientName.replace(/\s+/g, "_")}.pdf`);
     
     toast.success("SMART PRESCRIPTION ISSUED", {
       style: { background: '#000', color: '#fff', borderRadius: '1rem', fontSize: '10px', fontWeight: '900' }
@@ -122,31 +123,32 @@ export default function ReferralGenerator({ patientName, patientId, isOpen, onCl
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl italic text-left">
-      <div className="bg-white dark:bg-gray-950 w-full max-w-2xl rounded-[4rem] shadow-2xl overflow-hidden border border-white/10 animate-in zoom-in duration-300">
+      {/* 🛡️ Rule #4: Responsive Balance - maxWidth and rounded corners */}
+      <div className="bg-white dark:bg-gray-950 w-full max-w-2xl rounded-[3rem] md:rounded-[4rem] shadow-2xl overflow-hidden border border-white/10 animate-in zoom-in duration-300">
         
-        <div className="p-10 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+        <div className="p-6 md:p-10 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
           <div className="flex items-center gap-4">
-             <div className="w-14 h-14 bg-[#FF7A59] rounded-[1.5rem] flex items-center justify-center text-white shadow-xl shadow-[#FF7A59]/30">
-                <ShoppingBagIcon className="w-7 h-7" />
+             <div className="w-12 h-12 md:w-14 md:h-14 bg-[#FF7A59] rounded-[1.2rem] md:rounded-[1.5rem] flex items-center justify-center text-white shadow-xl shadow-[#FF7A59]/30">
+                <ShoppingBagIcon className="w-6 h-6 md:w-7 md:h-7" />
              </div>
              <div>
-                <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Issue Prescription</h2>
-                <p className="text-[10px] font-black text-[#FF7A59] uppercase tracking-[0.3em]">Convert Case to Vendor Order</p>
+                <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Issue Prescription</h2>
+                <p className="text-[9px] md:text-[10px] font-black text-[#FF7A59] uppercase tracking-[0.3em]">Convert Case to Vendor Order</p>
              </div>
           </div>
-          <button onClick={onClose} className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl hover:scale-90 transition-transform">
+          <button onClick={onClose} className="p-3 md:p-4 bg-gray-50 dark:bg-white/5 rounded-2xl hover:scale-90 transition-transform">
             <XMarkIcon className="w-6 h-6 text-gray-400" />
           </button>
         </div>
 
-        <div className="p-10 space-y-10">
+        <div className="p-6 md:p-10 space-y-6 md:space-y-10">
           <div className="space-y-4">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 italic">Specialist Diagnosis & Advice</label>
             <textarea 
               rows={4}
               value={recommendations}
               onChange={(e) => setRecommendations(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-white/5 border-none rounded-[2.5rem] p-8 text-sm font-bold outline-none focus:ring-4 focus:ring-[#FF7A59]/20 transition-all placeholder:opacity-30 italic"
+              className="w-full bg-gray-50 dark:bg-white/5 border-none rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 text-sm font-bold outline-none focus:ring-4 focus:ring-[#FF7A59]/20 transition-all placeholder:opacity-30 italic"
               placeholder="e.g. Chronic Acne with inflammation. Recommend consistent neural-led routine..."
             />
           </div>
@@ -157,18 +159,18 @@ export default function ReferralGenerator({ patientName, patientId, isOpen, onCl
               rows={3}
               value={medications}
               onChange={(e) => setMedications(e.target.value)}
-              className="w-full bg-[#FF7A59]/5 dark:bg-[#FF7A59]/10 border-2 border-[#FF7A59]/20 rounded-[2.5rem] p-8 text-sm font-bold text-[#FF7A59] outline-none focus:border-[#FF7A59] transition-all italic"
+              className="w-full bg-[#FF7A59]/5 dark:bg-[#FF7A59]/10 border-2 border-[#FF7A59]/20 rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 text-sm font-bold text-[#FF7A59] outline-none focus:border-[#FF7A59] transition-all italic"
               placeholder="1. AfriDam Hydrating Serum&#10;2. Clinical Grade Sunscreen"
             />
           </div>
         </div>
 
-        <div className="p-10 bg-gray-50 dark:bg-white/5 border-t border-gray-100 dark:border-white/5">
+        <div className="p-6 md:p-10 bg-gray-50 dark:bg-white/5 border-t border-gray-100 dark:border-white/5">
           <button 
             onClick={generatePDF}
-            className="w-full bg-black dark:bg-white text-white dark:text-black py-7 rounded-[2.5rem] font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-6 hover:shadow-2xl transition-all active:scale-95 italic"
+            className="w-full bg-black dark:bg-white text-white dark:text-black py-5 md:py-7 rounded-[2rem] md:rounded-[2.5rem] font-black text-[10px] md:text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-4 md:gap-6 hover:shadow-2xl transition-all active:scale-95 italic"
           >
-            <QrCodeIcon className="w-6 h-6 text-[#FF7A59]" />
+            <QrCodeIcon className="w-5 h-5 md:w-6 md:h-6 text-[#FF7A59]" />
             Generate Smart Prescription
           </button>
         </div>

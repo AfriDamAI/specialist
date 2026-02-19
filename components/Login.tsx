@@ -12,15 +12,17 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Rule #3: Environment-aware BASE_URL
-  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://afridamai-backend.onrender.com/api';
+  // Rule #3 & #6: Ensuring we hit the correct backend port and path
+  // If your .env is just http://localhost:8080, this adds the /api automatically
+  const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  const BASE_URL = envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Rule #5: Direct hit to the NestJS AuthController specialist/login endpoint
+      // Humanizing the connection: Reaching out to your local Mac database
       const response = await fetch(`${BASE_URL}/auth/specialist/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -32,38 +34,38 @@ export default function LoginForm() {
       if (response.ok) {
         /**
          * 🛡️ OGA PRECISION FIX: 
-         * Your backend returns SpecialistAccessTokenDto: { accessToken, refreshToken, isActive, displayName, role }
+         * Storing the keys to your local workstation
          */
         localStorage.setItem('token', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
         
-        // Use 'displayName' directly as defined in AuthController specialistLogin
         if (data.displayName) {
           localStorage.setItem('specialistName', data.displayName);
         }
         
         localStorage.setItem('specialistRole', data.role || 'Specialist');
         
-        // Map 'isActive' to clinical verification status
+        // Mapping status for the specialist dashboard view
         localStorage.setItem('specialistStatus', data.isActive ? 'verified' : 'under_review');
         
         toast.success(`Access Granted. Welcome, ${data.displayName || 'Doctor'}`);
         
-        // Rule #5: Hard refresh to ensure DashboardLayout re-reads the fresh LocalStorage
+        // Rule #5: Forcing a clean entry into the dashboard
         window.location.href = '/dashboard';
       } else {
-        toast.error(data.message || 'Verification Failed');
+        // Simple human error message
+        toast.error(data.message || 'We could not verify these details.');
       }
     } catch (error) {
       console.error("Login Error:", error);
-      toast.error('Connection Error: The workstation cannot reach the neural link.');
+      toast.error('The workstation is offline. Please ensure your backend is running.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleLogin} className="space-y-6 text-left">
+    <form onSubmit={handleLogin} className="space-y-6 text-left max-w-md mx-auto">
       {/* Email Input */}
       <div className="space-y-2">
         <label className="text-[11px] font-black uppercase tracking-widest text-gray-500 ml-1 italic">
@@ -74,8 +76,8 @@ export default function LoginForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="specialist@afridamai.com"
-          className="w-full px-6 py-4 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-800 rounded-2xl text-gray-900 dark:text-white text-base font-semibold placeholder:text-gray-300 focus:border-[#FF7A59] focus:ring-4 focus:ring-[#FF7A59]/10 outline-none transition-all italic"
+          placeholder="specialist@afridam.com"
+          className="w-full px-6 py-4 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-800 rounded-2xl text-gray-900 dark:text-white text-base font-semibold focus:border-[#FF7A59] focus:ring-4 focus:ring-[#FF7A59]/10 outline-none transition-all italic"
         />
       </div>
 
@@ -99,12 +101,13 @@ export default function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className="w-full px-6 py-4 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-800 rounded-2xl text-gray-900 dark:text-white text-base font-semibold placeholder:text-gray-300 focus:border-[#FF7A59] focus:ring-4 focus:ring-[#FF7A59]/10 outline-none transition-all pr-14 italic"
+            className="w-full px-6 py-4 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-800 rounded-2xl text-gray-900 dark:text-white text-base font-semibold focus:border-[#FF7A59] focus:ring-4 focus:ring-[#FF7A59]/10 outline-none transition-all pr-14 italic"
           />
+          {/* Rule #4: Mobile-balanced eye icon toggle */}
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 transition-colors"
+            className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 transition-colors p-2"
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
@@ -114,7 +117,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-black dark:bg-white text-white dark:text-black py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:opacity-90 active:scale-[0.98] transition-all shadow-xl shadow-gray-200 dark:shadow-none disabled:opacity-50 mt-4 italic"
+        className="w-full bg-black dark:bg-white text-white dark:text-black py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:opacity-90 active:scale-[0.98] transition-all shadow-xl disabled:opacity-50 mt-4 italic"
       >
         {loading ? 'Authenticating...' : 'Enter Workstation'}
       </button>

@@ -4,67 +4,54 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
-  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  const router = useRouter();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  // Rule #3 & #6: Smart URL mapping to reach your local Mac backend
+  const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  const BASE_URL = envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    // Rule #3: Fallback logic for local development vs production
-    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://172.20.10.6:5000';
-
     try {
-      const response = await fetch(`${BASE_URL}/api/auth/specialist/login`, {
+      // Rule #5: Humanizing the connection to the workstation
+      const response = await fetch(`${BASE_URL}/auth/specialist/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
-      if (response.ok && data.resultData) {
-        const spec = data.resultData.specialist;
+      if (response.ok) {
+        /**
+         * 🛡️ OGA PRECISION FIX: 
+         * No 'resultData' here. We map directly to the keys returned by the backend.
+         */
+        localStorage.setItem('token', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        localStorage.setItem('specialistName', data.displayName || 'Specialist');
+        localStorage.setItem('specialistRole', data.role || 'Specialist');
+        localStorage.setItem('specialistStatus', data.isActive ? 'verified' : 'under_review');
 
-        // Rule #5: Defensive Identity Mapping
-        // We pull real data instead of hardcoded strings
-        const firstName = spec?.firstName || 'Specialist';
-        const lastName = spec?.lastName || '';
-        const role = spec?.role || 'Medical Personnel';
-
-        localStorage.setItem('token', data.resultData.accessToken);
-        localStorage.setItem('specialistId', spec?.id);
-        localStorage.setItem('specialistName', `${firstName} ${lastName}`.trim());
-        localStorage.setItem('specialistRole', role);
+        toast.success(`Access Granted. Welcome, ${data.displayName || 'Doctor'}.`);
         
-        // Rule #3: Syncing verification status from the Database
-        if (spec?.isVerified) {
-          localStorage.setItem('specialistStatus', 'verified');
-        } else {
-          localStorage.setItem('specialistStatus', 'under_review');
-        }
-
-        toast.success(`Access Granted. Welcome, ${firstName}.`);
-        
-        // Rule #5: Force window.location to ensure all Layouts re-read LocalStorage
+        // Rule #5: Hard refresh to ensure layout catches the new session
         window.location.href = '/dashboard';
       } else {
-        toast.error(data.message || 'Invalid credentials provided.');
+        toast.error(data.message || 'Identity verification failed.');
       }
     } catch (error) {
-      console.error("Login Connection Error:", error);
-      toast.error('Connection failed. Please verify the backend service status.');
+      console.error("Login Error:", error);
+      toast.error('The workstation is offline. Ensure the backend is running on port 8080.');
     } finally {
       setLoading(false);
     }
@@ -72,6 +59,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col justify-center py-12 px-6 lg:px-8 transition-colors text-left">
+      {/* 🏥 Visual Identity Section */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <div className="inline-flex items-center justify-center w-16 h-16 bg-black dark:bg-white rounded-3xl mb-6 shadow-xl">
           <span className="text-white dark:text-black text-3xl font-black italic">A</span>
@@ -86,35 +74,45 @@ export default function LoginPage() {
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-md animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="bg-gray-50 dark:bg-gray-900 py-10 px-8 shadow-2xl rounded-[3.5rem] border border-gray-100 dark:border-gray-800 sm:px-12">
+          
           <form className="space-y-8" onSubmit={handleSubmit}>
+            {/* Email Input */}
             <div className="space-y-2">
               <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 italic">
                 Clinical Email
               </label>
               <input
-                name="email"
                 type="email"
                 required
-                value={formData.email}
-                onChange={handleInputChange}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="block w-full px-6 py-4 border-none rounded-2xl shadow-inner bg-white dark:bg-gray-800 dark:text-white font-bold text-sm outline-none focus:ring-2 focus:ring-[#FF7A59]"
                 placeholder="doctor@afridam.ai"
               />
             </div>
 
+            {/* Password Input with Eye Toggle */}
             <div className="space-y-2">
               <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 italic">
                 Security Key
               </label>
-              <input
-                name="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={handleInputChange}
-                className="block w-full px-6 py-4 border-none rounded-2xl shadow-inner bg-white dark:bg-gray-800 dark:text-white font-bold text-sm outline-none focus:ring-2 focus:ring-[#FF7A59]"
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="block w-full px-6 py-4 border-none rounded-2xl shadow-inner bg-white dark:bg-gray-800 dark:text-white font-bold text-sm outline-none focus:ring-2 focus:ring-[#FF7A59] pr-12"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#FF7A59] transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             <button

@@ -14,6 +14,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon
 } from '@heroicons/react/24/solid';
+import { apiClient } from '@/lib/api-client'; // 🏛️ Rule #6: Centralized Handshake
 
 // Rule #3: Production Appointment Interface
 interface Appointment {
@@ -24,27 +25,32 @@ interface Appointment {
 }
 
 export default function AppointmentsPage() {
-  const [isVerified, setIsVerified] = useState(false);
+  /**
+   * 🛡️ Rule #3: Global Unlock applied.
+   * Defaulting to true to bypass the Academy loop for the clinical team.
+   */
+  const [isVerified, setIsVerified] = useState(true);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeShift, setActiveShift] = useState<'day' | 'night'>('day');
 
   useEffect(() => {
-    // Rule #5: Extraction of Real Session Identity
-    const status = localStorage.getItem('specialistStatus');
+    // 🛡️ Rule #5: Extraction of Real Session Identity
     const savedShift = localStorage.getItem('preferredShift') as 'day' | 'night';
-    
-    if (status === 'verified') setIsVerified(true);
     if (savedShift) setActiveShift(savedShift);
 
     async function fetchClinicalCalendar() {
       try {
-        // Rule #3: Singular path alignment
-        const response = await fetch('https://afridamai-backend.onrender.com/api/consultation');
-        const data = await response.json();
-        if (data.succeeded && data.resultData) {
-          // Ensuring we only map valid data
-          setAppointments(Array.isArray(data.resultData) ? data.resultData : []);
+        /**
+         * 🏛️ Rule #6: Precision Path.
+         * Switched from hardcoded Render URL to apiClient to ensure local JWT usage.
+         */
+        const response = await apiClient('/consultation');
+        const data = response?.data || response;
+        
+        if (data) {
+          // Ensuring we only map valid clinical data
+          setAppointments(Array.isArray(data) ? data : []);
         }
       } catch (error) {
         console.error("Calendar Sync Error:", error);
@@ -53,8 +59,8 @@ export default function AppointmentsPage() {
       }
     }
 
-    if (status === 'verified') fetchClinicalCalendar();
-    else setIsLoading(false);
+    // Unlocked: fetch always runs during this dev phase
+    fetchClinicalCalendar();
   }, []);
 
   const handleShiftToggle = (shift: 'day' | 'night') => {
@@ -72,7 +78,7 @@ export default function AppointmentsPage() {
     <DashboardLayout>
       <div className="max-w-7xl mx-auto space-y-6 pb-20 text-left italic">
         
-        {/* Header Section */}
+        {/* Header Section: Rule #4 Responsive Balance */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1">
           <div>
             <h1 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">
@@ -109,21 +115,10 @@ export default function AppointmentsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative">
           
-          {/* Rule #5: Security Lock Overlay */}
-          {!isVerified && (
-            <div className="absolute inset-0 z-30 backdrop-blur-md bg-white/5 dark:bg-gray-950/5 flex items-center justify-center rounded-[3rem]">
-              <div className="bg-white dark:bg-gray-900 p-10 rounded-[3.5rem] shadow-2xl text-center max-w-sm border border-gray-100 dark:border-gray-800">
-                <ShieldCheckIcon className="w-12 h-12 text-[#FF7A59] mx-auto mb-4" />
-                <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Schedule Locked</h3>
-                <p className="text-xs text-gray-500 font-bold mt-2 leading-relaxed uppercase">
-                  Please complete your training in the Academy to unlock your work calendar.
-                </p>
-              </div>
-            </div>
-          )}
+          {/* 🛡️ Rule #3: Academy Lock Overlay removed per Global Unlock instruction */}
 
           {/* Appointment List */}
-          <div className={`lg:col-span-8 space-y-4 transition-all duration-500 ${!isVerified ? 'opacity-20 pointer-events-none grayscale' : 'opacity-100'}`}>
+          <div className="lg:col-span-8 space-y-4">
              <div className="flex items-center justify-between px-2">
                 <h2 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest italic">
                   {activeShift === 'day' ? 'Daytime Appointments' : 'Nighttime Appointments'}
@@ -144,7 +139,7 @@ export default function AppointmentsPage() {
                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 text-center">
                   <InboxIcon className="w-12 h-12 text-gray-200 dark:text-gray-700 mb-4" />
                   <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">No Bookings</h3>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2">You don't have any appointments scheduled for today.</p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2">Your waiting list is currently clear.</p>
                </div>
              ) : (
                appointments.map((app) => (
@@ -171,8 +166,8 @@ export default function AppointmentsPage() {
              )}
           </div>
 
-          {/* Shift Insights */}
-          <div className={`lg:col-span-4 space-y-6 transition-all duration-500 ${!isVerified ? 'opacity-20 pointer-events-none grayscale' : 'opacity-100'}`}>
+          {/* Shift Insights: Rule #4 Balanced view */}
+          <div className="lg:col-span-4 space-y-6">
              <div className={`${activeShift === 'day' ? 'bg-gray-900' : 'bg-[#1A1A2E]'} dark:bg-black rounded-[3rem] p-8 text-white space-y-6 shadow-2xl relative overflow-hidden transition-colors`}>
                 <div className="flex items-center gap-3 text-[#FF7A59] relative z-10">
                    {activeShift === 'day' ? <SunIcon className="w-6 h-6" /> : <MoonIcon className="w-6 h-6 text-blue-400" />}

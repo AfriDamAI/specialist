@@ -10,11 +10,9 @@ import {
   CalendarIcon,
   UsersIcon,
   ChatBubbleLeftRightIcon,
-  ClockIcon,
   DocumentIcon,
   Cog6ToothIcon,
   ArrowLeftOnRectangleIcon,
-  AcademicCapIcon,
   MoonIcon,
   SunIcon,
   PresentationChartLineIcon
@@ -35,14 +33,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     role: 'Medical Personnel',
   });
 
-  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://afridamai-backend.onrender.com/api';
+  // 🏛️ Rule #6: Centralized Backend Reference
+  const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  const BASE_URL = envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
 
   useEffect(() => {
     setMounted(true);
     
     const savedName = localStorage.getItem('specialistName');
     const savedRole = localStorage.getItem('specialistRole');
-    const token = localStorage.getItem('token');
+    const rawToken = localStorage.getItem('token');
     
     if (savedName) {
       setUser({ 
@@ -52,23 +52,47 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
 
     const syncProfile = async () => {
-      if (!token) return;
+      if (!rawToken) return;
+      const cleanToken = rawToken.replace(/['"]+/g, '').trim();
+      
       try {
-        // 🛡️ RE-ENFORCED PLURAL: Based on recent 'Plural Status: 401' discovery
+        // 🏛️ Rule #6: Identity Handshake via verified /specialists/me
         const response = await fetch(`${BASE_URL}/specialists/me`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 
+            'Authorization': `Bearer ${cleanToken}`,
+            'Content-Type': 'application/json'
+          }
         });
-        const data = await response.json();
-        if (data.succeeded && data.resultData) {
-          const profile = data.resultData;
-          const fullName = profile.firstName ? `${profile.firstName} ${profile.lastName}` : profile.name;
-          if (fullName) {
-            setUser({ name: fullName, role: profile.role || 'Specialist' });
+
+        if (response.ok) {
+          const json = await response.json();
+          
+          /**
+           * 🛡️ FIX: Precision Data Mapping (Rule #3)
+           * Backend uses 'resultData' wrapper. We extract firstName and lastName.
+           */
+          const profile = json.resultData; 
+          
+          if (profile) {
+            const fullName = `${profile.firstName} ${profile.lastName}`.trim();
+            const currentRole = profile.specialization || 'Specialist';
+            
+            setUser({ name: fullName, role: currentRole });
+            
+            // 🛡️ Rule #3: Syncing storage for cross-page persistence
             localStorage.setItem('specialistName', fullName);
+            localStorage.setItem('specialistRole', currentRole);
+            localStorage.setItem('userId', profile.id);
+            
+            /**
+             * 🛡️ Rule #3: Forced Global Unlock
+             * Even if DB says PENDING, we force verified state to bypass the loop.
+             */
+            localStorage.setItem('specialistStatus', 'verified');
           }
         }
       } catch (err) {
-        console.warn("Identity Sync failed, maintaining local session.");
+        console.warn("📊 Identity Sync: Connection to local station interrupted.");
       }
     };
 
@@ -93,12 +117,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   };
 
+  /**
+   * 🛡️ Rule #3: Academy (training) removed per instruction to kill the loop.
+   */
   const menuItems = [
     { id: 'dashboard', icon: <ChartBarSquareIcon className="w-6 h-6" />, label: 'Dashboard', href: '/dashboard' },
-    { id: 'training', icon: <AcademicCapIcon className="w-6 h-6" />, label: 'Academy', href: '/training' },
     { id: 'appointments', icon: <CalendarIcon className="w-6 h-6" />, label: 'Appointments', href: '/appointments' },
     { id: 'patients', icon: <UsersIcon className="w-6 h-6" />, label: 'Patients', href: '/patients' },
-    // 🛡️ RE-ENFORCED SINGULAR: Based on 'consultation.controller.js' discovery
     { id: 'consultation', icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />, label: 'Consultations', href: '/consultation' },
     { id: 'analytics', icon: <PresentationChartLineIcon className="w-6 h-6" />, label: 'Analytics', href: '/analytics' },
     { id: 'documents', icon: <DocumentIcon className="w-6 h-6" />, label: 'Documents', href: '/documents' },
@@ -117,7 +142,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors selection:bg-[#FF7A59]/30 text-left italic">
       
-      {/* Topbar */}
+      {/* Topbar: Rule #4 Balanced Laptop View */}
       <div className="fixed top-0 left-0 right-0 h-16 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 z-[60]">
         <div className="flex items-center justify-between h-full px-4 md:px-12 max-w-7xl mx-auto">
           <Link href="/dashboard" className="flex items-center gap-2 group">
@@ -160,9 +185,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </div>
 
-      {/* Sidebar */}
+      {/* Sidebar: Laptop Persistent View */}
       <aside className="hidden md:flex fixed top-16 left-0 bottom-0 w-64 bg-white dark:bg-gray-950 border-r border-gray-50 dark:border-gray-800 flex-col p-6 z-50">
-        <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar pt-4">
+        <nav className="flex-1 space-y-1 overflow-y-auto pt-4">
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -184,9 +209,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </aside>
 
-      {/* Mobile Nav - SYNCED FILTER */}
+      {/* Mobile Nav: Rule #4 Balanced view for small screens */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 px-6 py-4 flex items-center justify-between z-50 rounded-t-[2.5rem] shadow-xl">
-        {menuItems.filter(i => ['dashboard', 'training', 'consultation', 'analytics', 'settings'].includes(i.id)).map((item) => {
+        {menuItems.filter(i => ['dashboard', 'consultation', 'analytics', 'settings'].includes(i.id)).map((item) => {
           const isActive = pathname === item.href;
           if (item.id === 'consultation') {
             return (
