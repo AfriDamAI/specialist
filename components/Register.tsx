@@ -183,35 +183,35 @@ export default function RegistrationForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 italic">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8 px-4 italic transition-colors">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-black mb-2 text-black tracking-tighter uppercase">SPECIALIST REGISTRATION</h1>
+          <h1 className="text-4xl font-black mb-2 text-black dark:text-white tracking-tighter uppercase">SPECIALIST REGISTRATION</h1>
         </div>
 
         {/* Steps Bar */}
         <div className="flex items-center justify-between mb-12 px-4">
           {[1, 2, 3].map((step) => (
             <div key={step} className="flex items-center flex-1">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-lg transition-all ${currentStep >= step ? "bg-black text-white" : "bg-gray-200 text-gray-400"}`}>
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-lg transition-all ${currentStep >= step ? "bg-black dark:bg-white text-white dark:text-black" : "bg-gray-200 dark:bg-gray-800 text-gray-400"}`}>
                 {step}
               </div>
-              {step < 3 && <div className={`flex-1 h-1 mx-2 ${currentStep > step ? "bg-black" : "bg-gray-200"}`} />}
+              {step < 3 && <div className={`flex-1 h-1 mx-2 ${currentStep > step ? "bg-black dark:bg-white" : "bg-gray-200 dark:bg-gray-800"}`} />}
             </div>
           ))}
         </div>
 
-        <div className="bg-white rounded-[3rem] shadow-2xl p-10 border border-gray-100">
+        <div className="bg-white dark:bg-gray-900 rounded-[3rem] shadow-2xl p-10 border border-gray-100 dark:border-gray-800">
           {currentStep === 1 && (
             <div className="space-y-6">
-              <h3 className="text-2xl font-black text-black uppercase tracking-tighter">Personal Info</h3>
+              <h3 className="text-2xl font-black text-black dark:text-white uppercase tracking-tighter">Personal Info</h3>
               <div className="flex flex-col items-center mb-8">
                 <div className="relative w-32 h-32 mb-4">
                   {formData.photoPreview ? (
                     <Image src={formData.photoPreview} alt="Preview" fill className="rounded-full object-cover border-4 border-[#FF7A59]" />
                   ) : (
-                    <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center border-4 border-dashed border-gray-300">
-                      <span className="text-4xl text-black">👤</span>
+                    <div className="w-32 h-32 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center border-4 border-dashed border-gray-300 dark:border-gray-700">
+                      <span className="text-4xl text-black dark:text-white">👤</span>
                     </div>
                   )}
                 </div>
@@ -233,7 +233,7 @@ export default function RegistrationForm() {
                 <InputField label="Date of Birth *" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleInputChange} type="date" />
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Gender *</label>
-                  <select name="gender" value={formData.gender} onChange={handleInputChange} className="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 focus:border-[#FF7A59] focus:outline-none transition bg-white text-black font-bold italic">
+                  <select name="gender" value={formData.gender} onChange={handleInputChange} className="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 dark:border-gray-800 focus:border-[#FF7A59] focus:outline-none transition bg-white dark:bg-gray-800 text-black dark:text-white font-bold italic">
                     <option value="">Select</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
@@ -246,10 +246,10 @@ export default function RegistrationForm() {
 
           {currentStep === 2 && (
             <div className="space-y-6">
-              <h3 className="text-2xl font-black text-black uppercase tracking-tighter">Clinical Expertise</h3>
+              <h3 className="text-2xl font-black text-black dark:text-white uppercase tracking-tighter">Clinical Expertise</h3>
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Primary Specialization *</label>
-                <select name="specialization" value={formData.specialization} onChange={handleInputChange} className="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 focus:border-[#FF7A59] focus:outline-none transition bg-white text-black font-bold italic">
+                <select name="specialization" value={formData.specialization} onChange={handleInputChange} className="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 dark:border-gray-800 focus:border-[#FF7A59] focus:outline-none transition bg-white dark:bg-gray-800 text-black dark:text-white font-bold italic">
                   <option value="">Select Specialization</option>
                   <option value="Registered Nurse">Registered Nurse</option>
                   <option value="Dermatologist">Dermatologist</option>
@@ -267,7 +267,7 @@ export default function RegistrationForm() {
 
           {currentStep === 3 && (
             <div className="space-y-6">
-              <h3 className="text-2xl font-black text-black uppercase tracking-tighter">Document Verification</h3>
+              <h3 className="text-2xl font-black text-black dark:text-white uppercase tracking-tighter">Document Verification</h3>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-8">Valid Practicing License and Identification Required</p>
               
               <DocumentUpload 
@@ -288,12 +288,12 @@ export default function RegistrationForm() {
 
           <div className="flex gap-4 mt-12">
             {currentStep > 1 && (
-              <button onClick={handlePrevious} className="flex-1 py-5 rounded-full font-black text-xs uppercase tracking-widest bg-gray-100 text-gray-500 hover:bg-gray-200 transition">← Back</button>
+              <button onClick={handlePrevious} className="flex-1 py-5 rounded-full font-black text-xs uppercase tracking-widest bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition">← Back</button>
             )}
             <button 
               onClick={currentStep < 3 ? handleNext : handleSubmit} 
               disabled={loading}
-              className="flex-1 py-5 rounded-full font-black text-xs uppercase tracking-widest bg-black text-white hover:bg-[#FF7A59] transition shadow-xl"
+              className="flex-1 py-5 rounded-full font-black text-xs uppercase tracking-widest bg-black dark:bg-white text-white dark:text-black hover:bg-[#FF7A59] dark:hover:bg-[#FF7A59] dark:hover:text-white transition shadow-xl"
             >
               {loading ? "Processing..." : currentStep < 3 ? "Next Step →" : "Finish Registration"}
             </button>
@@ -309,7 +309,7 @@ function InputField({ label, ...props }: any) {
   return (
     <div>
       <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">{label}</label>
-      <input {...props} className="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 focus:border-[#FF7A59] focus:outline-none transition bg-white text-black font-bold italic shadow-sm placeholder:text-gray-200" />
+      <input {...props} className="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 dark:border-gray-800 focus:border-[#FF7A59] focus:outline-none transition bg-white dark:bg-gray-800 text-black dark:text-white font-bold italic shadow-sm placeholder:text-gray-200 dark:placeholder:text-gray-600" />
     </div>
   );
 }
@@ -321,11 +321,11 @@ function DocumentUpload({ icon, title, file, onChange }: {
   onChange: (e: ChangeEvent<HTMLInputElement>) => void 
 }) {
   return (
-    <div className="border-2 border-dashed border-gray-200 rounded-[2rem] p-8 hover:border-[#FF7A59] transition bg-white shadow-sm">
+    <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-[2rem] p-8 hover:border-[#FF7A59] transition bg-white dark:bg-gray-800 shadow-sm">
       <label className="cursor-pointer block text-center">
-        <div className="text-4xl mb-4 text-black">{icon}</div>
-        <h4 className="font-black text-sm text-black uppercase tracking-tighter mb-2">{title}</h4>
-        <p className="text-[10px] font-bold text-black uppercase tracking-widest">
+        <div className="text-4xl mb-4 text-black dark:text-white">{icon}</div>
+        <h4 className="font-black text-sm text-black dark:text-white uppercase tracking-tighter mb-2">{title}</h4>
+        <p className="text-[10px] font-bold text-black dark:text-white uppercase tracking-widest">
           {file ? `✓ ${file.name}` : "Tap to upload document"}
         </p>
         <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={onChange} className="hidden" />

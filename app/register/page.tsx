@@ -19,7 +19,7 @@ function RegistrationLoader() {
 
 export default function RegisterPage() {
   return (
-    <div className="min-h-screen bg-white flex flex-col md:flex-row italic">
+    <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col md:flex-row italic transition-colors">
       
       {/* 🏛️ Left Side: Brand Context (Rule #4: Hidden on small screens) */}
       <div className="hidden md:flex md:w-1/3 bg-black p-12 flex-col justify-between text-white relative overflow-hidden">
@@ -53,16 +53,16 @@ export default function RegisterPage() {
       </div>
 
       {/* 🏛️ Right Side: Registration Form (Rule #4: Mobile-First) */}
-      <div className="flex-1 flex flex-col justify-center px-6 py-12 md:px-24 lg:px-32 bg-gray-50">
+      <div className="flex-1 flex flex-col justify-center px-6 py-12 md:px-24 lg:px-32 bg-gray-50 dark:bg-gray-900 transition-colors">
         <div className="max-w-md w-full mx-auto space-y-8">
           <div className="text-left">
-            <h1 className="text-3xl font-black text-gray-900 tracking-tight uppercase italic">Create Specialist Account</h1>
-            <p className="text-gray-500 font-medium mt-2 not-italic">
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight uppercase italic transition-colors">Create Specialist Account</h1>
+            <p className="text-gray-500 dark:text-gray-400 font-medium mt-2 not-italic transition-colors">
               Please provide your professional credentials to begin the verification process.
             </p>
           </div>
 
-          <div className="bg-white p-8 rounded-[3rem] shadow-2xl shadow-gray-200/50 border border-gray-100">
+          <div className="bg-white dark:bg-gray-950 p-8 rounded-[3rem] shadow-2xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-800 transition-all">
             {/* 🛡️ SYNERGY: Wrap RegistrationForm to handle local/cloud switching */}
             <Suspense fallback={<RegistrationLoader />}>
               <RegistrationForm />

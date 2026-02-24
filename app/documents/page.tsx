@@ -118,7 +118,7 @@ export default function DocumentsPage() {
             <h1 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">
               Clinical <span className="text-[#FF7A59]">Vault</span>
             </h1>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mt-1">
+            <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mt-1">
               Secure Document Management & Compliance
             </p>
           </div>
@@ -155,7 +155,7 @@ export default function DocumentsPage() {
                 <FolderIcon className="w-6 h-6 text-white" />
               </div>
               <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tighter group-hover:text-[#FF7A59] transition-colors italic">{cat.name}</h3>
-              <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest italic">{cat.count} Secure Files</p>
+              <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 mt-1 uppercase tracking-widest italic">{cat.count} Secure Files</p>
             </div>
           ))}
         </div>
@@ -188,10 +188,10 @@ export default function DocumentsPage() {
                     <div>
                       <p className="text-sm font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">{file.name}</p>
                       <div className="flex items-center gap-3 mt-1">
-                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">{file.type}</span>
-                        <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">{file.date}</span>
-                        <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                        <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic">{file.type}</span>
+                        <span className="w-1 h-1 bg-gray-300 dark:bg-gray-700 rounded-full"></span>
+                        <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic">{file.date}</span>
+                        <span className="w-1 h-1 bg-gray-300 dark:bg-gray-700 rounded-full"></span>
                         <span className="text-[9px] font-black uppercase tracking-widest flex items-center gap-1 italic text-green-500">
                           <CheckBadgeIcon className="w-3 h-3" />
                           Approved

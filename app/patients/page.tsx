@@ -106,7 +106,7 @@ export default function PatientsPage() {
             <h1 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">
               Patient <span className="text-[#FF7A59]">Directory</span>
             </h1>
-            <p className="text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-[0.3em] mt-1">
+            <p className="text-[10px] md:text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mt-1">
               Clinical Records & Case Management
             </p>
           </div>
@@ -174,8 +174,8 @@ export default function PatientsPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] font-bold text-gray-400 mt-2 uppercase flex items-center gap-2">
-                        <ChatBubbleBottomCenterTextIcon className="w-3 h-3 text-gray-300" />
+                      <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 mt-2 uppercase flex items-center gap-2">
+                        <ChatBubbleBottomCenterTextIcon className="w-3 h-3 text-gray-300 dark:text-gray-600" />
                         <span className="truncate italic">
                           {patient.lastMessage || 'No clinical notes recorded'}
                         </span>
@@ -185,7 +185,7 @@ export default function PatientsPage() {
 
                   <div className="flex items-center justify-between md:justify-end gap-8 border-t md:border-t-0 pt-4 md:pt-0 border-gray-50 dark:border-gray-700">
                     <div className="text-left md:text-right">
-                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none italic">Primary Condition</p>
+                      <p className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest leading-none italic">Primary Condition</p>
                       <span className="text-[11px] font-black uppercase text-gray-900 dark:text-white truncate block max-w-[150px] mt-2 italic">
                         {patient.title || 'In Review'}
                       </span>

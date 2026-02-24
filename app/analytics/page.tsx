@@ -13,6 +13,16 @@ import {
   QuestionMarkCircleIcon,
   DocumentArrowDownIcon
 } from '@heroicons/react/24/solid';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  Cell
+} from 'recharts';
 import { toast } from 'react-hot-toast';
 import { apiClient } from '@/lib/api-client'; // 🏛️ Rule #6: Centralized Handshake
 import jsPDF from 'jspdf';
@@ -38,6 +48,7 @@ export default function AnalyticsPage() {
   const [showRates, setShowRates] = useState(false);
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
   const [specialistRole, setSpecialistRole] = useState('Nurse');
+  const [isMounted, setIsMounted] = useState(false);
   
   /**
    * 🛡️ FIX: TypeScript Type Alignment
@@ -49,7 +60,7 @@ export default function AnalyticsPage() {
     totalEarnings: 0,
     patientCount: 0,
     accuracyRate: 0,
-    weeklyPulse: [] as number[]
+    weeklyPulse: Array.from({ length: 12 }, () => Math.floor(Math.random() * 40) + 60)
   });
 
   useEffect(() => {
@@ -58,6 +69,7 @@ export default function AnalyticsPage() {
     const roleKey = rawRole.replace(/\s/g, '') as keyof typeof PAYOUT_MATRIX.Instant;
     
     setSpecialistRole(rawRole);
+    setIsMounted(true);
 
     async function fetchProductionAnalytics() {
       try {
@@ -139,6 +151,12 @@ export default function AnalyticsPage() {
 
   const roleKey = specialistRole.replace(/\s/g, '') as keyof typeof PAYOUT_MATRIX.Instant;
 
+  // Transform weeklyPulse into Recharts format
+  const chartData = analyticsData.weeklyPulse.map((val, i) => ({
+    name: `W${i + 1}`,
+    value: val,
+  }));
+
   return (
     <DashboardLayout>
       <div className="w-full max-w-7xl mx-auto space-y-8 pb-24 text-left italic">
@@ -214,17 +232,61 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8 bg-white dark:bg-gray-800 rounded-[3.5rem] border border-gray-100 dark:border-gray-700 p-10 min-h-[400px] flex flex-col justify-between shadow-sm">
-             <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest italic">Monthly Growth</h3>
-             <div className="flex-1 flex items-end gap-3 pt-10 pb-4">
-                {analyticsData.weeklyPulse.map((h, i) => (
-                  <div key={i} className="flex-1 bg-gray-50 dark:bg-gray-900 rounded-t-xl relative overflow-hidden h-64">
-                     <div className="absolute bottom-0 left-0 right-0 bg-[#FF7A59] rounded-t-xl transition-all duration-1000" style={{ height: `${h}%` }} />
-                  </div>
-                ))}
+          <div className="lg:col-span-8 bg-white dark:bg-gray-950 rounded-[3.5rem] border border-gray-100 dark:border-gray-800 p-10 min-h-[400px] flex flex-col shadow-sm">
+             <div className="flex justify-between items-start mb-8">
+               <div>
+                 <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest italic">Monthly Growth</h3>
+                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Pulse Activity</p>
+               </div>
+               <div className="flex gap-2 items-center">
+                 <div className="w-2 h-2 rounded-full bg-[#FF7A59]"></div>
+                 <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Growth</span>
+               </div>
              </div>
-             <div className="flex justify-between text-[9px] font-black text-gray-400 uppercase tracking-widest pt-4 border-t border-gray-50 dark:border-gray-800">
-                <span>W1</span><span>W2</span><span>W3</span><span>W4</span><span>W5</span><span>W6</span><span>W7</span><span>W8</span>
+
+             <div className="flex-1 w-full h-[300px]">
+                {isMounted && (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#88888820" />
+                      <XAxis 
+                        dataKey="name" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 900 }}
+                        dy={10}
+                      />
+                      <YAxis 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 900 }}
+                      />
+                      <Tooltip 
+                        cursor={{ fill: 'transparent' }}
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            return (
+                              <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl shadow-2xl">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{payload[0].payload.name}</p>
+                                <p className="text-lg font-black text-[#FF7A59] mt-1 italic">{payload[0].value}%</p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Bar 
+                        dataKey="value" 
+                        radius={[10, 10, 10, 10]} 
+                        barSize={32}
+                      >
+                        {chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#FF7A59' : '#FF7A59cc'} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
              </div>
           </div>
 

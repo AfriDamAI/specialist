@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 // Rule #3: Relative path from app/ folder to root context/ folder
 import { NotificationProvider } from "../context/NotificationContext";
+import { ThemeProvider } from "../context/ThemeContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,10 +31,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* Rule #5: NotificationProvider acts as the Neural Root for real-time alerts */}
-        <NotificationProvider>
-          {children}
-        </NotificationProvider>
+        <ThemeProvider>
+          {/* Rule #5: NotificationProvider acts as the Neural Root for real-time alerts */}
+          <NotificationProvider>
+            {children}
+          </NotificationProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

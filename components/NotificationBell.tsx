@@ -108,7 +108,7 @@ export default function NotificationBell() {
                 <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-gray-100 dark:border-gray-700">
                   <BellIcon className="w-8 h-8 text-gray-200 dark:text-gray-700" />
                 </div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic text-black">
+                <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest italic">
                   Neural Inbox Clear
                 </p>
               </div>

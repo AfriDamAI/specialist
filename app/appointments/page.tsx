@@ -84,7 +84,7 @@ export default function AppointmentsPage() {
             <h1 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">
               Work <span className="text-[#FF7A59]">Schedule</span>
             </h1>
-            <p className="text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-[0.3em] mt-1">
+            <p className="text-[10px] md:text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] mt-1">
               Manage your time and view your bookings
             </p>
           </div>
@@ -136,14 +136,14 @@ export default function AppointmentsPage() {
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Loading Calendar...</p>
                </div>
              ) : appointments.length === 0 ? (
-               <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 text-center">
-                  <InboxIcon className="w-12 h-12 text-gray-200 dark:text-gray-700 mb-4" />
+               <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-950 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 text-center">
+                  <InboxIcon className="w-12 h-12 text-gray-200 dark:text-gray-800 mb-4" />
                   <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">No Bookings</h3>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2">Your waiting list is currently clear.</p>
+                  <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-2">Your waiting list is currently clear.</p>
                </div>
              ) : (
                appointments.map((app) => (
-                 <div key={app.id} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-6 rounded-[2.5rem] flex items-center justify-between group hover:border-[#FF7A59] transition-all cursor-pointer">
+                 <div key={app.id} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-6 rounded-[2.5rem] flex items-center justify-between group hover:border-[#FF7A59] transition-all cursor-pointer">
                     <div className="flex items-center gap-6">
                       <div className="text-center min-w-[60px] border-r border-gray-50 dark:border-gray-700 pr-6">
                         <p className="text-lg font-black text-gray-900 dark:text-white tracking-tighter">

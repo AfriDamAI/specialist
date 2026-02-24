@@ -19,12 +19,13 @@ import {
 } from '@heroicons/react/24/solid';
 import { toast } from 'react-hot-toast';
 import { apiClient } from '@/lib/api-client'; // 🏛️ Rule #6: Centralized Handshake
+import { useTheme } from '@/context/ThemeContext';
 
 export default function SettingsPage() {
   // 🛡️ Rule #3: Forced true to bypass the loop for development
   const [isVerified, setIsVerified] = useState(true);
   const [isEditingBank, setIsEditingBank] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   
   const [user, setUser] = useState({
@@ -41,13 +42,6 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    // 🛡️ Rule #5: Theme Synchronization
-    const theme = localStorage.getItem('theme');
-    if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setIsDarkMode(true);
-      document.documentElement.classList.add('dark');
-    }
-
     async function fetchFullProfile() {
       try {
         /**
@@ -85,16 +79,11 @@ export default function SettingsPage() {
     }
   }, []);
 
-  const toggleTheme = () => {
-    const nextMode = !isDarkMode;
-    setIsDarkMode(nextMode);
-    if (nextMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
+  const handleToggleTheme = () => {
+    toggleTheme();
+    if (!isDarkMode) {
       toast.success("Dark Mode Enabled");
     } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
       toast.success("Light Mode Enabled");
     }
   };
@@ -136,7 +125,7 @@ export default function SettingsPage() {
     {
       group: "Security & Interface",
       items: [
-        { label: "Interface Mode", value: isDarkMode ? "Dark Appearance" : "Light Appearance", icon: isDarkMode ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />, action: toggleTheme },
+        { label: "Interface Mode", value: isDarkMode ? "Dark Appearance" : "Light Appearance", icon: isDarkMode ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />, action: handleToggleTheme },
         { label: "Biometric & PIN Access", value: "Enabled", icon: <FingerPrintIcon className="w-5 h-5" /> },
         { label: "Notification Triage", value: "Push & Email", icon: <BellAlertIcon className="w-5 h-5" /> }
       ]
@@ -187,7 +176,7 @@ export default function SettingsPage() {
           <div className="lg:col-span-8 space-y-8">
             {settingsGroups.map((groupObj, gIdx) => (
               <div key={gIdx} className="space-y-4">
-                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] ml-4 italic">{groupObj.group}</h3>
+                <h3 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] ml-4 italic">{groupObj.group}</h3>
                 <div className="bg-white dark:bg-gray-950 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 divide-y divide-gray-50 dark:divide-gray-800 overflow-hidden shadow-sm">
                   {groupObj.items.map((item, iIdx) => (
                     <div 
