@@ -2,23 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import SpecialtySelection from '@/components/SpecialtySelection';
-import LoginForm from '@/components/Login'; // Rule #3: Now imports from components
 import Link from 'next/link';
+import { UserIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline';
 
 export default function EntryPage() {
   const router = useRouter();
-  const [showRegister, setShowRegister] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Rule #5: Strictly obey the auth state to prevent double-login
-    const token = localStorage.getItem('token');
-    if (token) {
-      router.push('/dashboard');
-    } else {
-      setLoading(false);
-    }
+    router.push('/login');
   }, [router]);
 
   if (loading) return null;

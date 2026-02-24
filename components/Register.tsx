@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { API_URL } from "@/lib/config";
 
 /**
  * 🏛️ Rule #5 & #6: Specialist Schema Interface
@@ -15,36 +16,27 @@ interface FormData {
   lastName: string;
   email: string;
   phoneNo: string;
-  dateOfBirth: string;
   gender: string;
   password: string;
-  medicalLicense: string;
-  licenseExpiry: string;
-  specialization: string; 
-  yearsOfExperience: string;
+  specialization: string;
   photo: File | null;
   photoPreview: string;
-  licenseDocument: File | null; 
+  licenseDocument: File | null;
   identificationDocument: File | null;
 }
 
 export default function RegistrationForm() {
   const searchParams = useSearchParams();
   const specialty = searchParams.get("specialty");
-  const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
     lastName: "",
     email: "",
     phoneNo: "",
-    dateOfBirth: "",
     gender: "",
     password: "",
-    medicalLicense: "",
-    licenseExpiry: "",
-    specialization: specialty || "", 
-    yearsOfExperience: "",
+    specialization: specialty || "SKINCARE_CONSULTANT",
     photo: null,
     photoPreview: "",
     licenseDocument: null,
@@ -52,6 +44,8 @@ export default function RegistrationForm() {
   });
 
   const router = useRouter();
+
+  const BASE_URL = API_URL;
 
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
@@ -81,53 +75,20 @@ export default function RegistrationForm() {
     }
   };
 
-  const validateStep1 = (): boolean => {
-    const requiredFields = ["firstName", "lastName", "email", "phoneNo", "password"];
+  const validateForm = (): boolean => {
+    const requiredFields = ["firstName", "lastName", "email", "phoneNo", "password", "gender", "specialization"];
     for (const field of requiredFields) {
       if (!formData[field as keyof FormData]) {
         toast.error(`Please fill in the ${field} field.`);
         return false;
       }
     }
-    if (!formData.photo) {
-      toast.error("Please upload your professional photo.");
-      return false;
-    }
     return true;
   };
 
-  const validateStep2 = (): boolean => {
-    const required = ["medicalLicense", "licenseExpiry", "specialization", "yearsOfExperience"];
-    for (const field of required) {
-      if (!formData[field as keyof FormData]) {
-        toast.error(`Please provide your ${field}.`);
-        return false;
-      }
-    }
-    return true;
-  };
-
-  const validateStep3 = (): boolean => {
-    if (!formData.licenseDocument || !formData.identificationDocument) {
-      toast.error("Practicing License and ID are required.");
-      return false;
-    }
-    return true;
-  };
-
-  const handleNext = () => {
-    if (currentStep === 1 && validateStep1()) setCurrentStep(2);
-    else if (currentStep === 2 && validateStep2()) setCurrentStep(3);
-  };
-
-  const handlePrevious = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!validateStep3()) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
     setLoading(true);
 
     try {
@@ -144,33 +105,31 @@ export default function RegistrationForm() {
       const licenseDocBase64 = formData.licenseDocument ? await convertToBase64(formData.licenseDocument) : "";
       const idDocBase64 = formData.identificationDocument ? await convertToBase64(formData.identificationDocument) : "";
 
-      // 🛡️ Rule #6: Match Specialist Model String[] requirement
-      const documents = [
-        `photo:${photoBase64}`,
-        `license:${licenseDocBase64}`,
-        `id:${idDocBase64}`,
-        `specialization:${formData.specialization}` // Tagged for dashboard parsing
-      ];
+      const documents = [];
+      if (licenseDocBase64) documents.push(`license:${licenseDocBase64}`);
+      if (idDocBase64) documents.push(`id:${idDocBase64}`);
 
       const payload = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         phoneNo: formData.phoneNo,
-        sex: formData.gender,
+        sex: formData.gender.toUpperCase(),
         password: formData.password,
         documents: documents,
+        avatarUrl: photoBase64 ? `data:image/jpeg;base64,${photoBase64}` : "",
+        type: formData.specialization,
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/specialist/register`, {
+      const response = await fetch(`${BASE_URL}/auth/specialist/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       if (response.ok) {
-        toast.success("Registration Successful!");
-        router.push("/dashboard");
+        toast.success("Registration Successful! Please log in.");
+        router.push("/login");
       } else {
         const error = await response.json();
         toast.error(error.message || "Registration failed.");
@@ -183,128 +142,86 @@ export default function RegistrationForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8 px-4 italic transition-colors">
-      <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-black mb-2 text-black dark:text-white tracking-tighter uppercase">SPECIALIST REGISTRATION</h1>
-        </div>
-
-        {/* Steps Bar */}
-        <div className="flex items-center justify-between mb-12 px-4">
-          {[1, 2, 3].map((step) => (
-            <div key={step} className="flex items-center flex-1">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-lg transition-all ${currentStep >= step ? "bg-black dark:bg-white text-white dark:text-black" : "bg-gray-200 dark:bg-gray-800 text-gray-400"}`}>
-                {step}
+    <div className="bg-white p-2 italic">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Avatar Section */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="relative w-24 h-24 mb-4">
+            {formData.photoPreview ? (
+              <Image src={formData.photoPreview} alt="Preview" fill className="rounded-full object-cover border-4 border-[#FF7A59]" />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-gray-50 flex items-center justify-center border-2 border-dashed border-gray-200 group-hover:border-[#FF7A59] transition-colors">
+                <span className="text-3xl grayscale opacity-30">👤</span>
               </div>
-              {step < 3 && <div className={`flex-1 h-1 mx-2 ${currentStep > step ? "bg-black dark:bg-white" : "bg-gray-200 dark:bg-gray-800"}`} />}
-            </div>
-          ))}
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 rounded-[3rem] shadow-2xl p-10 border border-gray-100 dark:border-gray-800">
-          {currentStep === 1 && (
-            <div className="space-y-6">
-              <h3 className="text-2xl font-black text-black dark:text-white uppercase tracking-tighter">Personal Info</h3>
-              <div className="flex flex-col items-center mb-8">
-                <div className="relative w-32 h-32 mb-4">
-                  {formData.photoPreview ? (
-                    <Image src={formData.photoPreview} alt="Preview" fill className="rounded-full object-cover border-4 border-[#FF7A59]" />
-                  ) : (
-                    <div className="w-32 h-32 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center border-4 border-dashed border-gray-300 dark:border-gray-700">
-                      <span className="text-4xl text-black dark:text-white">👤</span>
-                    </div>
-                  )}
-                </div>
-                <label className="cursor-pointer bg-[#FF7A59] text-white px-8 py-3 rounded-full font-black text-xs uppercase tracking-widest hover:scale-105 transition">
-                  {formData.photo ? "Change Photo" : "Upload Photo *"}
-                  <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-                </label>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="First Name *" name="firstName" value={formData.firstName} onChange={handleInputChange} />
-                <InputField label="Last Name *" name="lastName" value={formData.lastName} onChange={handleInputChange} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="Email *" name="email" value={formData.email} onChange={handleInputChange} type="email" />
-                <InputField label="Phone Number *" name="phoneNo" value={formData.phoneNo} onChange={handleInputChange} type="tel" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="Date of Birth *" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleInputChange} type="date" />
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Gender *</label>
-                  <select name="gender" value={formData.gender} onChange={handleInputChange} className="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 dark:border-gray-800 focus:border-[#FF7A59] focus:outline-none transition bg-white dark:bg-gray-800 text-black dark:text-white font-bold italic">
-                    <option value="">Select</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                  </select>
-                </div>
-              </div>
-              <InputField label="Create Password *" name="password" value={formData.password} onChange={handleInputChange} type="password" />
-            </div>
-          )}
-
-          {currentStep === 2 && (
-            <div className="space-y-6">
-              <h3 className="text-2xl font-black text-black dark:text-white uppercase tracking-tighter">Clinical Expertise</h3>
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Primary Specialization *</label>
-                <select name="specialization" value={formData.specialization} onChange={handleInputChange} className="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 dark:border-gray-800 focus:border-[#FF7A59] focus:outline-none transition bg-white dark:bg-gray-800 text-black dark:text-white font-bold italic">
-                  <option value="">Select Specialization</option>
-                  <option value="Registered Nurse">Registered Nurse</option>
-                  <option value="Dermatologist">Dermatologist</option>
-                  <option value="Medical Officer">Medical Officer</option>
-                  <option value="Skin Care Consultant">Skin Care Consultant</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="Medical License #" name="medicalLicense" value={formData.medicalLicense} onChange={handleInputChange} />
-                <InputField label="License Expiry *" name="licenseExpiry" value={formData.licenseExpiry} onChange={handleInputChange} type="date" />
-              </div>
-              <InputField label="Years of Experience *" name="yearsOfExperience" value={formData.yearsOfExperience} onChange={handleInputChange} type="number" />
-            </div>
-          )}
-
-          {currentStep === 3 && (
-            <div className="space-y-6">
-              <h3 className="text-2xl font-black text-black dark:text-white uppercase tracking-tighter">Document Verification</h3>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-8">Valid Practicing License and Identification Required</p>
-              
-              <DocumentUpload 
-                icon="📄" 
-                title="Practicing License *" 
-                file={formData.licenseDocument} 
-                onChange={(e: ChangeEvent<HTMLInputElement>) => handleDocumentUpload(e, "licenseDocument")} 
-              />
-              
-              <DocumentUpload 
-                icon="🪪" 
-                title="Means of Identification *" 
-                file={formData.identificationDocument} 
-                onChange={(e: ChangeEvent<HTMLInputElement>) => handleDocumentUpload(e, "identificationDocument")} 
-              />
-            </div>
-          )}
-
-          <div className="flex gap-4 mt-12">
-            {currentStep > 1 && (
-              <button onClick={handlePrevious} className="flex-1 py-5 rounded-full font-black text-xs uppercase tracking-widest bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition">← Back</button>
             )}
-            <button 
-              onClick={currentStep < 3 ? handleNext : handleSubmit} 
-              disabled={loading}
-              className="flex-1 py-5 rounded-full font-black text-xs uppercase tracking-widest bg-black dark:bg-white text-white dark:text-black hover:bg-[#FF7A59] dark:hover:bg-[#FF7A59] dark:hover:text-white transition shadow-xl"
-            >
-              {loading ? "Processing..." : currentStep < 3 ? "Next Step →" : "Finish Registration"}
-            </button>
+          </div>
+          <label className="cursor-pointer bg-black text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-[#FF7A59] transition-all active:scale-95 shadow-lg">
+            {formData.photo ? "Change Portrait" : "Upload Avatar"}
+            <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+          </label>
+        </div>
+
+        {/* Basic Info Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <InputField label="First Name" name="firstName" value={formData.firstName} onChange={handleInputChange} placeholder="John" />
+          <InputField label="Last Name" name="lastName" value={formData.lastName} onChange={handleInputChange} placeholder="Doe" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <InputField label="Clinical Email" name="email" value={formData.email} onChange={handleInputChange} type="email" placeholder="doctor@afridam.ai" />
+          <InputField label="Phone Number" name="phoneNo" value={formData.phoneNo} onChange={handleInputChange} type="tel" placeholder="+234..." />
+        </div>
+
+        {/* Selection Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">Sex</label>
+            <select name="gender" value={formData.gender} onChange={handleInputChange} className="w-full px-6 py-4 rounded-2xl border-none bg-gray-50 focus:ring-2 focus:ring-[#FF7A59] outline-none transition font-bold text-sm">
+              <option value="">Select</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">Specialist Type</label>
+            <select name="specialization" value={formData.specialization} onChange={handleInputChange} className="w-full px-6 py-4 rounded-2xl border-none bg-gray-50 focus:ring-2 focus:ring-[#FF7A59] outline-none transition font-bold text-sm">
+              <option value="SKINCARE_CONSULTANT">Skin Care Consultant</option>
+              <option value="DERMATOLOGIST">Dermatologist</option>
+              <option value="MEDICAL_OFFICER">Medical Officer</option>
+              <option value="REGISTERED_NURSE">Registered Nurse</option>
+            </select>
           </div>
         </div>
-      </div>
+
+        <InputField label="Security Key" name="password" value={formData.password} onChange={handleInputChange} type="password" placeholder="••••••••" />
+
+        {/* Document Section (Horizontal Flow) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <DocumentQuickUpload
+            title="Professional License"
+            file={formData.licenseDocument}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => handleDocumentUpload(e, "licenseDocument")}
+          />
+          <DocumentQuickUpload
+            title="ID / Passport"
+            file={formData.identificationDocument}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => handleDocumentUpload(e, "identificationDocument")}
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] bg-black text-white hover:bg-[#FF7A59] transition-all shadow-xl active:scale-[0.98] disabled:opacity-50"
+        >
+          {loading ? "Registering Specialist..." : "Join Workspace"}
+        </button>
+      </form>
     </div>
   );
 }
 
-// 🛡️ Reusable Components
+// 🛡️ Premium UI Atoms
 function InputField({ label, ...props }: any) {
   return (
     <div>
@@ -314,11 +231,10 @@ function InputField({ label, ...props }: any) {
   );
 }
 
-function DocumentUpload({ icon, title, file, onChange }: { 
-  icon: string, 
-  title: string, 
-  file: File | null, 
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void 
+function DocumentQuickUpload({ title, file, onChange }: {
+  title: string,
+  file: File | null,
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void
 }) {
   return (
     <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-[2rem] p-8 hover:border-[#FF7A59] transition bg-white dark:bg-gray-800 shadow-sm">
