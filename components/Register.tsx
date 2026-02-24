@@ -239,7 +239,7 @@ function DocumentQuickUpload({ title, file, onChange }: {
   return (
     <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-[2rem] p-8 hover:border-[#FF7A59] transition bg-white dark:bg-gray-800 shadow-sm">
       <label className="cursor-pointer block text-center">
-        <div className="text-4xl mb-4 text-black dark:text-white">{icon}</div>
+        <div className="text-4xl mb-4 text-black dark:text-white"></div>
         <h4 className="font-black text-sm text-black dark:text-white uppercase tracking-tighter mb-2">{title}</h4>
         <p className="text-[10px] font-bold text-black dark:text-white uppercase tracking-widest">
           {file ? `✓ ${file.name}` : "Tap to upload document"}

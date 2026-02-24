@@ -14,7 +14,7 @@ interface Notification {
   type: 'appointment' | 'system' | 'chat';
   isRead: boolean;
   time: string;
-  createdAt?: string; 
+  createdAt?: string;
 }
 
 interface NotificationContextType {
@@ -29,7 +29,7 @@ const NotificationContext = createContext<NotificationContextType | null>(null);
 export const NotificationProvider = ({ children }: { children: React.ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
-  
+
   const unreadCount = notifications.filter(n => !n.isRead).length;
   // 🏛️ Rule #6: Ensuring we hit the correct backend socket port
   const envUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:8080';
@@ -46,7 +46,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     // 🛡️ Rule #3: Sanitation to prevent "jwt expired" errors due to double-quotes
     const cleanToken = rawToken.replace(/['"]+/g, '').trim();
 
-    const newSocket = io(envUrl, { 
+    const newSocket = io(envUrl, {
       transports: ['websocket'],
       auth: { token: cleanToken }, // Rule #6: standard NestJS WsGuard check
     });
@@ -74,7 +74,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
       };
 
       setNotifications((prev) => [newNotif, ...prev]);
-      
+
       // 🛡️ Rule #5: Precision Oga Style Notification
       toast.success(`${newNotif.title}`, {
         icon: '🏥',
@@ -83,12 +83,12 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     };
 
     // 🏛️ Rule #6: Listening for specific Backend Gateway events mapped in AppGateway
-    newSocket.on('new_assignment', handleIncomingAlert); 
+    newSocket.on('new_assignment', handleIncomingAlert);
     newSocket.on('appointment_created', handleIncomingAlert);
     newSocket.on('notification_received', handleIncomingAlert);
 
     newSocket.on('connect_error', (err) => {
-      console.error('❌ Socket Handshake Failed:', err.message);
+      // console.error('❌ Socket Handshake Failed:', err.message);
     });
 
     setSocket(newSocket);
@@ -99,7 +99,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
   }, [envUrl]);
 
   const markAsRead = (id: string) => {
-    setNotifications((prev) => 
+    setNotifications((prev) =>
       prev.map(n => n.id === id ? { ...n, isRead: true } : n)
     );
   };
@@ -113,7 +113,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     <NotificationContext.Provider value={{ unreadCount, notifications, markAsRead, showNotification }}>
       {children}
       {/* 🏛️ Rule #4: World-Class Toast Styling */}
-      <Toaster 
+      <Toaster
         position="top-right"
         toastOptions={{
           style: {
