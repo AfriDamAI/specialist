@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import NotificationBell from './NotificationBell';
@@ -13,11 +13,14 @@ import {
   DocumentIcon,
   Cog6ToothIcon,
   ArrowLeftOnRectangleIcon,
+  ArrowRightOnRectangleIcon,
   MoonIcon,
   SunIcon,
-  PresentationChartLineIcon
+  PresentationChartLineIcon,
+  UserIcon
 } from '@heroicons/react/24/outline';
 import { useTheme } from '@/context/ThemeContext';
+import { API_URL } from '@/lib/config';
 
 interface DashboardLayoutProps {
   children?: React.ReactNode;
@@ -29,14 +32,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   
   const { isDarkMode, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [user, setUser] = useState({
     name: 'Specialist',
     role: 'Medical Personnel',
   });
-
-  // 🏛️ Rule #6: Centralized Backend Reference
-  const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-  const BASE_URL = envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
 
   useEffect(() => {
     setMounted(true);
@@ -64,7 +65,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       
       try {
         // 🏛️ Rule #6: Identity Handshake via verified /specialists/me
-        const response = await fetch(`${BASE_URL}/specialists/me`, {
+        const response = await fetch(`${API_URL}/specialists/me`, {
           headers: { 
             'Authorization': `Bearer ${cleanToken}`,
             'Content-Type': 'application/json'
@@ -104,7 +105,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     };
 
     syncProfile();
-  }, [BASE_URL]);
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowProfileDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   /**
    * 🛡️ Rule #3: Academy (training) removed per instruction to kill the loop.
@@ -119,11 +131,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { id: 'settings', icon: <Cog6ToothIcon className="w-6 h-6" />, label: 'Settings', href: '/settings' },
   ];
 
-  const handleLogout = () => {
-    if (confirm("End clinical session?")) {
-      localStorage.clear();
-      window.location.href = '/login';
-    }
+  const handleLogout = async () => {
+    try {
+      const rawToken = localStorage.getItem('token');
+        if (rawToken) {
+          const cleanToken = rawToken.replace(/['"]+/g, '').trim();
+          await fetch(`${API_URL}/auth/logout`, {
+            method: 'POST',
+            headers: { 
+              'Authorization': `Bearer ${cleanToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("Logout session: Network interruption during sign-out.");
+      } finally {
+        localStorage.clear();
+        window.location.href = '/login';
+      }
   };
 
   if (!mounted) return <div className="min-h-screen bg-white dark:bg-gray-950" />;
@@ -161,14 +187,49 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <NotificationBell />
             </div>
 
-            <div className="hidden md:flex items-center gap-3 pl-6 border-l border-gray-100 dark:border-gray-800">
-              <div className="text-right">
-                <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none italic">{user.name}</p>
-                <p className="text-[9px] font-black text-[#FF7A59] uppercase tracking-[0.2em] mt-1 italic">{user.role}</p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-black font-black uppercase italic shadow-md">
-                {user.name.charAt(0)}
-              </div>
+            <div className="relative" ref={dropdownRef}>
+              <button 
+                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                className="hidden md:flex items-center gap-3 pl-6 border-l border-gray-100 dark:border-gray-800 hover:opacity-80 transition-opacity outline-none"
+              >
+                <div className="text-right">
+                  <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none italic">{user.name}</p>
+                  <p className="text-[9px] font-black text-[#FF7A59] uppercase tracking-[0.2em] mt-1 italic">{user.role}</p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-black font-black uppercase italic shadow-md">
+                  {user.name.charAt(0)}
+                </div>
+              </button>
+
+              {/* Profile Dropdown */}
+              {showProfileDropdown && (
+                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 py-2 z-[80] animate-in fade-in zoom-in duration-200 origin-top-right">
+                  <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-800 md:hidden">
+                    <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">{user.name}</p>
+                    <p className="text-[9px] font-black text-[#FF7A59] uppercase tracking-widest mt-1 italic">{user.role}</p>
+                  </div>
+                  
+                  <Link 
+                    href="/settings" 
+                    onClick={() => setShowProfileDropdown(false)}
+                    className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest italic text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    <Cog6ToothIcon className="w-4 h-4" />
+                    Settings
+                  </Link>
+                  
+                  <button 
+                    onClick={() => {
+                      setShowProfileDropdown(false);
+                      handleLogout();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest italic text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors border-t border-gray-50 dark:border-gray-800"
+                  >
+                    <ArrowLeftOnRectangleIcon className="w-4 h-4" />
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -1,8 +1,11 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import { Toaster, toast } from 'react-hot-toast';
 import { io, Socket } from 'socket.io-client';
+import { apiClient } from '@/lib/api-client';
+import { SOCKET_URL } from '@/lib/config';
 
 /**
  * 🏛️ Rule #5 & #6: Synced with NotificationBell Interface
@@ -21,7 +24,9 @@ interface NotificationContextType {
   unreadCount: number;
   notifications: Notification[];
   markAsRead: (id: string) => void;
+  markAllAsRead: () => void;
   showNotification: (message: string, type?: 'success' | 'error' | 'info') => void;
+  fetchNotifications: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | null>(null);
@@ -29,10 +34,43 @@ const NotificationContext = createContext<NotificationContextType | null>(null);
 export const NotificationProvider = ({ children }: { children: React.ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const pathname = usePathname();
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
-  // 🏛️ Rule #6: Ensuring we hit the correct backend socket port
-  const envUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:8080';
+
+  const fetchNotifications = useCallback(async () => {
+    // 🛡️ Guard: Avoid fetching if no token or on auth pages
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token || pathname === '/login' || pathname === '/') return;
+
+    try {
+      const response = await apiClient('/notifications/me');
+      if (response && (response.resultData || response.data)) {
+        const data = response.resultData || response.data;
+        // Map backend response if needed. Assuming it matches our Notification interface or close to it.
+        const mappedNotifications: Notification[] = data.map((n: any) => ({
+          id: n.id,
+          title: n.title,
+          message: n.message,
+          type: n.type || 'system',
+          isRead: n.isRead,
+          time: new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          createdAt: n.createdAt
+        }));
+        setNotifications(mappedNotifications);
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch notifications:', error);
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    // 🛡️ Only fetch if we have a token and are not on public pages
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (token && pathname !== '/login' && pathname !== '/') {
+      fetchNotifications();
+    }
+  }, [fetchNotifications, pathname]);
 
   useEffect(() => {
     // 🛡️ Rule #6: Security Handshake using local storage
@@ -46,7 +84,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     // 🛡️ Rule #3: Sanitation to prevent "jwt expired" errors due to double-quotes
     const cleanToken = rawToken.replace(/['"]+/g, '').trim();
 
-    const newSocket = io(envUrl, {
+    const newSocket = io(SOCKET_URL, {
       transports: ['websocket'],
       auth: { token: cleanToken }, // Rule #6: standard NestJS WsGuard check
     });
@@ -96,21 +134,46 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     return () => {
       newSocket.disconnect();
     };
-  }, [envUrl]);
+  }, []);
 
-  const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map(n => n.id === id ? { ...n, isRead: true } : n)
-    );
-  };
+  const markAsRead = useCallback(async (id: string) => {
+    try {
+      await apiClient(`/notifications/${id}/read`, { method: 'PATCH' });
+      setNotifications((prev) =>
+        prev.map(n => n.id === id ? { ...n, isRead: true } : n)
+      );
+    } catch (error) {
+      console.error('❌ Failed to mark notification as read:', error);
+    }
+  }, []);
 
-  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+  const markAllAsRead = useCallback(async () => {
+    try {
+      await apiClient('/notifications/mark-all-read', { method: 'PATCH' });
+      setNotifications((prev) =>
+        prev.map(n => ({ ...n, isRead: true }))
+      );
+    } catch (error) {
+      console.error('❌ Failed to mark all notifications as read:', error);
+    }
+  }, []);
+
+  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
     if (type === 'error') toast.error(message);
     else toast.success(message);
-  };
+  }, []);
+
+  const value = useMemo(() => ({
+    unreadCount,
+    notifications,
+    markAsRead,
+    markAllAsRead,
+    showNotification,
+    fetchNotifications
+  }), [unreadCount, notifications, markAsRead, markAllAsRead, showNotification, fetchNotifications]);
 
   return (
-    <NotificationContext.Provider value={{ unreadCount, notifications, markAsRead, showNotification }}>
+    <NotificationContext.Provider value={value}>
       {children}
       {/* 🏛️ Rule #4: World-Class Toast Styling */}
       <Toaster
