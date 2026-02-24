@@ -130,7 +130,7 @@ export default function SchedulePage() {
                   </div>
                 </div>
 
-                <div className="p-6 bg-white/5 rounded-[2rem] border border-white/10 relative z-10">
+                <div className="p-6 bg-white/5 dark:bg-gray-800/10 rounded-[2rem] border border-white/10 dark:border-gray-800/30 relative z-10">
                    <div className="flex items-center gap-2 mb-2">
                      <ClockIcon className="w-4 h-4 text-[#FF7A59]" />
                      <span className="text-[10px] font-black uppercase tracking-widest">Timezone</span>

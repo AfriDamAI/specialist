@@ -225,12 +225,8 @@ export default function RegistrationForm() {
 function InputField({ label, ...props }: any) {
   return (
     <div>
-      <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">{label}</label>
-      <input
-        required
-        {...props}
-        className="w-full px-6 py-4 rounded-2xl border-none bg-gray-50 focus:ring-2 focus:ring-[#FF7A59] outline-none transition font-bold text-sm placeholder:text-gray-300"
-      />
+      <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">{label}</label>
+      <input {...props} className="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 dark:border-gray-800 focus:border-[#FF7A59] focus:outline-none transition bg-white dark:bg-gray-800 text-black dark:text-white font-bold italic shadow-sm placeholder:text-gray-200 dark:placeholder:text-gray-600" />
     </div>
   );
 }
@@ -241,12 +237,13 @@ function DocumentQuickUpload({ title, file, onChange }: {
   onChange: (e: ChangeEvent<HTMLInputElement>) => void
 }) {
   return (
-    <div className="bg-gray-50 rounded-2xl p-4 border-2 border-dashed border-gray-100 hover:border-[#FF7A59] transition-colors">
-      <label className="cursor-pointer flex flex-col items-center justify-center space-y-2">
-        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{title}</span>
-        <span className="text-[9px] font-bold text-[#FF7A59] truncate max-w-[120px]">
-          {file ? `✓ ${file.name}` : "(Optional Upload)"}
-        </span>
+    <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-[2rem] p-8 hover:border-[#FF7A59] transition bg-white dark:bg-gray-800 shadow-sm">
+      <label className="cursor-pointer block text-center">
+        <div className="text-4xl mb-4 text-black dark:text-white">{icon}</div>
+        <h4 className="font-black text-sm text-black dark:text-white uppercase tracking-tighter mb-2">{title}</h4>
+        <p className="text-[10px] font-bold text-black dark:text-white uppercase tracking-widest">
+          {file ? `✓ ${file.name}` : "Tap to upload document"}
+        </p>
         <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={onChange} className="hidden" />
       </label>
     </div>

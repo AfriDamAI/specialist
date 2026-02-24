@@ -107,7 +107,7 @@ export default function ConsultationQueue() {
             >
               <div className="flex items-center gap-6">
                 <div className={`w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] flex items-center justify-center transition-colors ${
-                  item.urgency === 'HIGH' ? 'bg-red-50 text-red-500' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'
+                  item.urgency === 'HIGH' ? 'bg-red-50 text-red-500' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
                 }`}>
                   <UserIcon className="w-7 h-7" />
                 </div>

@@ -22,13 +22,13 @@ const SpecialtyCard: React.FC<SpecialtyCardProps> = ({
       onClick={onClick}
       className={`cursor-pointer p-6 rounded-2xl border-2 transition-all duration-300 ${
         isSelected
-          ? 'border-[#FF7A59] bg-[#FFF5F2]'
-          : 'border-gray-200 bg-white hover:border-gray-300'
+          ? 'border-[#FF7A59] bg-[#FFF5F2] dark:bg-[#FF7A59]/10'
+          : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 hover:border-gray-300 dark:hover:border-gray-700'
       }`}
     >
       <div className="text-4xl mb-4">{icon}</div>
-      <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
-      <p className="text-gray-600 text-sm">{description}</p>
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{title}</h3>
+      <p className="text-gray-600 dark:text-gray-400 text-sm">{description}</p>
     </div>
   );
 };
@@ -71,16 +71,16 @@ export default function SpecialtySelection() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
         {/* Header */}
         <div className="text-center mb-12">
           
           <h1 className="text-5xl font-black mb-2">
-            <span className="text-black">WELCOME</span>
+            <span className="text-black dark:text-white">WELCOME</span>
           </h1>
           <h2 className="text-5xl font-black text-[#FF7A59] mb-4">ABOARD.</h2>
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-600 dark:text-gray-400 text-lg">
             Select your specialty to begin registration
           </p>
         </div>
@@ -105,8 +105,8 @@ export default function SpecialtySelection() {
           disabled={!selectedSpecialty}
           className={`w-full py-4 px-6 rounded-full font-bold text-white text-lg transition-all duration-300 flex items-center justify-center gap-2 ${
             selectedSpecialty
-              ? 'bg-black hover:bg-gray-800'
-              : 'bg-gray-300 cursor-not-allowed'
+              ? 'bg-black dark:bg-white dark:text-black hover:opacity-90'
+              : 'bg-gray-300 dark:bg-gray-800 cursor-not-allowed text-gray-500'
           }`}
         >
           CONTINUE

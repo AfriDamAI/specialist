@@ -142,14 +142,14 @@ export default function DashboardPage() {
 
 function StatCard({ icon, label, value, color, isDark = false }: { icon: any, label: string, value: string, color: string, isDark?: boolean }) {
   return (
-    <div className={`${color} rounded-[3.5rem] p-10 shadow-xl border ${isDark ? 'border-transparent' : 'border-gray-100 dark:border-gray-800'} flex flex-col justify-between transition-all hover:-translate-y-2`}>
+    <div className={`${color} rounded-[3.5rem] p-10 shadow-xl border ${isDark ? 'border-transparent' : 'border-gray-100 dark:border-gray-800 shadow-gray-200/50 dark:shadow-none'} flex flex-col justify-between transition-all hover:-translate-y-2`}>
       <div className={`${isDark ? 'bg-white/10' : 'bg-gray-50 dark:bg-gray-900'} w-14 h-14 rounded-2xl flex items-center justify-center mb-12`}>
         <div className={isDark ? 'text-white dark:text-black' : 'text-[#FF7A59]'}>{icon}</div>
       </div>
       <div>
         {/* World-Class Mix: Small uppercase labels, giant sentence-case values */}
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2 italic">{label}</p>
-        <p className="text-4xl md:text-5xl font-black tracking-tighter italic">{value}</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500 mb-2 italic">{label}</p>
+        <p className="text-4xl md:text-5xl font-black tracking-tighter italic text-inherit">{value}</p>
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import {
   SunIcon,
   PresentationChartLineIcon
 } from '@heroicons/react/24/outline';
+import { useTheme } from '@/context/ThemeContext';
 
 interface DashboardLayoutProps {
   children?: React.ReactNode;
@@ -26,7 +27,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState({
     name: 'Specialist',
@@ -103,25 +104,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     };
 
     syncProfile();
-
-    const theme = localStorage.getItem('theme');
-    if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setIsDarkMode(true);
-      document.documentElement.classList.add('dark');
-    }
   }, [BASE_URL]);
-
-  const toggleTheme = () => {
-    const nextTheme = !isDarkMode;
-    setIsDarkMode(nextTheme);
-    if (nextTheme) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  };
 
   /**
    * 🛡️ Rule #3: Academy (training) removed per instruction to kill the loop.
@@ -165,9 +148,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <input
                 type="text"
                 placeholder="Search records..."
-                className="w-64 px-4 py-2 pl-10 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 focus:border-[#FF7A59] focus:outline-none transition text-[10px] font-black uppercase tracking-widest italic"
+                className="w-64 px-4 py-2 pl-10 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 text-gray-900 dark:text-white focus:border-[#FF7A59] focus:outline-none transition text-[10px] font-black uppercase tracking-widest italic placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
-              <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3 top-1/2 transform -translate-y-1/2" />
             </div>
 
             <button onClick={toggleTheme} className="p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-all active:scale-90 relative z-[70]">
@@ -228,10 +211,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           }
           return (
             <Link key={item.id} href={item.href} className="flex flex-col items-center gap-1">
-              <div className={isActive ? 'text-black dark:text-white' : 'text-gray-300 dark:text-gray-600'}>
+              <div className={isActive ? 'text-black dark:text-white' : 'text-gray-300 dark:text-gray-500'}>
                 {item.icon}
               </div>
-              <span className={`text-[8px] font-black uppercase tracking-tighter ${isActive ? 'text-black dark:text-white' : 'text-gray-400'}`}>
+              <span className={`text-[8px] font-black uppercase tracking-tighter ${isActive ? 'text-black dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}>
                 {item.label}
               </span>
             </Link>
