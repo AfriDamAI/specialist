@@ -7,7 +7,7 @@
 // We use the /v1 prefix to match Tobi's versioned backend endpoints.
 export const API_URL = 
   process.env.NEXT_PUBLIC_API_URL || 
-  'https://afridam-backend-prod-107032494605.us-central1.run.app/v1';
+  'https://afridam-backend-prod-107032494605.us-central1.run.app/api';
 
 export const SOCKET_URL = 
   process.env.NEXT_PUBLIC_SOCKET_URL || 
