@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
+import { API_URL } from '@/lib/config';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -13,9 +14,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Rule #3 & #6: Smart URL mapping to reach your local Mac backend
-  const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-  const BASE_URL = envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
+  const BASE_URL = API_URL;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +42,7 @@ export default function LoginPage() {
         localStorage.setItem('specialistStatus', data.isActive ? 'verified' : 'under_review');
 
         toast.success(`Access Granted. Welcome, ${data.displayName || 'Doctor'}.`);
-        
+
         // Rule #5: Hard refresh to ensure layout catches the new session
         window.location.href = '/dashboard';
       } else {
@@ -74,7 +73,7 @@ export default function LoginPage() {
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-md animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="bg-gray-50 dark:bg-gray-900 py-10 px-8 shadow-2xl rounded-[3.5rem] border border-gray-100 dark:border-gray-800 sm:px-12">
-          
+
           <form className="space-y-8" onSubmit={handleSubmit}>
             {/* Email Input */}
             <div className="space-y-2">
@@ -138,7 +137,7 @@ export default function LoginPage() {
 
             <div className="mt-8">
               <Link
-                href="/"
+                href="/register"
                 className="w-full flex justify-center py-4 px-4 border border-gray-200 dark:border-gray-700 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-500 hover:bg-white dark:hover:bg-gray-800 transition-all italic"
               >
                 Apply for Specialist Status
@@ -147,7 +146,7 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-      
+
       <p className="mt-8 text-center text-[9px] font-bold text-gray-400 uppercase tracking-widest">
         Protected by AfriDam Neural-Vault Encryption
       </p>

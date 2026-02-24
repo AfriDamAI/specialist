@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense } from 'react'; 
+import { Suspense } from 'react';
 import RegistrationForm from "@/components/Register"; // 🏛️ Rule #6: The logic lives here
 import Link from 'next/link';
 
@@ -20,11 +20,11 @@ function RegistrationLoader() {
 export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col md:flex-row italic">
-      
+
       {/* 🏛️ Left Side: Brand Context (Rule #4: Hidden on small screens) */}
       <div className="hidden md:flex md:w-1/3 bg-black p-12 flex-col justify-between text-white relative overflow-hidden">
         <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-[#FF7A59] rounded-full blur-[120px] opacity-20"></div>
-        
+
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-12">
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
@@ -71,7 +71,7 @@ export default function RegisterPage() {
 
           <p className="text-center text-sm text-gray-500 font-medium not-italic">
             Already registered?{' '}
-            <Link href="/" className="text-[#FF7A59] font-black hover:underline italic">
+            <Link href="/login" className="text-[#FF7A59] font-black hover:underline italic">
               Sign In
             </Link>
           </p>

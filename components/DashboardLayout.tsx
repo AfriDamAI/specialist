@@ -43,6 +43,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const savedName = localStorage.getItem('specialistName');
     const savedRole = localStorage.getItem('specialistRole');
     const rawToken = localStorage.getItem('token');
+
+    // 🛡️ Rule #5: Direct Authentication Guard
+    if (!rawToken) {
+      router.push('/login');
+      return;
+    }
     
     if (savedName) {
       setUser({ 
