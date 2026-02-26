@@ -126,6 +126,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { id: 'appointments', icon: <CalendarIcon className="w-6 h-6" />, label: 'Appointments', href: '/appointments' },
     { id: 'patients', icon: <UsersIcon className="w-6 h-6" />, label: 'Patients', href: '/patients' },
     { id: 'consultation', icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />, label: 'Consultations', href: '/consultation' },
+    { id: 'chat', icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />, label: 'Chat', href: '/chat' },
     { id: 'analytics', icon: <PresentationChartLineIcon className="w-6 h-6" />, label: 'Analytics', href: '/analytics' },
     { id: 'documents', icon: <DocumentIcon className="w-6 h-6" />, label: 'Documents', href: '/documents' },
     { id: 'settings', icon: <Cog6ToothIcon className="w-6 h-6" />, label: 'Settings', href: '/settings' },
@@ -261,7 +262,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Mobile Nav: Rule #4 Balanced view for small screens */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 px-6 py-4 flex items-center justify-between z-50 rounded-t-[2.5rem] shadow-xl">
-        {menuItems.filter(i => ['dashboard', 'consultation', 'analytics', 'settings'].includes(i.id)).map((item) => {
+        {menuItems.filter(i => ['dashboard', 'chat', 'consultation', 'analytics', 'settings'].includes(i.id)).map((item) => {
           const isActive = pathname === item.href;
           if (item.id === 'consultation') {
             return (
