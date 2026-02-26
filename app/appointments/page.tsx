@@ -24,6 +24,42 @@ interface Appointment {
   title: string;
 }
 
+// AppointmentCard component
+const AppointmentCard = ({ appointment }: { appointment: Appointment }) => {
+  const { name, createdAt, title } = appointment;
+  const formattedTime = new Date(createdAt).toLocaleTimeString('en-US', { hour12: true });
+  const formattedDateCreated = new Date(createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 rounded-xl flex flex-col gap-3 group hover:border-[#FF7A59] transition-all">
+      <div>
+        <h3 className="text-sm font-black text-gray-900 dark:text-white tracking-tighter group-hover:text-[#FF7A59] uppercase italic">
+          {name}
+        </h3>
+        <p className="text-[10px] font-bold text-gray-400 uppercase mt-1 tracking-widest">
+          {title || 'General Check-up'}
+        </p>
+      </div>
+      <div className="flex flex-col gap-1">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+          Time: {formattedTime}
+        </p>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+          Created: {formattedDateCreated}
+        </p>
+      </div>
+      <div className="flex gap-2 mt-1">
+        <button className="bg-[#FF7A59] text-white px-3 py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-[#e56b4a] transition-colors text-xs">
+          Accept
+        </button>
+        <button className="bg-red-500 text-white px-3 py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-red-600 transition-colors text-xs">
+          Decline
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export default function AppointmentsPage() {
   /**
    * 🛡️ Rule #3: Global Unlock applied.
@@ -39,28 +75,24 @@ export default function AppointmentsPage() {
     const savedShift = localStorage.getItem('preferredShift') as 'day' | 'night';
     if (savedShift) setActiveShift(savedShift);
 
-    async function fetchClinicalCalendar() {
+    async function fetchAppointments() {
       try {
-        /**
-         * 🏛️ Rule #6: Precision Path.
-         * Switched from hardcoded Render URL to apiClient to ensure local JWT usage.
-         */
-        const response = await apiClient('/consultation');
+        const response = await apiClient('/appointments/assignments/me');
         const data = response?.data || response;
         
+        console.log('Appointments data:', data);
+        
         if (data) {
-          // Ensuring we only map valid clinical data
           setAppointments(Array.isArray(data) ? data : []);
         }
       } catch (error) {
-        console.error("Calendar Sync Error:", error);
+        console.error('Error fetching appointments:', error);
       } finally {
         setIsLoading(false);
       }
     }
 
-    // Unlocked: fetch always runs during this dev phase
-    fetchClinicalCalendar();
+    fetchAppointments();
   }, []);
 
   const handleShiftToggle = (shift: 'day' | 'night') => {
@@ -117,8 +149,8 @@ export default function AppointmentsPage() {
           
           {/* 🛡️ Rule #3: Academy Lock Overlay removed per Global Unlock instruction */}
 
-          {/* Appointment List */}
-          <div className="lg:col-span-8 space-y-4">
+           {/* Appointment List */}
+          <div className="lg:col-span-8 space-y-4 h-[600px] overflow-y-auto pr-2">
              <div className="flex items-center justify-between px-2">
                 <h2 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest italic">
                   {activeShift === 'day' ? 'Daytime Appointments' : 'Nighttime Appointments'}
@@ -141,29 +173,11 @@ export default function AppointmentsPage() {
                   <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">No Bookings</h3>
                   <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-2">Your waiting list is currently clear.</p>
                </div>
-             ) : (
-               appointments.map((app) => (
-                 <div key={app.id} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-6 rounded-[2.5rem] flex items-center justify-between group hover:border-[#FF7A59] transition-all cursor-pointer">
-                    <div className="flex items-center gap-6">
-                      <div className="text-center min-w-[60px] border-r border-gray-50 dark:border-gray-700 pr-6">
-                        <p className="text-lg font-black text-gray-900 dark:text-white tracking-tighter">
-                          {new Date(app.createdAt).getHours() % 12 || 12}
-                        </p>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">
-                          {new Date(app.createdAt).getHours() >= 12 ? 'PM' : 'AM'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-base font-black text-gray-900 dark:text-white tracking-tighter group-hover:text-[#FF7A59] uppercase italic">{app.name}</p>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase mt-1 tracking-widest">{app.title || 'General Check-up'}</p>
-                      </div>
-                    </div>
-                    <button className="p-3 bg-gray-50 dark:bg-gray-900 rounded-xl text-gray-300 group-hover:text-green-500 transition-all">
-                      <CheckCircleIcon className="w-6 h-6" />
-                    </button>
-                 </div>
-               ))
-             )}
+              ) : (
+                appointments.map((appointment) => (
+                  <AppointmentCard key={appointment.id} appointment={appointment} />
+                ))
+              )}
           </div>
 
           {/* Shift Insights: Rule #4 Balanced view */}
