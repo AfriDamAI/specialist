@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { Eye, EyeOff } from 'lucide-react';
+import { API_URL } from '@/lib/config';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -13,9 +14,7 @@ export default function LoginForm() {
   const router = useRouter();
 
   // Rule #3 & #6: Ensuring we hit the correct backend port and path
-  // If your .env is just http://localhost:8080, this adds the /api automatically
-  const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-  const BASE_URL = envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
+  const BASE_URL = API_URL;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

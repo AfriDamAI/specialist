@@ -47,7 +47,10 @@ export async function apiClient(endpoint: string, options: FetchOptions = {}) {
       console.warn("🛡️ Auth Handshake Failed. Redirecting to Login...");
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token'); 
-        window.location.href = '/login';
+        // Only redirect if we are not already on the login or landing page
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+          window.location.href = '/login';
+        }
       }
       return null;
     }

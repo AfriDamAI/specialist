@@ -20,7 +20,7 @@ interface Notification {
 }
 
 export default function NotificationBell() {
-  const { unreadCount, notifications, markAsRead } = useNotification();
+  const { unreadCount, notifications, markAsRead, markAllAsRead } = useNotification();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -63,11 +63,21 @@ export default function NotificationBell() {
         <div className="absolute right-0 mt-4 w-80 md:w-96 bg-white dark:bg-gray-950 rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-gray-800 z-[100] overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right">
           <div className="p-6 border-b border-gray-50 dark:border-gray-800 flex items-center justify-between bg-gray-50/30 dark:bg-gray-900/50">
             <h3 className="text-xs font-black uppercase tracking-widest text-black dark:text-white">Clinical Alerts</h3>
-            {unreadCount > 0 && (
-              <span className="text-[9px] font-black text-[#FF7A59] uppercase tracking-widest">
-                {unreadCount} New Pulse
-              </span>
-            )}
+            <div className="flex flex-col items-end gap-1">
+              {unreadCount > 0 && (
+                <span className="text-[9px] font-black text-[#FF7A59] uppercase tracking-widest">
+                  {unreadCount} New Pulse
+                </span>
+              )}
+              {unreadCount > 0 && (
+                <button 
+                  onClick={() => markAllAsRead()}
+                  className="text-[8px] font-black text-gray-400 hover:text-black dark:hover:text-white uppercase tracking-tighter transition-colors"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="max-h-[400px] overflow-y-auto custom-scrollbar">

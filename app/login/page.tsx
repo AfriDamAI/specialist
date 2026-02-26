@@ -50,7 +50,7 @@ export default function LoginPage() {
       }
     } catch (error) {
       console.error("Login Error:", error);
-      toast.error('The workstation is offline. Ensure the backend is running on port 8080.');
+      toast.error('The workstation is offline. Ensure the backend is reachable.');
     } finally {
       setLoading(false);
     }

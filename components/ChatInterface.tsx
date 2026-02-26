@@ -9,6 +9,7 @@ import {
   CheckIcon,
   FaceSmileIcon
 } from '@heroicons/react/24/solid';
+import { SOCKET_URL } from '@/lib/config';
 
 interface Message {
   id: string;
@@ -30,14 +31,12 @@ export default function ChatInterface({ chatId, patientName }: ChatInterfaceProp
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const envUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:8080';
-
   useEffect(() => {
     const token = localStorage.getItem('token');
     const specialistId = localStorage.getItem('userId'); // Pulling your ID for Tobi's logic
 
     // 🏛️ Rule #6: Connecting to Tobi's private '/chat' namespace
-    const chatSocket = io(`${envUrl}/chat`, {
+    const chatSocket = io(`${SOCKET_URL}/chat`, {
       auth: { token },
       transports: ['websocket'],
       query: { chatId }
@@ -63,7 +62,7 @@ export default function ChatInterface({ chatId, patientName }: ChatInterfaceProp
     return () => {
       chatSocket.disconnect();
     };
-  }, [chatId, envUrl]);
+  }, [chatId]);
 
   // Scroll to bottom on new message
   useEffect(() => {

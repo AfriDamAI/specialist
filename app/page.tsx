@@ -4,13 +4,17 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { UserIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline';
+import Login from '@/components/Login';
+import SpecialtySelection from '@/components/SpecialtySelection';
 
 export default function EntryPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [showRegister, setShowRegister] = useState(false);
 
   useEffect(() => {
-    router.push('/login');
+    // router.push('/login'); // Temporarily commented out to verify landing page elements
+    setLoading(false);
   }, [router]);
 
   if (loading) return null;
@@ -67,7 +71,7 @@ export default function EntryPage() {
 
             <div className="bg-white dark:bg-gray-950 p-8 md:p-10 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-2xl shadow-gray-200/60 dark:shadow-none">
               {/* Rule #4: The Full-Code Mandate - Integrating the Login Component */}
-              <LoginForm />
+              <Login />
               
               <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 text-center">
                 <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
