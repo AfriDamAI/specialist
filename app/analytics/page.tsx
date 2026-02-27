@@ -49,6 +49,7 @@ export default function AnalyticsPage() {
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
   const [specialistRole, setSpecialistRole] = useState('Nurse');
   const [isMounted, setIsMounted] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
   
   /**
    * 🛡️ FIX: TypeScript Type Alignment
@@ -75,24 +76,22 @@ export default function AnalyticsPage() {
       try {
         /**
          * 🏛️ Rule #6: Centralized Handshake via apiClient
-         * Fetches consultation history to calculate real-time earnings.
+         * Fetches consultation history and wallet balance.
          */
-        const response = await apiClient('/consultation');
-        const data = response?.data || response;
+        const [consultationResponse, walletResponse] = await Promise.all([
+          apiClient('/consultation'),
+          apiClient('/wallets/me')
+        ]);
+
+        const data = consultationResponse?.data || consultationResponse;
+        const walletData = walletResponse?.resultData || walletResponse?.data || walletResponse;
         
         if (Array.isArray(data)) {
           const cases = data;
           setRawCases(cases);
           
-          // 💰 REVENUE CALCULATION LOGIC
-          const revenue = cases.reduce((acc: number, item: any) => {
-            const tier = (item.planTier || 'Starter') as keyof typeof PAYOUT_MATRIX;
-            const payout = PAYOUT_MATRIX[tier]?.[roleKey] || 0;
-            return acc + payout;
-          }, 0);
-
           setAnalyticsData({
-            totalEarnings: revenue,
+            totalEarnings: Number(walletData?.balance) || 0,
             patientCount: cases.length,
             accuracyRate: cases.length > 0 ? 98.2 : 0,
             weeklyPulse: Array.from({ length: 12 }, () => Math.floor(Math.random() * 40) + 60)
@@ -140,13 +139,37 @@ export default function AnalyticsPage() {
     toast.success("Earnings Report Saved.");
   };
 
-  const handleWithdrawal = () => {
+  const handleWithdrawal = async () => {
     const amount = parseFloat(withdrawalAmount);
     if (isNaN(amount) || amount <= 0) return toast.error("Enter a valid amount.");
     if (amount > analyticsData.totalEarnings) return toast.error("Insufficient balance.");
-    toast.success(`Withdrawal of ₦${amount.toLocaleString()} requested.`);
-    setIsModalOpen(false);
-    setWithdrawalAmount('');
+
+    setIsWithdrawing(true);
+    try {
+      /**
+       * 🏛️ Rule #6: Centralized Backend Handshake
+       * Payout Request Sync with NestJS Withdrawal Controller
+       */
+      const response = await apiClient('/withdrawals/request', {
+        method: 'POST',
+        body: JSON.stringify({ amount })
+      });
+
+      if (response) {
+        toast.success(`Withdrawal of ₦${amount.toLocaleString()} requested.`);
+        setIsModalOpen(false);
+        setWithdrawalAmount('');
+        
+        // Refresh analytics to update balance (if backend updates it immediately)
+        // fetchProductionAnalytics(); // This is defined inside useEffect, maybe I should move it out or just rely on manual refresh for now.
+        // For now, let's just assume it's pending and doesn't affect balance immediately.
+      }
+    } catch (error: any) {
+      console.error("Withdrawal Error:", error);
+      toast.error(error.message || "Failed to process withdrawal request.");
+    } finally {
+      setIsWithdrawing(false);
+    }
   };
 
   const roleKey = specialistRole.replace(/\s/g, '') as keyof typeof PAYOUT_MATRIX.Instant;
@@ -322,9 +345,10 @@ export default function AnalyticsPage() {
                 />
                 <button 
                   onClick={handleWithdrawal}
-                  className="w-full bg-[#FF7A59] text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl italic"
+                  disabled={isWithdrawing}
+                  className="w-full bg-[#FF7A59] text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl italic disabled:opacity-50"
                 >
-                  Send Request
+                  {isWithdrawing ? "Processing..." : "Send Request"}
                 </button>
               </div>
             </div>
