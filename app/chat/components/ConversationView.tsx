@@ -13,6 +13,8 @@ interface ConversationViewProps {
   messages: Message[];
   inputValue: string;
   sessionEnded: boolean;
+  isLoading?: boolean;
+  isConnected?: boolean;
   onInputChange: (value: string) => void;
   onSend: () => void;
   onEndSession: () => void;
@@ -23,6 +25,8 @@ export default function ConversationView({
   messages,
   inputValue,
   sessionEnded,
+  isLoading,
+  isConnected,
   onInputChange,
   onSend,
   onEndSession,
@@ -84,6 +88,13 @@ export default function ConversationView({
         onStartCall={handleStartCall}
         callActive={callState.isActive}
       />
+
+      {/* Connection Status */}
+      {isConnected !== undefined && (
+        <div className={`px-4 py-1 text-xs font-medium ${isConnected ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'}`}>
+          {isConnected ? '● Connected' : '○ Disconnected'}
+        </div>
+      )}
 
       {/* Call Overlay */}
       {callState.isActive && (

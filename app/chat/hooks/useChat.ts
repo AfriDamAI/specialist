@@ -1,7 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Patient, Message } from '../types/chat';
+import { apiClient } from '@/lib/api-client';
+import { SPECIALIST_ID } from '@/lib/config';
+import { useSocket } from './useSocket';
 
 // Mock data for demonstration
 const mockPatients: Patient[] = [
@@ -63,13 +66,64 @@ const mockMessages: Record<string, Message[]> = {
   ],
 };
 
-export function useChat() {
+export function useChat(chatId?: string) {
   const [patients] = useState<Patient[]>(mockPatients);
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [activeChatId, setActiveChatId] = useState<string | undefined>(chatId);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sessionEnded, setSessionEnded] = useState(false);
+  
+  // Use socket for real-time messaging
+  const { isConnected, listen, emit } = useSocket(activeChatId);
+
+  // Listen for incoming messages
+  useEffect(() => {
+    if (activeChatId && isConnected) {
+      listen('message', (data) => {
+        const newMessage: Message = {
+          id: Date.now().toString(),
+          sender: data.senderId === SPECIALIST_ID ? 'doctor' : 'patient',
+          text: data.content,
+          timestamp: new Date(data.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          read: false,
+        };
+        setMessages(prev => [...prev, newMessage]);
+      });
+    }
+  }, [activeChatId, isConnected, listen]);
+
+  // Fetch messages when chatId changes
+  useEffect(() => {
+    if (activeChatId) {
+      fetchMessages();
+    }
+  }, [activeChatId]);
+
+  const fetchMessages = async () => {
+    if (!activeChatId) return;
+    setIsLoading(true);
+    try {
+      const response = await apiClient(`/chats/${activeChatId}/messages`);
+      if (response?.data) {
+        const fetchedMessages = response.data.map((msg: any) => ({
+          id: msg.id,
+          sender: msg.senderId === SPECIALIST_ID ? 'doctor' : 'patient',
+          text: msg.message,
+          timestamp: new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          read: msg.read || false,
+        }));
+        setMessages(fetchedMessages);
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      // Fallback to mock data
+      setMessages(mockMessages[activeChatId] || []);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const selectedPatient = patients.find(p => p.id === selectedPatientId);
 
@@ -80,8 +134,8 @@ export function useChat() {
     setInputValue('');
   }, [patients]);
 
-  const sendMessage = useCallback((text: string) => {
-    if (!text.trim() || !selectedPatientId || sessionEnded) return;
+  const sendMessage = useCallback(async (text: string) => {
+    if (!text.trim() || !activeChatId || sessionEnded) return;
 
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -91,9 +145,31 @@ export function useChat() {
       read: true,
     };
 
+    // Optimistically add message to UI
     setMessages(prev => [...prev, newMessage]);
     setInputValue('');
-  }, [selectedPatientId, sessionEnded]);
+
+    try {
+      // Send via API
+      await apiClient('/chat/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          chatId: activeChatId,
+          senderId: SPECIALIST_ID,
+          message: text.trim(),
+          type: 'text',
+        }),
+      });
+
+      // Also emit via socket for real-time
+      emit('message', {
+        content: text.trim(),
+        senderId: SPECIALIST_ID,
+      });
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  }, [activeChatId, sessionEnded, emit]);
 
   const endSession = useCallback(() => {
     setSessionEnded(true);
@@ -109,11 +185,14 @@ export function useChat() {
     patients,
     selectedPatient,
     selectedPatientId,
+    activeChatId,
+    setActiveChatId,
     messages,
     inputValue,
     setInputValue,
     isLoading,
     sessionEnded,
+    isConnected,
     selectPatient,
     sendMessage,
     endSession,

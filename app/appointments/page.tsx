@@ -20,35 +20,85 @@ import { apiClient } from '@/lib/api-client'; // 🏛️ Rule #6: Centralized Ha
 // Rule #3: Production Appointment Interface
 interface Appointment {
   id: string;
-  name: string;
+  appointmentId: string; // This is the assignmentId
+  specialistId: string;
+  assignedBy: string;
+  status: string;
+  assignedAt: string;
   createdAt: string;
-  title: string;
+  updatedAt: string;
+  name?: string; // Optional for backward compatibility
+  title?: string; // Optional for backward compatibility
 }
 
 // AppointmentCard component
-const AppointmentCard = ({ appointment }: { appointment: Appointment }) => {
-  const { name, createdAt, title } = appointment;
+const AppointmentCard = ({ appointment, onStatusChange }: { appointment: Appointment; onStatusChange: (id: string, status: string, chatId?: string) => void }) => {
+  const { appointmentId, specialistId, assignedBy, status, createdAt } = appointment;
   const formattedTime = new Date(createdAt).toLocaleTimeString('en-US', { hour12: true });
   const formattedDateCreated = new Date(createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const router = useRouter();
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isDeclining, setIsDeclining] = useState(false);
+  const [isDisabled, setIsDisabled] = useState(status !== 'PENDING');
 
-  const handleAccept = () => {
+  const handleAccept = async () => {
     setIsConnecting(true);
-    // Simulate connection delay then navigate to chat
-    setTimeout(() => {
-      router.push(`/chat?patientId=${appointment.id}`);
-    }, 1500);
+    try {
+      // First, accept the appointment
+      const acceptResponse = await apiClient(`/appointments/assignments/${appointmentId}/accept`, {
+        method: 'POST',
+      });
+      
+      if (acceptResponse) {
+        // Create a chat with the patient
+        const chatResponse = await apiClient('/chats', {
+          method: 'POST',
+          body: JSON.stringify({
+            participant1Id: specialistId,
+            participant2Id: assignedBy,
+          }),
+        });
+        
+        // Get the chat ID from the response
+        const chatId = chatResponse?.data?.id || chatResponse?.id;
+        
+        // Update status and navigate to chat with chatId
+        onStatusChange(appointmentId, 'ACCEPTED', chatId);
+        router.push(`/chat?chatId=${chatId}`);
+      }
+    } catch (error) {
+      console.error('Error accepting appointment:', error);
+      setIsConnecting(false);
+    }
+  };
+
+  const handleDecline = async () => {
+    setIsDeclining(true);
+    try {
+      const response = await apiClient(`/appointments/assignments/${appointmentId}/decline`, {
+        method: 'POST',
+      });
+      
+      if (response) {
+        // Disable both buttons after declining
+        setIsDisabled(true);
+        onStatusChange(appointmentId, 'DECLINED');
+      }
+    } catch (error) {
+      console.error('Error declining appointment:', error);
+    } finally {
+      setIsDeclining(false);
+    }
   };
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 rounded-xl flex flex-col gap-3 group hover:border-[#FF7A59] transition-all">
       <div>
         <h3 className="text-sm font-black text-gray-900 dark:text-white tracking-tighter group-hover:text-[#FF7A59] uppercase italic">
-          {name}
+          {appointmentId.slice(0, 8)}
         </h3>
         <p className="text-[10px] font-bold text-gray-400 uppercase mt-1 tracking-widest">
-          {title || 'General Check-up'}
+          {status || 'PENDING'}
         </p>
       </div>
       <div className="flex flex-col gap-1">
@@ -62,7 +112,7 @@ const AppointmentCard = ({ appointment }: { appointment: Appointment }) => {
       <div className="flex gap-2 mt-1">
         <button 
           onClick={handleAccept}
-          disabled={isConnecting}
+          disabled={isConnecting || isDisabled}
           className="bg-[#FF7A59] text-white px-3 py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-[#e56b4a] transition-colors text-xs disabled:opacity-70 disabled:cursor-not-allowed min-w-[100px]"
         >
           {isConnecting ? (
@@ -77,8 +127,22 @@ const AppointmentCard = ({ appointment }: { appointment: Appointment }) => {
             'Accept'
           )}
         </button>
-        <button className="bg-red-500 text-white px-3 py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-red-600 transition-colors text-xs">
-          Decline
+        <button 
+          onClick={handleDecline}
+          disabled={isDeclining || isDisabled}
+          className="bg-red-500 text-white px-3 py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-red-600 transition-colors text-xs disabled:opacity-70 disabled:cursor-not-allowed"
+        >
+          {isDeclining ? (
+            <span className="flex items-center gap-2">
+              <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Declining...
+            </span>
+          ) : (
+            'Decline'
+          )}
         </button>
       </div>
     </div>
@@ -119,6 +183,14 @@ export default function AppointmentsPage() {
 
     fetchAppointments();
   }, []);
+
+  const handleStatusChange = (id: string, newStatus: string, chatId?: string) => {
+    setAppointments(prev => 
+      prev.map(apt => 
+        apt.appointmentId === id ? { ...apt, status: newStatus } : apt
+      )
+    );
+  };
 
   const handleShiftToggle = (shift: 'day' | 'night') => {
     setActiveShift(shift);
@@ -200,7 +272,7 @@ export default function AppointmentsPage() {
                </div>
               ) : (
                 appointments.map((appointment) => (
-                  <AppointmentCard key={appointment.id} appointment={appointment} />
+                  <AppointmentCard key={appointment.appointmentId} appointment={appointment} onStatusChange={handleStatusChange} />
                 ))
               )}
           </div>

@@ -4,7 +4,11 @@ import { useChat } from '../hooks/useChat';
 import PatientList from './PatientList';
 import ConversationView from './ConversationView';
 
-export default function ChatContainer() {
+interface ChatContainerProps {
+  chatId?: string;
+}
+
+export default function ChatContainer({ chatId }: ChatContainerProps) {
   const {
     patients,
     selectedPatient,
@@ -13,10 +17,12 @@ export default function ChatContainer() {
     inputValue,
     setInputValue,
     sessionEnded,
+    isLoading,
+    isConnected,
     selectPatient,
     sendMessage,
     endSession,
-  } = useChat();
+  } = useChat(chatId);
 
   return (
     <div className="flex h-[calc(100vh-11rem)] bg-white dark:bg-gray-950 rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm">
@@ -30,6 +36,8 @@ export default function ChatContainer() {
         messages={messages}
         inputValue={inputValue}
         sessionEnded={sessionEnded}
+        isLoading={isLoading}
+        isConnected={isConnected}
         onInputChange={setInputValue}
         onSend={() => sendMessage(inputValue)}
         onEndSession={endSession}
