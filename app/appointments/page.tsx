@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { 
   CalendarIcon, 
@@ -29,6 +30,16 @@ const AppointmentCard = ({ appointment }: { appointment: Appointment }) => {
   const { name, createdAt, title } = appointment;
   const formattedTime = new Date(createdAt).toLocaleTimeString('en-US', { hour12: true });
   const formattedDateCreated = new Date(createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const router = useRouter();
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const handleAccept = () => {
+    setIsConnecting(true);
+    // Simulate connection delay then navigate to chat
+    setTimeout(() => {
+      router.push(`/chat?patientId=${appointment.id}`);
+    }, 1500);
+  };
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 rounded-xl flex flex-col gap-3 group hover:border-[#FF7A59] transition-all">
@@ -49,8 +60,22 @@ const AppointmentCard = ({ appointment }: { appointment: Appointment }) => {
         </p>
       </div>
       <div className="flex gap-2 mt-1">
-        <button className="bg-[#FF7A59] text-white px-3 py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-[#e56b4a] transition-colors text-xs">
-          Accept
+        <button 
+          onClick={handleAccept}
+          disabled={isConnecting}
+          className="bg-[#FF7A59] text-white px-3 py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-[#e56b4a] transition-colors text-xs disabled:opacity-70 disabled:cursor-not-allowed min-w-[100px]"
+        >
+          {isConnecting ? (
+            <span className="flex items-center gap-2">
+              <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Connecting...
+            </span>
+          ) : (
+            'Accept'
+          )}
         </button>
         <button className="bg-red-500 text-white px-3 py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-red-600 transition-colors text-xs">
           Decline
