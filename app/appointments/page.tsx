@@ -247,7 +247,7 @@ export default function AppointmentsPage() {
           {/* 🛡️ Rule #3: Academy Lock Overlay removed per Global Unlock instruction */}
 
            {/* Appointment List */}
-          <div className="lg:col-span-8 space-y-4 h-[600px] overflow-y-auto pr-2">
+          <div className="lg:col-span-8 space-y-4 h-150 overflow-y-auto pr-2">
              <div className="flex items-center justify-between px-2">
                 <h2 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest italic">
                   {activeShift === 'day' ? 'Daytime Appointments' : 'Nighttime Appointments'}
