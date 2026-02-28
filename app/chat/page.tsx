@@ -5,26 +5,17 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import ChatContainer from './components/ChatContainer';
-import { useChat } from './hooks/useChat';
-import { apiClient } from '@/lib/api-client';
-import { SPECIALIST_ID } from '@/lib/config';
 
 export default function ChatPage() {
   const searchParams = useSearchParams();
   const patientId = searchParams.get('patientId');
   const chatId = searchParams.get('chatId');
-  const { selectPatient, setActiveChatId } = useChat();
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    if (patientId) {
-      selectPatient(patientId);
-    }
-    if (chatId) {
-      setActiveChatId(chatId);
-    }
+    // Delay to ensure client-side hydration is complete
     setIsReady(true);
-  }, [patientId, chatId, selectPatient, setActiveChatId]);
+  }, []);
 
   if (!isReady) {
     return (
@@ -47,7 +38,7 @@ export default function ChatPage() {
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Appointments</span>
         </Link>
       </div>
-      <ChatContainer chatId={chatId || undefined} />
+      <ChatContainer chatId={chatId || patientId || undefined} />
     </div>
   );
 }

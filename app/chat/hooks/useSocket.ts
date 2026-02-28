@@ -62,9 +62,23 @@ export const useSocket = (chatId?: string) => {
       }
     });
 
+    socketInstance.on("connect_error", (error) => {
+      console.error("Socket connection error:", error.message);
+      setIsConnected(false);
+    });
+
     socketInstance.on("disconnect", () => {
       setIsConnected(false);
       console.log("Specialist Sync: PAUSED");
+    });
+
+    socketInstance.on("reconnect", (attemptNumber) => {
+      console.log(`Specialist Sync: RECONNECTED (attempt ${attemptNumber})`);
+      setIsConnected(true);
+      // Rejoin chat room after reconnection
+      if (chatId) {
+        socketInstance.emit("joinChat", { chatId });
+      }
     });
 
     setSocket(socketInstance);
