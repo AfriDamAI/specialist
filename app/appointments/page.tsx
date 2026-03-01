@@ -33,7 +33,7 @@ interface Appointment {
 
 // AppointmentCard component
 const AppointmentCard = ({ appointment, onStatusChange }: { appointment: Appointment; onStatusChange: (id: string, status: string, chatId?: string) => void }) => {
-  const { appointmentId, specialistId, assignedBy, status, createdAt } = appointment;
+  const { appointmentId, specialistId, assignedBy, status, createdAt, id } = appointment;
   const formattedTime = new Date(createdAt).toLocaleTimeString('en-US', { hour12: true });
   const formattedDateCreated = new Date(createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const router = useRouter();
@@ -45,22 +45,31 @@ const AppointmentCard = ({ appointment, onStatusChange }: { appointment: Appoint
     setIsConnecting(true);
     try {
       // First, accept the appointment
-      const acceptResponse = await apiClient(`/appointments/assignments/${appointmentId}/accept`, {
+      const acceptResponse = await apiClient(`/appointments/assignments/${id}/accept`, {
         method: 'POST',
       });
       
       if (acceptResponse) {
+        // Start the session after accept is confirmed
+        const sessionResponse = await apiClient(`/appointments/assignments/${appointmentId}/start-session`, {
+          method: 'POST',
+        });
+        
+        console.log("session", sessionResponse)
+        
         // Create a chat with the patient
         const chatResponse = await apiClient('/chats', {
           method: 'POST',
           body: JSON.stringify({
             participant1Id: specialistId,
-            participant2Id: assignedBy,
+            participant2Id: id,
           }),
         });
+
+        console.log("chatre", chatResponse)
         
         // Get the chat ID from the response
-        const chatId = chatResponse?.data?.id || chatResponse?.id;
+        const chatId = chatResponse?.resultData?.id || "";
         
         // Update status and navigate to chat with chatId
         onStatusChange(appointmentId, 'ACCEPTED', chatId);
@@ -75,7 +84,7 @@ const AppointmentCard = ({ appointment, onStatusChange }: { appointment: Appoint
   const handleDecline = async () => {
     setIsDeclining(true);
     try {
-      const response = await apiClient(`/appointments/assignments/${appointmentId}/decline`, {
+      const response = await apiClient(`/appointments/assignments/${id}/decline`, {
         method: 'POST',
       });
       
