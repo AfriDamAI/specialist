@@ -15,9 +15,14 @@ interface ConversationViewProps {
   sessionEnded: boolean;
   isLoading?: boolean;
   isConnected?: boolean;
+  isSending?: boolean;
+  isUploading?: boolean;
+  error?: string | null;
   onInputChange: (value: string) => void;
   onSend: () => void;
   onEndSession: () => void;
+  onFileUpload: (file: File) => void;
+  onClearError?: () => void;
 }
 
 export default function ConversationView({
@@ -27,9 +32,14 @@ export default function ConversationView({
   sessionEnded,
   isLoading,
   isConnected,
+  isSending,
+  isUploading,
+  error,
   onInputChange,
   onSend,
   onEndSession,
+  onFileUpload,
+  onClearError,
 }: ConversationViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [callState, setCallState] = useState<{ type: CallType; isActive: boolean }>({
@@ -53,35 +63,32 @@ export default function ConversationView({
   };
 
   const handleFileUpload = async (file: File): Promise<void> => {
-    // Simulate file upload - in production, this would upload to a server
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const url = reader.result as string;
-        
-        // Determine file type
-        let fileType: FileAttachment['type'] = 'document';
-        if (file.type.startsWith('image/')) fileType = 'image';
-        else if (file.type.startsWith('video/')) fileType = 'video';
-        else if (file.type.startsWith('audio/')) fileType = 'audio';
-
-        // Log for demo purposes - in production, send to server
-        console.log('File uploaded:', { name: file.name, type: fileType, size: file.size, url });
-        
-        // Update input with file reference
-        onInputChange(`[File: ${file.name}]`);
-        resolve();
-      };
-      reader.readAsDataURL(file);
-    });
+    await onFileUpload(file);
   };
+
+  // Show error notification
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        onClearError?.();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, onClearError]);
 
   if (!patient) {
     return <EmptyState />;
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-white dark:bg-gray-950">
+    <div className="flex-1 flex flex-col h-full bg-white dark:bg-gray-950 relative">
+      {/* Error Toast */}
+      {error && (
+        <div className="absolute top-0 left-0 right-0 z-50 bg-red-500 text-white px-4 py-2 text-sm text-center">
+          {error}
+        </div>
+      )}
+
       <ChatHeader 
         patient={patient} 
         onEndSession={callState.isActive ? handleEndCall : onEndSession}
@@ -137,7 +144,11 @@ export default function ConversationView({
       )}
 
       <div className="flex-1 overflow-y-auto p-4">
-        {messages.length === 0 ? (
+        {isLoading && messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#FF7A59]"></div>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-sm text-gray-400">No messages yet</p>
           </div>
@@ -154,7 +165,8 @@ export default function ConversationView({
         onChange={onInputChange}
         onSend={onSend}
         onFileUpload={handleFileUpload}
-        disabled={sessionEnded}
+        disabled={sessionEnded || isSending}
+        isUploading={isUploading}
       />
     </div>
   );

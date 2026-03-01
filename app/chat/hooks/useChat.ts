@@ -1,200 +1,334 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { Patient, Message } from '../types/chat';
-import { apiClient } from '@/lib/api-client';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useSocket } from '@/hooks/use-socket';
+import {
+  getCurrentUserChats,
+  getChatMessages,
+  sendUserChatMessage,
+  uploadFile,
+  markMessageAsRead,
+  Chat,
+  Message as ApiMessage,
+} from '@/lib/api-client';
 import { SPECIALIST_ID } from '@/lib/config';
-import { useSocket } from './useSocket';
 
-export function useChat(chatId?: string) {
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
-  const [activeChatId, setActiveChatId] = useState<string | undefined>(chatId);
-  const [messages, setMessages] = useState<Message[]>([]);
+// Unified message type that works with both API and UI
+export interface ChatMessage {
+  id: string;
+  chatId: string;
+  senderId: string;
+  sender: 'doctor' | 'patient';
+  text: string;
+  type: string;
+  attachmentUrl?: string;
+  mimeType?: string;
+  fileSize?: number;
+  duration?: number;
+  read: boolean;
+  timestamp: string;
+}
+
+// Transform API message to UI message
+const transformMessage = (msg: ApiMessage, currentUserId: string): ChatMessage => ({
+  id: msg.id,
+  chatId: msg.chatId,
+  senderId: msg.senderId,
+  sender: msg.senderId === currentUserId ? 'doctor' : 'patient',
+  text: msg.message || '',
+  type: msg.type,
+  attachmentUrl: msg.attachmentUrl,
+  mimeType: msg.mimeType,
+  fileSize: msg.fileSize,
+  duration: msg.duration,
+  read: msg.read || false,
+  timestamp: msg.createdAt || new Date().toISOString(),
+});
+
+// Transform API chat to a patient-like object for the list
+interface ChatListItem {
+  id: string;
+  participantId: string;
+  participantName: string;
+  participantAvatar?: string;
+  lastMessage?: ChatMessage;
+  unreadCount: number;
+  appointmentId?: string;
+}
+
+export function useChat(initialChatId?: string) {
+  const [chats, setChats] = useState<ChatListItem[]>([]);
+  const [selectedChat, setSelectedChat] = useState<ChatListItem | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [patientsLoading, setPatientsLoading] = useState(true);
-  const [sessionEnded, setSessionEnded] = useState(false);
-  
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   // Use socket for real-time messaging
-  const { isConnected, listen, emit } = useSocket(activeChatId);
+  const { socket, isConnected: socketConnected } = useSocket(
+    typeof window !== 'undefined' 
+      ? (process.env.NEXT_PUBLIC_SOCKET_URL || 'https://afridam-backend-prod-107032494605.us-central1.run.app')
+      : ''
+  );
 
-  // Listen for incoming messages
+  // Update connection status
   useEffect(() => {
-    if (activeChatId && isConnected) {
-      listen('message', (data) => {
-        const newMessage: Message = {
-          id: Date.now().toString(),
-          sender: data.senderId === SPECIALIST_ID ? 'doctor' : 'patient',
-          text: data.content,
-          timestamp: new Date(data.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          read: false,
-        };
-        setMessages(prev => [...prev, newMessage]);
-      });
-    }
-  }, [activeChatId, isConnected, listen]);
+    setIsConnected(socketConnected);
+  }, [socketConnected]);
 
-  // Fetch patients on mount
+  // Fetch user's chats on mount
   useEffect(() => {
-    fetchPatients();
+    fetchUserChats();
   }, []);
 
-  const fetchPatients = async () => {
-    setPatientsLoading(true);
-    try {
-      const response = await apiClient('/chats/patients');
-      // Handle both direct data and wrapped response format
-      const patientsData = response?.data || response?.resultData || response;
-      if (patientsData && Array.isArray(patientsData)) {
-        const fetchedPatients: Patient[] = patientsData.map((patient: any) => ({
-          id: patient.id || patient.patientId,
-          name: patient.name || patient.patientName,
-          avatar: patient.avatar,
-          status: patient.status || (patient.isOnline ? 'online' : 'offline'),
-          lastMessage: patient.lastMessage,
-          lastMessageTime: patient.lastMessageTime 
-            ? new Date(patient.lastMessageTime).toLocaleString() 
-            : undefined,
-          unreadCount: patient.unreadCount || 0,
-          sessionActive: patient.sessionActive ?? true,
-        }));
-        setPatients(fetchedPatients);
+  // Handle initial chatId from props
+  useEffect(() => {
+    if (initialChatId && chats.length > 0) {
+      const chat = chats.find(c => c.id === initialChatId);
+      if (chat) {
+        setSelectedChat(chat);
       }
-    } catch (error) {
-      console.error('Error fetching patients:', error);
-      setPatients([]);
-    } finally {
-      setPatientsLoading(false);
     }
-  };
+  }, [initialChatId, chats]);
 
-  const fetchMessages = async () => {
-    if (!activeChatId) return;
-    setIsLoading(true);
-    try {
-      const response = await apiClient(`/chats/${activeChatId}/messages`);
-      // Handle both direct data and wrapped response format
-      const messagesData = response?.data || response?.resultData || response;
-      if (messagesData && Array.isArray(messagesData)) {
-        const fetchedMessages: Message[] = messagesData.map((msg: any) => ({
-          id: msg.id,
-          sender: (msg.senderId === SPECIALIST_ID ? 'doctor' : 'patient') as 'doctor' | 'patient',
-          text: msg.message,
-          timestamp: new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          read: msg.read || false,
-        }));
-        setMessages(fetchedMessages);
-      }
-    } finally {
-      setIsLoading(false);
+  // Auto-select first chat if none selected
+  useEffect(() => {
+    if (chats.length > 0 && !selectedChat) {
+      setSelectedChat(chats[0]);
     }
-  };
+  }, [chats, selectedChat]);
 
-  const selectedPatient = patients.find(p => p.id === selectedPatientId);
-
-  const selectPatient = useCallback((patientId: string) => {
-    setSelectedPatientId(patientId);
-    const patient = patients.find(p => p.id === patientId);
-    
-    // Set the active chat ID for the selected patient
-    if (patient) {
-      setActiveChatId(patientId);
-      setSessionEnded(!patient.sessionActive);
-    }
-    setInputValue('');
-    
-    // Fetch messages for this patient
-    fetchMessagesForPatient(patientId);
-  }, [patients]);
-
-  const fetchMessagesForPatient = async (patientId: string) => {
-    setIsLoading(true);
-    try {
-      const response = await apiClient(`/chats/${patientId}/messages`);
-      // Handle both direct data and wrapped response format
-      const messagesData = response?.data || response?.resultData || response;
-      if (messagesData && Array.isArray(messagesData)) {
-        const fetchedMessages: Message[] = messagesData.map((msg: any) => ({
-          id: msg.id,
-          sender: (msg.senderId === SPECIALIST_ID ? 'doctor' : 'patient') as 'doctor' | 'patient',
-          text: msg.message,
-          timestamp: new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          read: msg.read || false,
-        }));
-        setMessages(fetchedMessages);
-      }
-    } catch (error) {
-      console.error('Error fetching messages:', error);
+  // Fetch messages when chat is selected
+  useEffect(() => {
+    if (selectedChat) {
+      fetchChatMessages(selectedChat.id);
+    } else {
       setMessages([]);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [selectedChat]);
 
-  const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || !activeChatId || sessionEnded) return;
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      sender: 'doctor',
-      text: text.trim(),
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      read: true,
+  // Listen for new messages via socket
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewMessage = (msg: ApiMessage) => {
+      const transformedMsg = transformMessage(msg, SPECIALIST_ID);
+      
+      if (selectedChat && msg.chatId === selectedChat.id) {
+        setMessages(prev => {
+          // Avoid duplicates
+          if (prev.find(m => m.id === msg.id)) return prev;
+          return [...prev, transformedMsg];
+        });
+        // Mark as read
+        markMessageAsRead(msg.id).catch(console.error);
+      }
+      
+      // Update chat list with last message
+      setChats(prev => prev.map(chat => 
+        chat.id === msg.chatId 
+          ? { ...chat, lastMessage: transformedMsg, unreadCount: chat.unreadCount + 1 }
+          : chat
+      ));
     };
 
-    // Optimistically add message to UI
-    setMessages(prev => [...prev, newMessage]);
+    socket.on('newMessage', handleNewMessage);
+
+    return () => {
+      socket.off('newMessage', handleNewMessage);
+    };
+  }, [socket, selectedChat]);
+
+  // Fetch all user chats
+  const fetchUserChats = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const userChats = await getCurrentUserChats();
+      
+      // Transform chats to chat list items
+      const chatListItems: ChatListItem[] = userChats.map((chat: Chat) => {
+        // Determine which participant is the patient (not the current specialist)
+        const patientParticipant = chat.participants?.find(p => p.id !== SPECIALIST_ID);
+        const lastMsg = chat.lastMessage ? transformMessage(chat.lastMessage as ApiMessage, SPECIALIST_ID) : undefined;
+        
+        return {
+          id: chat.id,
+          participantId: patientParticipant?.id || chat.participant2Id,
+          participantName: patientParticipant?.name || 'Unknown Patient',
+          participantAvatar: patientParticipant?.avatar,
+          lastMessage: lastMsg,
+          unreadCount: chat.unreadCount || 0,
+        };
+      });
+      
+      setChats(chatListItems);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching chats:', err);
+      setError('Failed to fetch chats.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Fetch messages for a specific chat
+  const fetchChatMessages = useCallback(async (chatId: string) => {
+    try {
+      setIsLoading(true);
+      const chatMessages = await getChatMessages(chatId);
+      const transformedMessages = chatMessages.map((msg: ApiMessage) => transformMessage(msg, SPECIALIST_ID));
+      setMessages(transformedMessages);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching messages:', err);
+      setError('Failed to fetch messages.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Send a text message
+  const sendMessage = useCallback(async (text?: string) => {
+    const msgText = text || inputValue;
+    if (!msgText.trim() || !selectedChat) return;
+
+    setIsSending(true);
     setInputValue('');
 
     try {
-      // Send via API
-      await apiClient('/chat/message', {
-        method: 'POST',
-        body: JSON.stringify({
-          chatId: activeChatId,
-          senderId: SPECIALIST_ID,
-          message: text.trim(),
-          type: 'text',
-        }),
-      });
-
-      // Also emit via socket for real-time
-      emit('message', {
-        content: text.trim(),
-        senderId: SPECIALIST_ID,
-      });
-    } catch (error) {
-      console.error('Error sending message:', error);
-    }
-  }, [activeChatId, sessionEnded, emit]);
-
-  const endSession = useCallback(() => {
-    setSessionEnded(true);
-    if (selectedPatientId) {
-      // Update patient status in the list
-      const updatedPatients = patients.map(p =>
-        p.id === selectedPatientId ? { ...p, sessionActive: false, status: 'session-ended' as const } : p
+      const newMessage = await sendUserChatMessage(
+        selectedChat.id,
+        SPECIALIST_ID,
+        msgText,
+        'TEXT'
       );
+      
+      const transformedMsg = transformMessage(newMessage, SPECIALIST_ID);
+      
+      // Add to messages if not already there (for optimistic updates)
+      setMessages(prev => {
+        if (prev.find(m => m.id === transformedMsg.id)) return prev;
+        return [...prev, transformedMsg];
+      });
+      
+      setError(null);
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setError('Failed to send message.');
+      setInputValue(msgText); // Restore input on error
+    } finally {
+      setIsSending(false);
     }
-  }, [selectedPatientId, patients]);
+  }, [inputValue, selectedChat]);
+
+  // Send a file/media message
+  const sendMediaMessage = useCallback(async (
+    type: 'IMAGE' | 'VIDEO' | 'AUDIO',
+    metadata: { url: string; mimeType: string; size: number; duration?: number }
+  ) => {
+    if (!selectedChat) return;
+
+    setIsUploading(true);
+
+    try {
+      const newMessage = await sendUserChatMessage(
+        selectedChat.id,
+        SPECIALIST_ID,
+        '',
+        type,
+        metadata.url,
+        metadata.mimeType,
+        metadata.size,
+        metadata.duration
+      );
+      
+      const transformedMsg = transformMessage(newMessage, SPECIALIST_ID);
+      
+      setMessages(prev => {
+        if (prev.find(m => m.id === transformedMsg.id)) return prev;
+        return [...prev, transformedMsg];
+      });
+      
+      setError(null);
+    } catch (err) {
+      console.error('Error sending media:', err);
+      setError('Failed to send media.');
+    } finally {
+      setIsUploading(false);
+    }
+  }, [selectedChat]);
+
+  // Handle file upload
+  const handleFileUpload = useCallback(async (file: File) => {
+    if (!selectedChat) return;
+
+    setIsUploading(true);
+    try {
+      const { url, mimeType, size } = await uploadFile(file);
+      
+      let type: 'IMAGE' | 'VIDEO' | 'AUDIO' = 'IMAGE';
+      if (mimeType.startsWith('video/')) type = 'VIDEO';
+      if (mimeType.startsWith('audio/')) type = 'AUDIO';
+
+      await sendMediaMessage(type, { url, mimeType, size });
+    } catch (err) {
+      console.error('Upload failed:', err);
+      setError('Failed to upload file.');
+    } finally {
+      setIsUploading(false);
+    }
+  }, [selectedChat, sendMediaMessage]);
+
+  // Select a chat
+  const selectChat = useCallback((chatId: string) => {
+    const chat = chats.find(c => c.id === chatId);
+    if (chat) {
+      setSelectedChat(chat);
+      // Reset unread count
+      setChats(prev => prev.map(c => 
+        c.id === chatId ? { ...c, unreadCount: 0 } : c
+      ));
+    }
+  }, [chats]);
+
+  // Clear error
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
 
   return {
-    patients,
-    patientsLoading,
-    selectedPatient,
-    selectedPatientId,
-    activeChatId,
-    setActiveChatId,
+    // State
+    chats,
+    selectedChat,
     messages,
     inputValue,
     setInputValue,
     isLoading,
-    sessionEnded,
+    isSending,
+    isUploading,
+    error,
     isConnected,
-    selectPatient,
+    scrollRef,
+    
+    // Actions
+    fetchUserChats,
+    fetchChatMessages,
     sendMessage,
-    endSession,
-    refetchPatients: fetchPatients,
+    sendMediaMessage,
+    handleFileUpload,
+    selectChat,
+    setSelectedChat,
+    clearError,
   };
 }

@@ -9,6 +9,7 @@ interface MessageInputProps {
   onSend: () => void;
   onFileUpload: (file: File) => void;
   disabled?: boolean;
+  isUploading?: boolean;
 }
 
 export default function MessageInput({ 
@@ -16,11 +17,13 @@ export default function MessageInput({
   onChange, 
   onSend, 
   onFileUpload,
-  disabled 
+  disabled,
+  isUploading
 }: MessageInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingState, setIsUploadingState] = useState(false);
+  const isUploadingActive = isUploading ?? isUploadingState;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -39,7 +42,7 @@ export default function MessageInput({
   const handleUpload = async () => {
     if (!selectedFile) return;
     
-    setIsUploading(true);
+    setIsUploadingState(true);
     try {
       await onFileUpload(selectedFile);
       setSelectedFile(null);
@@ -49,7 +52,7 @@ export default function MessageInput({
     } catch (error) {
       console.error('File upload failed:', error);
     } finally {
-      setIsUploading(false);
+      setIsUploadingState(false);
     }
   };
 
@@ -85,14 +88,14 @@ export default function MessageInput({
           <div className="flex items-center gap-2">
             <button
               onClick={handleUpload}
-              disabled={isUploading}
+              disabled={isUploadingActive}
               className="px-3 py-1.5 bg-[#FF7A59] text-white text-sm rounded-lg hover:bg-[#e66a4a] transition-colors disabled:opacity-50"
             >
-              {isUploading ? 'Uploading...' : 'Upload'}
+              {isUploadingActive ? 'Uploading...' : 'Upload'}
             </button>
             <button
               onClick={cancelFile}
-              disabled={isUploading}
+              disabled={isUploadingActive}
               className="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
             >
               <XMarkIcon className="w-4 h-4" />

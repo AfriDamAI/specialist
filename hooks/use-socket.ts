@@ -1,9 +1,3 @@
-'use client';
-
-import { useEffect, useState, useCallback } from "react";
-import { io, Socket } from "socket.io-client";
-import { SOCKET_URL } from "@/lib/config";
-
 /**
  * 🛡️ AFRIDAM NEURAL SOCKET HOOK
  * Location: hooks/use-socket.tsx
@@ -11,38 +5,47 @@ import { SOCKET_URL } from "@/lib/config";
  * Rule 5: Pure logic engine. Resolves ts(7006) 'any' errors.
  */
 
+import { useEffect, useState, useCallback } from "react";
+import { io, Socket } from "socket.io-client";
+
 // 🧬 Define the Message Data structure
 export interface SocketData {
-  content: string;
+  chatId?: string;
+  content?: string;
+  message?: string; // Support both 'content' and 'message'
   senderId?: string;
   userId?: string;
+  type?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'MISSED_CALL' | 'SYSTEM';
+  attachmentUrl?: string;
+  mimeType?: string;
+  fileSize?: number;
+  duration?: number;
   payload?: {
     note?: string;
     isTyping?: boolean;
     isNote?: boolean;
+    offer?: any;
+    answer?: any;
+    candidate?: any;
+    callType?: 'voice' | 'video';
+    from?: string;
+    to?: string;
   };
   timestamp?: string;
 }
 
-export interface ChatMessage {
-  id?: string;
-  chatId: string;
-  senderId: string;
-  message: string;
-  type: string;
-  timestamp?: string;
-}
-
-export const useSocket = (chatId?: string) => {
+export const useSocket = (url: string) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    if (!url) return;
+
     /**
      * 🚀 THE HANDSHAKE (Rule 6)
      * Ensuring the token is pulled from local storage for the specialist sync.
      */
-    const socketInstance = io(SOCKET_URL, {
+    const socketInstance = io(url, {
       transports: ["websocket"],
       secure: true,
       reconnection: true,
@@ -55,30 +58,11 @@ export const useSocket = (chatId?: string) => {
       setIsConnected(true);
       // 🛡️ Soft Tone: Keep it relatable
       console.log("Specialist Sync: ACTIVE");
-      
-      // Join the specific chat room if chatId is provided
-      if (chatId) {
-        socketInstance.emit("joinChat", { chatId });
-      }
-    });
-
-    socketInstance.on("connect_error", (error) => {
-      console.error("Socket connection error:", error.message);
-      setIsConnected(false);
     });
 
     socketInstance.on("disconnect", () => {
       setIsConnected(false);
       console.log("Specialist Sync: PAUSED");
-    });
-
-    socketInstance.on("reconnect", (attemptNumber) => {
-      console.log(`Specialist Sync: RECONNECTED (attempt ${attemptNumber})`);
-      setIsConnected(true);
-      // Rejoin chat room after reconnection
-      if (chatId) {
-        socketInstance.emit("joinChat", { chatId });
-      }
     });
 
     setSocket(socketInstance);
@@ -88,19 +72,17 @@ export const useSocket = (chatId?: string) => {
       socketInstance.off();
       socketInstance.disconnect();
     };
-  }, [chatId]);
+  }, [url]);
 
   /** 🛡️ listen: Type-Safe Listener **/
-  const listen = useCallback((event: string, callback: (data: SocketData) => void) => {
+  const listen = useCallback((event: string, callback: (data: any) => void) => {
     if (socket) {
-      socket.on(event, (data: SocketData) => {
-        callback(data);
-      });
+      socket.on(event, callback);
     }
   }, [socket]);
 
   /** 🛡️ emit: Type-Safe Emitter **/
-  const emit = useCallback((event: string, data: SocketData) => {
+  const emit = useCallback((event: string, data: any) => {
     if (socket) {
       socket.emit(event, {
         ...data,
@@ -109,5 +91,5 @@ export const useSocket = (chatId?: string) => {
     }
   }, [socket]);
 
-  return { isConnected, listen, emit };
+  return { isConnected, listen, emit, socket };
 };
