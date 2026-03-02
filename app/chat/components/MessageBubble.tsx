@@ -72,6 +72,8 @@ function FileAttachmentPreview({ attachment }: { attachment: FileAttachment }) {
 export default function MessageBubble({ message }: MessageBubbleProps) {
   const isDoctor = message.sender === 'doctor';
 
+  console.log("mee", message)
+
   return (
     <div className={`flex ${isDoctor ? 'justify-end' : 'justify-start'} mb-4`}>
       <div

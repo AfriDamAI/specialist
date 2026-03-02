@@ -51,29 +51,27 @@ const AppointmentCard = ({ appointment, onStatusChange }: { appointment: Appoint
       
       if (acceptResponse) {
         // Start the session after accept is confirmed
-        const sessionResponse = await apiClient(`/appointments/assignments/${appointmentId}/start-session`, {
+        const sessionResponse = await apiClient(`/appointments/${appointmentId}/start-session`, {
           method: 'POST',
         });
         
         console.log("session", sessionResponse)
         
-        // Create a chat with the patient
-        const chatResponse = await apiClient('/chats', {
-          method: 'POST',
-          body: JSON.stringify({
-            participant1Id: specialistId,
-            participant2Id: id,
-          }),
-        });
-
-        console.log("chatre", chatResponse)
+        // Get the sessionId from the session response
+        const sessionId = sessionResponse?.data?.id || sessionResponse?.id || "";
         
-        // Get the chat ID from the response
-        const chatId = chatResponse?.resultData?.id || "";
+        // Save sessionId, specialistId, and patient id to localStorage for chat initialization
+        if (sessionId) {
+          localStorage.setItem('sessionId', sessionId);
+        }
+        localStorage.setItem('specialistId', specialistId);
+        localStorage.setItem('patientId', id);
         
-        // Update status and navigate to chat with chatId
-        onStatusChange(appointmentId, 'ACCEPTED', chatId);
-        router.push(`/chat?chatId=${chatId}`);
+        // Update status
+        onStatusChange(appointmentId, 'ACCEPTED', "");
+        
+        // Route to chat page - the chat will be initiated there
+        router.push(`/chat`);
       }
     } catch (error) {
       console.error('Error accepting appointment:', error);

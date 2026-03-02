@@ -1,17 +1,45 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import ChatContainer from './components/ChatContainer';
+import { initiateChat } from '@/lib/api-client';
 
 function ChatPageContent() {
-  const searchParams = useSearchParams();
-  const chatId = searchParams.get('chatId');
+  
+  //const chatId = searchParams.get('chatId');
   const [isReady, setIsReady] = useState(false);
+  const [pendingChatId, setPendingChatId] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check if there's a pending chat to initiate from appointment acceptance
+    const initiatePendingChat = async () => {
+      const specialistId = localStorage.getItem('specialistId');
+      const patientId = localStorage.getItem('patientId');
+      
+      if (specialistId && patientId) {
+        try {
+          // Call the initiateChat API with the saved IDs
+          const chatResponse = await initiateChat(specialistId, patientId);
+          
+          console.log('Initiated chat:', chatResponse);
+          
+          if (chatResponse?.id) {
+            setPendingChatId(chatResponse?.resultData?.id);
+            
+            // Clear the stored IDs after use
+            localStorage.removeItem('specialistId');
+            localStorage.removeItem('patientId');
+            localStorage.removeItem('sessionId');
+          }
+        } catch (error) {
+          console.error('Error initiating chat:', error);
+        }
+      }
+    };
+    
+    initiatePendingChat();
     setIsReady(true);
   }, []);
 
@@ -25,6 +53,9 @@ function ChatPageContent() {
     );
   }
 
+  // Use pendingChatId if available, otherwise use URL chatId
+  const activeChatId = pendingChatId ||  undefined;
+
   return (
     <div className="p-4 md:p-6">
       <div className="mb-4">
@@ -36,7 +67,7 @@ function ChatPageContent() {
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Appointments</span>
         </Link>
       </div>
-      <ChatContainer chatId={chatId || undefined} />
+      <ChatContainer chatId={activeChatId} />
     </div>
   );
 }

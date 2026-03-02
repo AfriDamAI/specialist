@@ -9,6 +9,16 @@ interface PatientListItemProps {
 }
 
 export default function PatientListItem({ patient, isActive, onClick }: PatientListItemProps) {
+  // Get initials or first 2 chars if name is an ID
+  const getInitials = (name: string) => {
+    const parts = name.split(' ').filter(Boolean);
+    if (parts.length >= 2) {
+      return parts.slice(0, 2).map(n => n[0]).join('').toUpperCase();
+    }
+    // If name looks like an ID (no spaces), return first 2 chars
+    return name.slice(0, 2).toUpperCase();
+  };
+
   return (
     <button
       onClick={onClick}
@@ -21,7 +31,7 @@ export default function PatientListItem({ patient, isActive, onClick }: PatientL
       <div className="relative">
         <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
           <span className="text-gray-600 dark:text-gray-300 font-bold text-sm">
-            {patient.name.split(' ').map(n => n[0]).join('')}
+            {getInitials(patient.name)}
           </span>
         </div>
         <span

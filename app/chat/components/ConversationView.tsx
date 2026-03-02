@@ -97,11 +97,11 @@ export default function ConversationView({
       />
 
       {/* Connection Status */}
-      {isConnected !== undefined && (
+      {/* {isConnected !== undefined && (
         <div className={`px-4 py-1 text-xs font-medium ${isConnected ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'}`}>
           {isConnected ? '● Connected' : '○ Disconnected'}
         </div>
-      )}
+      )} */}
 
       {/* Call Overlay */}
       {callState.isActive && (

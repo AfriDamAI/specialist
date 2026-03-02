@@ -109,7 +109,7 @@ export async function apiClient(endpoint: string, options: FetchOptions = {}) {
 
 // ============ Chat API Functions ============
 
-export const initiateChat = async (participant1Id: string, participant2Id: string): Promise<Chat> => {
+export const initiateChat = async (participant1Id: string, participant2Id: string): Promise<any> => {
   const response = await apiClient("/chats", {
     method: 'POST',
     body: JSON.stringify({ participant1Id, participant2Id }),
@@ -147,12 +147,12 @@ export const sendUserChatMessage = async (
     body: JSON.stringify({ 
       chatId, 
       senderId, 
-      message,
+      message: message || '',
       type,
-      attachmentUrl,
-      mimeType,
-      fileSize,
-      duration
+      attachmentUrl: attachmentUrl || '',
+      mimeType: mimeType || '',
+      fileSize: fileSize || 0,
+      duration: duration || 0
     }),
   });
   return response?.data || response;

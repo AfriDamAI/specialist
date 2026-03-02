@@ -136,7 +136,7 @@ export default function MessageInput({
         </div>
         <button
           onClick={onSend}
-          disabled={(!value.trim() && !selectedFile) || disabled}
+          disabled={disabled}
           className="p-3 bg-[#FF7A59] text-white rounded-2xl hover:bg-[#e66a4a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <PaperAirplaneIcon className="w-5 h-5" />
