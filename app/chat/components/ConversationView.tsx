@@ -22,8 +22,12 @@ interface ConversationViewProps {
   onSend: () => void;
   onEndSession: () => void;
   onFileUpload: (file: File) => void;
+  onFileUpload: (file: File) => void;
   onClearError?: () => void;
+  chatId?: string; // Add chatId
 }
+
+import { useCall } from '@/context/CallContext';
 
 export default function ConversationView({
   patient,
@@ -40,31 +44,26 @@ export default function ConversationView({
   onEndSession,
   onFileUpload,
   onClearError,
+  chatId,
 }: ConversationViewProps) {
+  const { initiateCall, callStatus, callType, endCall, remoteStream, localStream } = useCall();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [callState, setCallState] = useState<{ type: CallType; isActive: boolean }>({
-    type: null,
-    isActive: false,
-  });
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleStartCall = (type: CallType) => {
-    if (type) {
-      setCallState({ type, isActive: true });
+    if (type && patient && chatId) {
+      initiateCall(patient.id, chatId, type);
     }
   };
 
   const handleEndCall = () => {
-    setCallState({ type: null, isActive: false });
-    onEndSession();
+    endCall();
   };
 
-  const handleFileUpload = async (file: File): Promise<void> => {
-    await onFileUpload(file);
-  };
+  const callActive = callStatus === 'connected' || callStatus === 'ringing';
 
   // Show error notification
   useEffect(() => {
@@ -89,11 +88,11 @@ export default function ConversationView({
         </div>
       )}
 
-      <ChatHeader 
-        patient={patient} 
-        onEndSession={callState.isActive ? handleEndCall : onEndSession}
+      <ChatHeader
+        patient={patient}
+        onEndSession={callActive ? handleEndCall : onEndSession}
         onStartCall={handleStartCall}
-        callActive={callState.isActive}
+        callActive={callActive}
       />
 
       {/* Connection Status */}
@@ -104,31 +103,69 @@ export default function ConversationView({
       )} */}
 
       {/* Call Overlay */}
-      {callState.isActive && (
-        <div className="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center">
-          <div className="text-center">
-            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gray-800 flex items-center justify-center">
-              {callState.type === 'video' ? (
-                <VideoCameraIcon className="w-12 h-12 text-white" />
-              ) : (
-                <PhoneIcon className="w-12 h-12 text-white" />
-              )}
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">
-              {callState.type === 'video' ? 'Video Call' : 'Voice Call'}
-            </h3>
-            <p className="text-gray-400 mb-6">Connected with {patient.name}</p>
-            <div className="flex items-center justify-center gap-4">
-              {callState.type === 'voice' && (
-                <button className="p-4 rounded-full bg-gray-800 text-white hover:bg-gray-700 transition-colors">
-                  <PhoneIcon className="w-6 h-6" />
-                </button>
-              )}
-              <button 
+      {callActive && (
+        <div className="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center">
+          {/* Video Streams */}
+          <div className="relative w-full h-full flex items-center justify-center">
+            {callType === 'video' ? (
+              <>
+                {/* Remote Stream (Main) */}
+                {remoteStream ? (
+                  <video
+                    autoPlay
+                    playsInline
+                    ref={(el) => { if (el) el.srcObject = remoteStream; }}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-white text-center">
+                    <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
+                      <VideoCameraIcon className="w-12 h-12 text-gray-400" />
+                    </div>
+                    <p>Connecting video...</p>
+                  </div>
+                )}
+
+                {/* Local Stream (PiP) */}
+                {localStream && (
+                  <div className="absolute top-4 right-4 w-32 h-48 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl bg-black">
+                    <video
+                      autoPlay
+                      playsInline
+                      muted
+                      ref={(el) => { if (el) el.srcObject = localStream; }}
+                      className="w-full h-full object-cover mirror"
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Voice Call View */
+              <div className="text-center">
+                <div className="w-32 h-32 mx-auto mb-8 rounded-full bg-[#FF7A59]/20 flex items-center justify-center animate-pulse">
+                  <div className="w-24 h-24 rounded-full bg-[#FF7A59] flex items-center justify-center shadow-lg">
+                    <PhoneIcon className="w-12 h-12 text-white" />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-black text-white mb-2 uppercase italic tracking-widest">
+                  Voice Call Active
+                </h3>
+                <p className="text-gray-400 font-medium">Connected with {patient.name}</p>
+              </div>
+            )}
+
+            {/* Call Controls Overlay */}
+            <div className="absolute bottom-12 left-0 right-0 flex items-center justify-center gap-6">
+              <button
                 onClick={handleEndCall}
-                className="p-4 rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors"
+                className="group flex flex-col items-center gap-2"
               >
-                <XMarkIcon className="w-6 h-6" />
+                <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center text-white shadow-2xl hover:bg-red-700 transition-all hover:scale-110 active:scale-95 border-4 border-red-600/20">
+                  <XMarkIcon className="w-10 h-10" />
+                </div>
+                <span className="text-[10px] font-black text-white uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                  End Call
+                </span>
               </button>
             </div>
           </div>

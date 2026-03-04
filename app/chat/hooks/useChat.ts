@@ -411,5 +411,6 @@ export function useChat(initialChatId?: string) {
     selectChat,
     setSelectedChat,
     clearError,
+    socket,
   };
 }

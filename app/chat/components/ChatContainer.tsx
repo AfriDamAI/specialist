@@ -63,10 +63,10 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
       id: msg.id,
       name: msg.attachmentUrl.split('/').pop() || 'attachment',
       url: msg.attachmentUrl,
-      type: msg.mimeType?.startsWith('image/') ? 'image' 
+      type: msg.mimeType?.startsWith('image/') ? 'image'
         : msg.mimeType?.startsWith('video/') ? 'video'
-        : msg.mimeType?.startsWith('audio/') ? 'audio'
-        : 'document',
+          : msg.mimeType?.startsWith('audio/') ? 'audio'
+            : 'document',
       size: msg.fileSize || 0,
     } : undefined,
   }));
@@ -108,12 +108,13 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
         isConnected={isConnected}
         onInputChange={setInputValue}
         onSend={handleSend}
-        onEndSession={() => {}}
+        onEndSession={() => { }}
         onFileUpload={handleFileSelect}
         isSending={isSending}
         isUploading={isUploading}
         error={error}
         onClearError={clearError}
+        chatId={selectedChat?.id}
       />
     </div>
   );

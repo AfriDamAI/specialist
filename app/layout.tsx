@@ -4,6 +4,8 @@ import "./globals.css";
 // Rule #3: Relative path from app/ folder to root context/ folder
 import { NotificationProvider } from "../context/NotificationContext";
 import { ThemeProvider } from "../context/ThemeContext";
+import { CallProvider } from "../context/CallContext";
+import IncomingCallModal from "../components/IncomingCallModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,7 +37,10 @@ export default function RootLayout({
         <ThemeProvider>
           {/* Rule #5: NotificationProvider acts as the Neural Root for real-time alerts */}
           <NotificationProvider>
-            {children}
+            <CallProvider>
+              {children}
+              <IncomingCallModal />
+            </CallProvider>
           </NotificationProvider>
         </ThemeProvider>
       </body>
