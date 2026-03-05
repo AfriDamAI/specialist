@@ -45,6 +45,18 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+// Helper to check if a message is a system/confirmation message that shouldn't be displayed
+const isSystemConfirmationMessage = (msg: ApiMessage | any): boolean => {
+  // Check type field
+  if (msg.type === 'SYSTEM') return true;
+  // Check message content for common confirmation phrases
+  const messageText = msg.message || msg.text || '';
+  const confirmationPhrases = ['sent successfully', 'message sent', 'delivered successfully'];
+  return confirmationPhrases.some(phrase => 
+    messageText.toLowerCase().includes(phrase.toLowerCase())
+  );
+};
+
 // Transform API message to UI message
 // Sample: { id, chatId, senderId, message, type, isRead, isDelivered, createdAt }
 const transformMessage = (msg: ApiMessage, currentUserId: string): ChatMessage => ({
@@ -175,8 +187,9 @@ export function useChat(initialChatId?: string) {
     const handleNewMessage = (msg: ApiMessage) => {
       const specialistId = getSpecialistId();
       
-      // Skip SYSTEM messages (confirmation messages like "message sent successful")
-      if ((msg as any).type === 'SYSTEM') {
+      // Skip system/confirmation messages (e.g., "Message sent successfully")
+      if (isSystemConfirmationMessage(msg)) {
+        console.log('Skipping system confirmation message:', (msg as any).message);
         return;
       }
       
@@ -330,6 +343,14 @@ export function useChat(initialChatId?: string) {
         msgText,
         'TEXT'
       );
+      
+      // Skip if API returns a system/confirmation message (e.g., "Message sent successfully")
+      if (isSystemConfirmationMessage(newMessage)) {
+        // Keep the optimistic message in place, just clear the error state
+        console.log('Skipping system confirmation from API:', (newMessage as any).message);
+        setError(null);
+        return;
+      }
       
       const transformedMsg = transformMessage(newMessage, specialistId);
       
