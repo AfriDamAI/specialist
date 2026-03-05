@@ -125,7 +125,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { id: 'dashboard', icon: <ChartBarSquareIcon className="w-6 h-6" />, label: 'Dashboard', href: '/dashboard' },
     { id: 'appointments', icon: <CalendarIcon className="w-6 h-6" />, label: 'Appointments', href: '/appointments' },
     { id: 'patients', icon: <UsersIcon className="w-6 h-6" />, label: 'Patients', href: '/patients' },
-    { id: 'consultation', icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />, label: 'Consultations', href: '/consultation' },
     { id: 'chat', icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />, label: 'Chat', href: '/chat' },
     { id: 'analytics', icon: <PresentationChartLineIcon className="w-6 h-6" />, label: 'Analytics', href: '/analytics' },
     { id: 'documents', icon: <DocumentIcon className="w-6 h-6" />, label: 'Documents', href: '/documents' },

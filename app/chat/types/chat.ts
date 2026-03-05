@@ -33,7 +33,9 @@ export interface ChatState {
   inputValue: string;
 }
 
-export type CallType = 'video' | 'voice' | null;
+import { CallType as UseCallType } from '../hooks/useCall';
+
+export type CallType = UseCallType | null;
 
 export interface CallState {
   type: CallType;

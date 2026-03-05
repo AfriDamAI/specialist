@@ -26,6 +26,18 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     handleFileUpload,
     selectChat,
     clearError,
+    // Call-related
+    isCallActive,
+    callType,
+    incomingCallData,
+    localStream,
+    remoteStream,
+    handleStartCall,
+    handleAcceptCall,
+    handleRejectCall,
+    handleEndCall,
+    toggleMute,
+    toggleVideo,
   } = useChat(chatId);
 
   // Transform chat list item to patient for the UI
@@ -114,6 +126,18 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
         isUploading={isUploading}
         error={error}
         onClearError={clearError}
+        // Call-related props
+        isCallActive={isCallActive}
+        callType={callType}
+        incomingCallData={incomingCallData}
+        localStream={localStream}
+        remoteStream={remoteStream}
+        onStartCall={handleStartCall}
+        onEndCall={handleEndCall}
+        onAcceptCall={handleAcceptCall}
+        onRejectCall={handleRejectCall}
+        onToggleMute={toggleMute}
+        onToggleVideo={toggleVideo}
       />
     </div>
   );

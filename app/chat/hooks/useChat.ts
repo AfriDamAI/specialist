@@ -12,6 +12,10 @@ import {
   Message as ApiMessage,
   Message,
 } from '@/lib/api-client';
+import { useCall, CallType, IncomingCallData } from './useCall';
+
+// Re-export types for convenience
+export type { CallType, IncomingCallData };
 
 // Get specialistId from localStorage or fallback to config
 const getSpecialistId = (): string => {
@@ -80,6 +84,11 @@ export function useChat(initialChatId?: string) {
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Call states
+  const [incomingCallData, setIncomingCallData] = useState<IncomingCallData | null>(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
 
   // Use socket for real-time messaging
   const { socket, isConnected: socketConnected } = useSocket(
@@ -92,6 +101,34 @@ export function useChat(initialChatId?: string) {
   useEffect(() => {
     setIsConnected(socketConnected);
   }, [socketConnected]);
+
+  // Initialize call hook
+  const {
+    callState,
+    startCall,
+    acceptCall,
+    rejectCall,
+    endCall,
+    toggleMute,
+    toggleVideo,
+  } = useCall({
+    socket,
+    currentUserId: getSpecialistId(),
+    onIncomingCall: (data) => {
+      setIncomingCallData(data);
+    },
+    onRemoteStream: (stream) => {
+      setRemoteStream(stream);
+    },
+    onLocalStream: (stream) => {
+      setLocalStream(stream);
+    },
+    onCallEnded: () => {
+      setIncomingCallData(null);
+      setLocalStream(null);
+      setRemoteStream(null);
+    },
+  });
 
   // Fetch user's chats on mount
   useEffect(() => {
@@ -388,6 +425,48 @@ export function useChat(initialChatId?: string) {
     setError(null);
   }, []);
 
+  // Call handlers
+  const handleStartCall = useCallback(async (type: CallType) => {
+    if (!selectedChat || !type) return;
+    
+    const specialistId = getSpecialistId();
+    const patientId = selectedChat.participantId;
+    
+    try {
+      await startCall(patientId, selectedChat.id, type);
+    } catch (err) {
+      console.error('Failed to start call:', err);
+      setError('Failed to start call. Please check your camera/microphone permissions.');
+    }
+  }, [selectedChat, startCall]);
+
+  const handleAcceptCall = useCallback(async () => {
+    if (!incomingCallData) return;
+    
+    try {
+      await acceptCall(incomingCallData);
+      setIncomingCallData(null);
+    } catch (err) {
+      console.error('Failed to accept call:', err);
+      setError('Failed to accept call.');
+    }
+  }, [incomingCallData, acceptCall]);
+
+  const handleRejectCall = useCallback(() => {
+    if (!incomingCallData) return;
+    
+    rejectCall(incomingCallData.from, incomingCallData.chatId);
+    setIncomingCallData(null);
+  }, [incomingCallData, rejectCall]);
+
+  const handleEndCall = useCallback(() => {
+    if (callState.remoteUserId && callState.chatId) {
+      endCall(callState.remoteUserId, callState.chatId);
+    }
+    setLocalStream(null);
+    setRemoteStream(null);
+  }, [callState.remoteUserId, callState.chatId, endCall]);
+
   return {
     // State
     chats,
@@ -411,5 +490,18 @@ export function useChat(initialChatId?: string) {
     selectChat,
     setSelectedChat,
     clearError,
+    
+    // Call state and actions
+    isCallActive: callState.isActive,
+    callType: callState.type,
+    incomingCallData,
+    localStream,
+    remoteStream,
+    handleStartCall,
+    handleAcceptCall,
+    handleRejectCall,
+    handleEndCall,
+    toggleMute,
+    toggleVideo,
   };
 }

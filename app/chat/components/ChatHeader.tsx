@@ -1,7 +1,8 @@
 'use client';
 
 import { XMarkIcon, VideoCameraIcon, PhoneIcon } from '@heroicons/react/24/outline';
-import { Patient, CallType } from '../types/chat';
+import { Patient } from '../types/chat';
+import { CallType } from '../hooks/useCall';
 
 interface ChatHeaderProps {
   patient: Patient;

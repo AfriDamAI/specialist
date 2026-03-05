@@ -26,15 +26,15 @@ export default function DashboardPage() {
         // 🏛️ Rule #6: Verified handshake with resultData unwrapping
         const response = await apiClient('/specialists/me');
         const data = response?.resultData || response?.data || response;
-        
+
         if (data) {
           // Rule #5: Humanizing the greeting with real names
           setUserName(data.firstName || 'Specialist');
-          setUserRole(data.specialization || 'Medical Personnel');
+          setUserRole(data.type?.toLowerCase()?.replace("_", " ") || 'Medical Personnel');
           
           // Rule #3: Persistence sync for the layout
           localStorage.setItem('specialistName', `${data.firstName} ${data.lastName}`);
-          localStorage.setItem('specialistRole', data.specialization || '');
+          localStorage.setItem('specialistRole', data.type?.toLowerCase()?.replace("_", " ") || '');
           localStorage.setItem('specialistStatus', 'verified'); 
         }
       } catch (error) {
@@ -84,7 +84,7 @@ export default function DashboardPage() {
               <CheckBadgeIcon className="w-8 h-8 md:w-12 md:h-12 text-[#FF7A59] drop-shadow-lg" />
             </div>
             {/* World-Class Mix: Bold secondary labels in sentence case */}
-            <p className="text-gray-500 dark:text-gray-400 font-bold text-sm md:text-base tracking-tight">
+            <p className="text-gray-500 dark:text-gray-400 font-bold text-sm md:text-base tracking-tight capitalize">
                {userRole} <span className="mx-2 text-gray-300">•</span> Verified Specialist
             </p>
           </div>
