@@ -26,19 +26,35 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     handleFileUpload,
     selectChat,
     clearError,
+    startSession,
+    endSession,
+    extendSession,
   } = useChat(chatId);
 
-  // Transform chat list item to patient for the UI
-  const patients: Patient[] = chats.map(chat => ({
-    id: chat.participantId,
-    name: chat.participantName,
-    avatar: chat.participantAvatar,
-    status: chat.unreadCount > 0 ? 'online' : 'offline',
-    lastMessage: chat.lastMessage?.text,
-    lastMessageTime: chat.lastMessage?.timestamp,
-    unreadCount: chat.unreadCount,
-    sessionActive: true,
-  }));
+  // Transform chat list item to patient for the UI - ensure unique patients by ID
+  const patients: Patient[] = Array.from(
+    chats.reduce((acc, chat) => {
+      // If we haven't seen this participant, add them as a patient entry
+      if (!acc.has(chat.participantId)) {
+        acc.set(chat.participantId, {
+          id: chat.participantId,
+          name: chat.participantName,
+          avatar: chat.participantAvatar,
+          status: chat.unreadCount > 0 ? 'online' : 'offline',
+          lastMessage: chat.lastMessage?.text,
+          lastMessageTime: chat.lastMessage?.timestamp,
+          unreadCount: chat.unreadCount,
+          sessionActive: chat.sessionActive,
+        });
+      } else {
+        // If participant already exists (multiple chats), aggregate unread counts
+        const existing = acc.get(chat.participantId)!;
+        existing.unreadCount += chat.unreadCount;
+        if (chat.unreadCount > 0) existing.status = 'online';
+      }
+      return acc;
+    }, new Map<string, Patient>()).values()
+  );
 
   // Transform selected chat to patient
   const selectedPatient = selectedChat ? {
@@ -49,7 +65,8 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     lastMessage: selectedChat.lastMessage?.text,
     lastMessageTime: selectedChat.lastMessage?.timestamp,
     unreadCount: selectedChat.unreadCount,
-    sessionActive: true,
+    sessionActive: selectedChat.sessionActive,
+    appointmentId: selectedChat.appointmentId,
   } : null;
 
   // Transform messages to UI format
@@ -57,7 +74,7 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     id: msg.id,
     sender: msg.sender,
     text: msg.text,
-    timestamp: new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    timestamp: msg.timestamp,
     read: msg.read,
     attachment: msg.attachmentUrl ? {
       id: msg.id,
@@ -108,7 +125,9 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
         isConnected={isConnected}
         onInputChange={setInputValue}
         onSend={handleSend}
-        onEndSession={() => { }}
+        onEndSession={() => selectedChat?.appointmentId && endSession(selectedChat.appointmentId)}
+        onStartSession={() => selectedChat?.appointmentId && startSession(selectedChat.appointmentId)}
+        onExtendSession={() => selectedChat?.appointmentId && extendSession(selectedChat.appointmentId)}
         onFileUpload={handleFileSelect}
         isSending={isSending}
         isUploading={isUploading}

@@ -6,15 +6,19 @@ import { Patient, CallType } from '../types/chat';
 interface ChatHeaderProps {
   patient: Patient;
   onEndSession: () => void;
+  onStartSession?: () => void;
+  onExtendSession?: () => void;
   onStartCall: (type: CallType) => void;
   callActive?: boolean;
 }
 
-export default function ChatHeader({ 
-  patient, 
-  onEndSession, 
+export default function ChatHeader({
+  patient,
+  onEndSession,
+  onStartSession,
+  onExtendSession,
   onStartCall,
-  callActive = false 
+  callActive = false
 }: ChatHeaderProps) {
   return (
     <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 flex items-center justify-between">
@@ -27,12 +31,12 @@ export default function ChatHeader({
         <div>
           <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{patient.name}</h3>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            {callActive 
-              ? 'In call...' 
-              : patient.status === 'online' 
-                ? 'Online' 
-                : patient.status === 'session-ended' 
-                  ? 'Session ended' 
+            {callActive
+              ? 'In call...'
+              : patient.status === 'online'
+                ? 'Online'
+                : patient.status === 'session-ended'
+                  ? 'Session ended'
                   : 'Offline'}
           </p>
         </div>
@@ -59,14 +63,24 @@ export default function ChatHeader({
           <VideoCameraIcon className="w-5 h-5" />
         </button>
 
-        {patient.sessionActive && !callActive && (
-          <button
-            onClick={onEndSession}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm font-medium"
-          >
-            <XMarkIcon className="w-4 h-4" />
-            End Session
-          </button>
+        {!callActive && (
+          <div className="flex items-center gap-2">
+            {patient.sessionActive && (
+              <button
+                onClick={onExtendSession}
+                className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
+              >
+                Extend
+              </button>
+            )}
+            <button
+              onClick={onEndSession}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm font-medium"
+            >
+              <XMarkIcon className="w-4 h-4" />
+              End Session
+            </button>
+          </div>
         )}
 
         {callActive && (

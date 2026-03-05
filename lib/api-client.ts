@@ -119,17 +119,17 @@ export const initiateChat = async (participant1Id: string, participant2Id: strin
 
 export const getCurrentUserChats = async (): Promise<Chat[]> => {
   const response = await apiClient("/chats/me");
-  return response?.data || response || [];
+  return response?.resultData || response?.data || response || [];
 };
 
 export const getChatById = async (chatId: string): Promise<Chat> => {
   const response = await apiClient(`/chats/${chatId}`);
-  return response?.data || response;
+  return response?.resultData || response?.data || response;
 };
 
 export const getChatMessages = async (chatId: string): Promise<Message[]> => {
   const response = await apiClient(`/chats/${chatId}/messages`);
-  return response?.data || response || [];
+  return response?.resultData || response?.data || response || [];
 };
 
 export const sendUserChatMessage = async (
@@ -155,7 +155,7 @@ export const sendUserChatMessage = async (
       duration: duration || 0
     }),
   });
-  return response?.data || response;
+  return response?.resultData || response?.data || response;
 };
 
 export const uploadFile = async (file: File): Promise<{ url: string; mimeType: string; size: number }> => {
@@ -185,4 +185,79 @@ export const markMessageAsRead = async (messageId: string): Promise<void> => {
     method: 'PATCH',
   });
   return response?.data || response;
+};
+
+// ============ Appointment API Functions ============
+
+export const getAppointmentById = async (id: string): Promise<any> => {
+  const response = await apiClient(`/appointments/${id}`);
+  return response?.data || response;
+};
+
+export const startAppointmentSession = async (id: string): Promise<any> => {
+  const response = await apiClient(`/appointments/${id}/start-session`, {
+    method: 'POST',
+  });
+  return response?.data || response;
+};
+
+export const endAppointmentSession = async (id: string): Promise<any> => {
+  const response = await apiClient(`/appointments/${id}/end-session`, {
+    method: 'POST',
+  });
+  return response?.data || response;
+};
+
+export const requestEndAppointmentSession = async (id: string): Promise<any> => {
+  const response = await apiClient(`/appointments/${id}/request-end`, {
+    method: 'POST',
+  });
+  return response?.data || response;
+};
+
+export const approveEndAppointmentSession = async (id: string): Promise<any> => {
+  const response = await apiClient(`/appointments/${id}/approve-end`, {
+    method: 'POST',
+  });
+  return response?.data || response;
+};
+
+export const declineEndAppointmentSession = async (id: string): Promise<any> => {
+  const response = await apiClient(`/appointments/${id}/decline-end`, {
+    method: 'POST',
+  });
+  return response?.data || response;
+};
+
+export const extendAppointmentSession = async (id: string): Promise<any> => {
+  const response = await apiClient(`/appointments/${id}/extend-session`, {
+    method: 'POST',
+  });
+  return response?.data || response;
+};
+
+export const updateAppointmentStatus = async (id: string, status: string): Promise<any> => {
+  const response = await apiClient(`/appointments/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  });
+  return response?.data || response;
+};
+
+export const completeAppointment = async (id: string): Promise<any> => {
+  const response = await apiClient(`/appointments/${id}/complete`, {
+    method: 'PUT',
+  });
+  return response?.data || response;
+};
+
+export const cancelAppointment = async (id: string): Promise<any> => {
+  const response = await apiClient(`/appointments/${id}/cancel`, {
+    method: 'PUT',
+  });
+  return response?.data || response;
+};
+export const getSpecialistAppointments = async (): Promise<any[]> => {
+  const response = await apiClient('/appointments/specialist/me');
+  return response?.data || response?.resultData || response || [];
 };

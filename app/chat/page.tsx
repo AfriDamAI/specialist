@@ -1,47 +1,26 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import ChatContainer from './components/ChatContainer';
-import { initiateChat } from '@/lib/api-client';
 
 function ChatPageContent() {
-  
-  //const chatId = searchParams.get('chatId');
+  const searchParams = useSearchParams();
+  const [chatId, setChatId] = useState<string | undefined>(undefined);
   const [isReady, setIsReady] = useState(false);
-  const [pendingChatId, setPendingChatId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if there's a pending chat to initiate from appointment acceptance
-    const initiatePendingChat = async () => {
-      const specialistId = localStorage.getItem('specialistId');
-      const patientId = localStorage.getItem('patientId');
-      
-      if (specialistId && patientId) {
-        try {
-          // Call the initiateChat API with the saved IDs
-          const chatResponse = await initiateChat(specialistId, patientId);
-          
-          console.log('Initiated chat:', chatResponse);
-          
-          if (chatResponse?.id) {
-            setPendingChatId(chatResponse?.resultData?.id);
-            
-            // Clear the stored IDs after use
-            localStorage.removeItem('specialistId');
-            localStorage.removeItem('patientId');
-            localStorage.removeItem('sessionId');
-          }
-        } catch (error) {
-          console.error('Error initiating chat:', error);
-        }
-      }
-    };
-    
-    initiatePendingChat();
+    // Priority 1: chatId from URL query param (set by ongoing-sessions after starting session)
+    const urlChatId = searchParams.get('chatId');
+    // Priority 2: chatId saved to localStorage by ongoing-sessions page
+    const storedChatId = localStorage.getItem('activeChatId');
+
+    const resolvedChatId = urlChatId || storedChatId || undefined;
+    setChatId(resolvedChatId);
     setIsReady(true);
-  }, []);
+  }, [searchParams]);
 
   if (!isReady) {
     return (
@@ -53,21 +32,18 @@ function ChatPageContent() {
     );
   }
 
-  // Use pendingChatId if available, otherwise use URL chatId
-  const activeChatId = pendingChatId ||  undefined;
-
   return (
     <div className="p-4 md:p-6">
       <div className="mb-4">
-        <Link 
-          href="/appointments" 
+        <Link
+          href="/ongoing-sessions"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
         >
           <ArrowLeftIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Appointments</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sessions</span>
         </Link>
       </div>
-      <ChatContainer chatId={activeChatId} />
+      <ChatContainer chatId={chatId} />
     </div>
   );
 }

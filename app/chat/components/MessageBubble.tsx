@@ -31,15 +31,15 @@ function FileAttachmentPreview({ attachment }: { attachment: FileAttachment }) {
   if (attachment.type === 'image') {
     return (
       <div className="mt-2 rounded-lg overflow-hidden relative">
-        <Image 
-          src={attachment.url} 
+        <Image
+          src={attachment.url}
           alt={attachment.name}
           width={200}
           height={150}
           className="max-w-full h-auto max-h-48 object-cover"
         />
-        <a 
-          href={attachment.url} 
+        <a
+          href={attachment.url}
           download={attachment.name}
           className="flex items-center gap-2 mt-1 text-xs text-white/70 hover:text-white underline"
         >
@@ -52,8 +52,8 @@ function FileAttachmentPreview({ attachment }: { attachment: FileAttachment }) {
 
   return (
     <div className="mt-2">
-      <a 
-        href={attachment.url} 
+      <a
+        href={attachment.url}
         download={attachment.name}
         className="flex items-center gap-3 p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
       >
@@ -72,29 +72,43 @@ function FileAttachmentPreview({ attachment }: { attachment: FileAttachment }) {
 export default function MessageBubble({ message }: MessageBubbleProps) {
   const isDoctor = message.sender === 'doctor';
 
-  console.log("mee", message)
+  const date = new Date(message.timestamp);
+  const formattedTime = isNaN(date.getTime())
+    ? '--:--'
+    : date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
 
   return (
-    <div className={`flex ${isDoctor ? 'justify-end' : 'justify-start'} mb-4`}>
-      <div
-        className={`max-w-[70%] px-4 py-3 rounded-2xl ${
-          isDoctor
-            ? 'bg-[#FF7A59] text-white rounded-br-md'
-            : 'bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white rounded-bl-md'
-        }`}
-      >
-        {message.text && <p className="text-sm">{message.text}</p>}
-        
-        {message.attachment && (
-          <FileAttachmentPreview attachment={message.attachment} />
-        )}
-        
-        <div className={`flex items-center gap-2 mt-1 ${isDoctor ? 'justify-end' : 'justify-start'}`}>
-          <span className={`text-[10px] ${isDoctor ? 'text-white/70' : 'text-gray-400'}`}>
-            {message.timestamp}
+    <div className={`flex ${isDoctor ? 'justify-end' : 'justify-start'} mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+      <div className={`flex flex-col ${isDoctor ? 'items-end' : 'items-start'} max-w-[80%]`}>
+        <div
+          className={`px-4 py-3 rounded-2xl shadow-sm ${isDoctor
+            ? 'bg-[#FF7A59] text-white rounded-tr-none'
+            : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-900 dark:text-white rounded-tl-none'
+            }`}
+        >
+          {message.text && (
+            <p className="text-[13.5px] font-medium leading-relaxed whitespace-pre-wrap">
+              {message.text}
+            </p>
+          )}
+
+          {message.attachment && (
+            <FileAttachmentPreview attachment={message.attachment} />
+          )}
+        </div>
+
+        <div className={`flex items-center gap-1.5 mt-1 mx-1`}>
+          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">
+            {formattedTime}
           </span>
-          {isDoctor && message.read && (
-            <span className="text-[10px] text-white/70">✓✓</span>
+          {isDoctor && (
+            <span className={`text-[10px] ${message.read ? 'text-[#FF7A59]' : 'text-gray-300'}`}>
+              {message.read ? '✓✓' : '✓'}
+            </span>
           )}
         </div>
       </div>

@@ -21,7 +21,8 @@ interface ConversationViewProps {
   onInputChange: (value: string) => void;
   onSend: () => void;
   onEndSession: () => void;
-  onFileUpload: (file: File) => void;
+  onStartSession?: () => void;
+  onExtendSession?: () => void;
   onFileUpload: (file: File) => void;
   onClearError?: () => void;
   chatId?: string; // Add chatId
@@ -42,6 +43,8 @@ export default function ConversationView({
   onInputChange,
   onSend,
   onEndSession,
+  onStartSession,
+  onExtendSession,
   onFileUpload,
   onClearError,
   chatId,
@@ -91,6 +94,8 @@ export default function ConversationView({
       <ChatHeader
         patient={patient}
         onEndSession={callActive ? handleEndCall : onEndSession}
+        onStartSession={onStartSession}
+        onExtendSession={onExtendSession}
         onStartCall={handleStartCall}
         callActive={callActive}
       />
@@ -172,7 +177,7 @@ export default function ConversationView({
         </div>
       )}
 
-      {sessionEnded && !callState.isActive && (
+      {sessionEnded && !callActive && (
         <div className="px-4 py-2 bg-gray-100 dark:bg-gray-900 text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             This session has ended. You can no longer send messages.
@@ -190,9 +195,41 @@ export default function ConversationView({
             <p className="text-sm text-gray-400">No messages yet</p>
           </div>
         ) : (
-          messages.map(message => (
-            <MessageBubble key={message.id} message={message} />
-          ))
+          messages.map((message, index) => {
+            const currentMsgDate = new Date(message.timestamp).toLocaleDateString();
+            const prevMsgDate = index > 0 ? new Date(messages[index - 1].timestamp).toLocaleDateString() : null;
+            const showDateSeparator = currentMsgDate !== prevMsgDate;
+
+            let dateLabel = currentMsgDate;
+            const today = new Date().toLocaleDateString();
+            const yesterday = new Date(Date.now() - 86400000).toLocaleDateString();
+
+            if (currentMsgDate === today) dateLabel = 'Today';
+            else if (currentMsgDate === yesterday) dateLabel = 'Yesterday';
+            else {
+              dateLabel = new Date(message.timestamp).toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric'
+              });
+            }
+
+            return (
+              <div key={message.id}>
+                {showDateSeparator && (
+                  <div className="flex items-center justify-center my-8">
+                    <div className="flex-1 h-[1px] bg-gray-100 dark:bg-gray-800" />
+                    <span className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] italic">
+                      {dateLabel}
+                    </span>
+                    <div className="flex-1 h-[1px] bg-gray-100 dark:bg-gray-800" />
+                  </div>
+                )}
+                <MessageBubble message={message} />
+              </div>
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -201,7 +238,7 @@ export default function ConversationView({
         value={inputValue}
         onChange={onInputChange}
         onSend={onSend}
-        onFileUpload={handleFileUpload}
+        onFileUpload={onFileUpload}
         disabled={sessionEnded || isSending}
         isUploading={isUploading}
       />

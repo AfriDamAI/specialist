@@ -11,6 +11,10 @@ import {
   Chat,
   Message as ApiMessage,
   Message,
+  startAppointmentSession,
+  endAppointmentSession,
+  extendAppointmentSession,
+  getAppointmentById,
 } from '@/lib/api-client';
 
 // Get specialistId from localStorage or fallback to config
@@ -67,6 +71,8 @@ interface ChatListItem {
   lastMessage?: ChatMessage;
   unreadCount: number;
   appointmentId?: string;
+  sessionActive: boolean;
+  appointmentStatus?: string;
 }
 
 export function useChat(initialChatId?: string) {
@@ -119,10 +125,15 @@ export function useChat(initialChatId?: string) {
   useEffect(() => {
     if (selectedChat) {
       fetchChatMessages(selectedChat.id);
+      
+      // Also fetch appointment status if we have an appointmentId
+      if (selectedChat.appointmentId) {
+        fetchAppointmentStatus(selectedChat.appointmentId);
+      }
     } else {
       setMessages([]);
     }
-  }, [selectedChat]);
+  }, [selectedChat?.id, selectedChat?.appointmentId]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -182,12 +193,13 @@ export function useChat(initialChatId?: string) {
     try {
       setIsLoading(true);
       const response = await getCurrentUserChats() as any;
+      console.log('DEBUG: getCurrentUserChats response:', response);
       
       // Handle API response - data might be in resultData or directly in response
       const userChats = response?.resultData || response?.data || response || [];
       const specialistId = getSpecialistId();
 
-      //console.log("chh", userChats)
+      console.log('DEBUG: userChats array:', userChats);
       
       // Ensure we have an array before mapping
       if (!Array.isArray(userChats)) {
@@ -201,6 +213,10 @@ export function useChat(initialChatId?: string) {
       // Transform chats to chat list items
       // participant1Id = specialist, participant2Id = patient
       const chatListItems: ChatListItem[] = userChats.map((chat: Chat) => {
+        // Get the actual patient name from participants array
+        const patient = chat.participants?.find((p: any) => p.id === chat.participant2Id);
+        const participantName = patient?.name || `Patient ${chat.participant2Id.slice(-4)}`;
+
         // Get the last message from the embedded messages array
         const chatMessages = chat.messages || [];
         const lastMsg = chatMessages.length > 0 
@@ -215,10 +231,13 @@ export function useChat(initialChatId?: string) {
         return {
           id: chat.id,
           participantId: chat.participant2Id, // patientId
-          participantName: chat.participant2Id.slice(0, 8), // Show truncated ID as name
-          participantAvatar: undefined,
+          participantName: participantName,
+          participantAvatar: patient?.avatar,
           lastMessage: lastMsg,
           unreadCount,
+          sessionActive: (chat as any).sessionActive ?? false,
+          appointmentId: (chat as any).appointmentId || (typeof window !== 'undefined' && localStorage.getItem('patientId') === chat.participant2Id ? localStorage.getItem('activeAppointmentId') || undefined : undefined),
+          appointmentStatus: (chat as any).appointmentStatus,
         };
       });
       
@@ -258,6 +277,33 @@ export function useChat(initialChatId?: string) {
       setError('Failed to fetch messages.');
     } finally {
       setIsLoading(false);
+    }
+  }, []);
+
+  // Fetch real-time appointment status to ensure session controls are accurate
+  const fetchAppointmentStatus = useCallback(async (appointmentId: string) => {
+    try {
+      const appointment = await getAppointmentById(appointmentId);
+      if (appointment) {
+        const sessionActive = appointment.status === 'IN_PROGRESS';
+        
+        // Update the chats list
+        setChats(prev => prev.map(chat => 
+          chat.appointmentId === appointmentId 
+            ? { ...chat, appointmentStatus: appointment.status, sessionActive } 
+            : chat
+        ));
+
+        // Update selected chat if it's the same one
+        setSelectedChat(prev => {
+          if (prev?.appointmentId === appointmentId) {
+            return { ...prev, appointmentStatus: appointment.status, sessionActive };
+          }
+          return prev;
+        });
+      }
+    } catch (err) {
+      console.warn('Could not enrich chat with appointment status:', err);
     }
   }, []);
 
@@ -383,6 +429,52 @@ export function useChat(initialChatId?: string) {
     }
   }, [chats]);
 
+  // Session Management Actions
+  const startSession = useCallback(async (appointmentId: string) => {
+    try {
+      setIsLoading(true);
+      await startAppointmentSession(appointmentId);
+      // Refresh chats to get updated session status
+      await fetchUserChats();
+      setError(null);
+    } catch (err) {
+      console.error('Error starting session:', err);
+      setError('Failed to start session.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchUserChats]);
+
+  const endSession = useCallback(async (appointmentId: string) => {
+    try {
+      setIsLoading(true);
+      await endAppointmentSession(appointmentId);
+      // Refresh chats
+      await fetchUserChats();
+      setError(null);
+    } catch (err) {
+      console.error('Error ending session:', err);
+      setError('Failed to end session.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchUserChats]);
+
+  const extendSession = useCallback(async (appointmentId: string) => {
+    try {
+      setIsLoading(true);
+      await extendAppointmentSession(appointmentId);
+      // Refresh chats
+      await fetchUserChats();
+      setError(null);
+    } catch (err) {
+      console.error('Error extending session:', err);
+      setError('Failed to extend session.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchUserChats]);
+
   // Clear error
   const clearError = useCallback(() => {
     setError(null);
@@ -412,5 +504,10 @@ export function useChat(initialChatId?: string) {
     setSelectedChat,
     clearError,
     socket,
+
+    // Session Actions
+    startSession,
+    endSession,
+    extendSession,
   };
 }
