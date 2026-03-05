@@ -45,12 +45,15 @@ export const useSocket = (url: string) => {
      * 🚀 THE HANDSHAKE (Rule 6)
      * Ensuring the token is pulled from local storage for the specialist sync.
      */
+    const rawToken = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
+    const cleanToken = rawToken ? rawToken.replace(/['"]+/g, '').trim() : null;
+
     const socketInstance = io(url, {
       transports: ["websocket"],
       secure: true,
       reconnection: true,
       auth: {
-        token: typeof window !== 'undefined' ? localStorage.getItem("token") : null
+        token: cleanToken
       }
     });
 

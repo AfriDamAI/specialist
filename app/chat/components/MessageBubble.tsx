@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { Message, FileAttachment } from '../types/chat';
-import { PaperClipIcon, DocumentIcon, PhotoIcon, VideoCameraIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
+import { PaperClipIcon, DocumentIcon, PhotoIcon, VideoCameraIcon, MusicalNoteIcon, PhoneIcon } from '@heroicons/react/24/outline';
 
 interface MessageBubbleProps {
   message: Message;
@@ -85,13 +85,20 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
     <div className={`flex ${isDoctor ? 'justify-end' : 'justify-start'} mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300`}>
       <div className={`flex flex-col ${isDoctor ? 'items-end' : 'items-start'} max-w-[80%]`}>
         <div
-          className={`px-4 py-3 rounded-2xl shadow-sm ${isDoctor
-            ? 'bg-[#FF7A59] text-white rounded-tr-none'
-            : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-900 dark:text-white rounded-tl-none'
+          className={`px-4 py-3 rounded-2xl shadow-sm ${message.text === 'Missed Call'
+            ? 'bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 w-full flex flex-col items-center gap-2'
+            : isDoctor
+              ? 'bg-[#FF7A59] text-white rounded-tr-none'
+              : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-900 dark:text-white rounded-tl-none'
             }`}
         >
+          {message.text === 'Missed Call' && (
+            <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-800/40 flex items-center justify-center">
+              <PhoneIcon className="w-5 h-5" />
+            </div>
+          )}
           {message.text && (
-            <p className="text-[13.5px] font-medium leading-relaxed whitespace-pre-wrap">
+            <p className={`text-[13.5px] font-medium leading-relaxed whitespace-pre-wrap ${message.text === 'Missed Call' ? 'font-black uppercase italic tracking-widest' : ''}`}>
               {message.text}
             </p>
           )}

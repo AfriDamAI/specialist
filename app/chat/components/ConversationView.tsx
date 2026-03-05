@@ -49,7 +49,7 @@ export default function ConversationView({
   onClearError,
   chatId,
 }: ConversationViewProps) {
-  const { initiateCall, callStatus, callType, endCall, remoteStream, localStream } = useCall();
+  const { initiateCall, callStatus, callType, endCall, remoteStream, localStream, incomingCall, acceptCall, declineCall } = useCall();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -127,7 +127,7 @@ export default function ConversationView({
                     <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
                       <VideoCameraIcon className="w-12 h-12 text-gray-400" />
                     </div>
-                    <p>Connecting video...</p>
+                    <p>{callStatus === 'ringing' ? 'Ringing...' : 'Connecting video...'}</p>
                   </div>
                 )}
 
@@ -153,25 +153,62 @@ export default function ConversationView({
                   </div>
                 </div>
                 <h3 className="text-2xl font-black text-white mb-2 uppercase italic tracking-widest">
-                  Voice Call Active
+                  {callStatus === 'connected' ? 'Voice Call Active' :
+                    incomingCall ? 'Incoming call...' : 'Ringing...'}
                 </h3>
-                <p className="text-gray-400 font-medium">Connected with {patient.name}</p>
+                <p className="text-gray-400 font-medium">
+                  {callStatus === 'connected' ? `Connected with ${patient.name}` :
+                    incomingCall ? `${patient.name} is calling you` : `Calling ${patient.name}...`}
+                </p>
               </div>
             )}
 
             {/* Call Controls Overlay */}
             <div className="absolute bottom-12 left-0 right-0 flex items-center justify-center gap-6">
-              <button
-                onClick={handleEndCall}
-                className="group flex flex-col items-center gap-2"
-              >
-                <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center text-white shadow-2xl hover:bg-red-700 transition-all hover:scale-110 active:scale-95 border-4 border-red-600/20">
-                  <XMarkIcon className="w-10 h-10" />
-                </div>
-                <span className="text-[10px] font-black text-white uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                  End Call
-                </span>
-              </button>
+              {incomingCall ? (
+                <>
+                  <button
+                    onClick={() => {
+                      console.log("📞 Declining call from overlay");
+                      declineCall();
+                    }}
+                    className="group flex flex-col items-center gap-2"
+                  >
+                    <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center text-white shadow-2xl hover:bg-red-700 transition-all hover:scale-110 active:scale-95 border-4 border-red-600/20">
+                      <XMarkIcon className="w-10 h-10" />
+                    </div>
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                      Decline
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      console.log("📞 Accepting call from overlay");
+                      acceptCall();
+                    }}
+                    className="group flex flex-col items-center gap-2"
+                  >
+                    <div className="w-20 h-20 rounded-full bg-[#FF7A59] flex items-center justify-center text-white shadow-2xl hover:bg-[#ff8a6f] transition-all hover:scale-110 active:scale-95 border-4 border-[#FF7A59]/20">
+                      <PhoneIcon className="w-10 h-10" />
+                    </div>
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                      Accept
+                    </span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleEndCall}
+                  className="group flex flex-col items-center gap-2"
+                >
+                  <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center text-white shadow-2xl hover:bg-red-700 transition-all hover:scale-110 active:scale-95 border-4 border-red-600/20">
+                    <XMarkIcon className="w-10 h-10" />
+                  </div>
+                  <span className="text-[10px] font-black text-white uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                    {callStatus === 'connected' ? 'End Call' : 'Cancel'}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         </div>
