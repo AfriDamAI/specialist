@@ -13,8 +13,7 @@ export default function EntryPage() {
   const [showRegister, setShowRegister] = useState(false);
 
   useEffect(() => {
-    // router.push('/login'); // Temporarily commented out to verify landing page elements
-    setLoading(false);
+    router.push('/login');
   }, [router]);
 
   if (loading) return null;
@@ -31,8 +30,8 @@ export default function EntryPage() {
             Afridam<span className="text-[#FF7A59]">AI</span>
           </span>
         </div>
-        
-        <button 
+
+        <button
           onClick={() => setShowRegister(!showRegister)}
           className="text-xs font-black uppercase tracking-widest text-gray-400 hover:text-[#FF7A59] transition-colors"
         >
@@ -72,11 +71,11 @@ export default function EntryPage() {
             <div className="bg-white dark:bg-gray-950 p-8 md:p-10 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-2xl shadow-gray-200/60 dark:shadow-none">
               {/* Rule #4: The Full-Code Mandate - Integrating the Login Component */}
               <Login />
-              
+
               <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 text-center">
                 <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
                   New specialist?{' '}
-                  <button 
+                  <button
                     onClick={() => setShowRegister(true)}
                     className="text-[#FF7A59] font-bold hover:underline"
                   >
