@@ -37,18 +37,25 @@ export default function LoginForm() {
          */
         localStorage.setItem('token', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
-        
+
+        // 🛡️ Precision Fix: Storing the ID for chat and session consistency
+        if (data.id || data.specialistId) {
+          const id = data.id || data.specialistId;
+          localStorage.setItem('specialistId', id);
+          localStorage.setItem('userId', id);
+        }
+
         if (data.displayName) {
           localStorage.setItem('specialistName', data.displayName);
         }
-        
+
         localStorage.setItem('specialistRole', data.role || 'Specialist');
-        
+
         // Mapping status for the specialist dashboard view
         localStorage.setItem('specialistStatus', data.isActive ? 'verified' : 'under_review');
-        
+
         toast.success(`Access Granted. Welcome, ${data.displayName || 'Doctor'}`);
-        
+
         // Rule #5: Forcing a clean entry into the dashboard
         window.location.href = '/dashboard';
       } else {
@@ -86,7 +93,7 @@ export default function LoginForm() {
           <label className="text-[11px] font-black uppercase tracking-widest text-gray-500 italic">
             Workstation Password
           </label>
-          <button 
+          <button
             type="button"
             className="text-[11px] font-black text-[#FF7A59] hover:text-orange-600 transition-colors uppercase tracking-widest italic"
           >

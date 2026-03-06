@@ -20,7 +20,8 @@ import {
 // Get specialistId from localStorage or fallback to config
 const getSpecialistId = (): string => {
   if (typeof window !== 'undefined') {
-    const storedSpecialistId = localStorage.getItem('specialistId');
+    // Check for both possible keys to ensure consistency
+    const storedSpecialistId = localStorage.getItem('specialistId') || localStorage.getItem('userId');
     if (storedSpecialistId) {
       return storedSpecialistId;
     }

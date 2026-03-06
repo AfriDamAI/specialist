@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import NotificationBell from './NotificationBell';
-import { 
+import {
   MagnifyingGlassIcon,
   ChartBarSquareIcon,
   CalendarIcon,
@@ -17,8 +17,7 @@ import {
   MoonIcon,
   SunIcon,
   PresentationChartLineIcon,
-  UserIcon,
-  CreditCardIcon
+  UserIcon
 } from '@heroicons/react/24/outline';
 import { useTheme } from '@/context/ThemeContext';
 import { API_URL } from '@/lib/config';
@@ -30,7 +29,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  
+
   const { isDarkMode, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -42,7 +41,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   useEffect(() => {
     setMounted(true);
-    
+
     const savedName = localStorage.getItem('specialistName');
     const savedRole = localStorage.getItem('specialistRole');
     const rawToken = localStorage.getItem('token');
@@ -52,22 +51,22 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       router.push('/login');
       return;
     }
-    
+
     if (savedName) {
-      setUser({ 
-        name: savedName, 
-        role: savedRole || 'Medical Personnel' 
+      setUser({
+        name: savedName,
+        role: savedRole || 'Medical Personnel'
       });
     }
 
     const syncProfile = async () => {
       if (!rawToken) return;
       const cleanToken = rawToken.replace(/['"]+/g, '').trim();
-      
+
       try {
         // 🏛️ Rule #6: Identity Handshake via verified /specialists/me
         const response = await fetch(`${API_URL}/specialists/me`, {
-          headers: { 
+          headers: {
             'Authorization': `Bearer ${cleanToken}`,
             'Content-Type': 'application/json'
           }
@@ -75,24 +74,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         if (response.ok) {
           const json = await response.json();
-          
+
           /**
            * 🛡️ FIX: Precision Data Mapping (Rule #3)
            * Backend uses 'resultData' wrapper. We extract firstName and lastName.
            */
-          const profile = json.resultData; 
-          
+          const profile = json.resultData;
+
           if (profile) {
             const fullName = `${profile.firstName} ${profile.lastName}`.trim();
             const currentRole = profile.specialization || 'Specialist';
-            
+
             setUser({ name: fullName, role: currentRole });
-            
+
             // 🛡️ Rule #3: Syncing storage for cross-page persistence
             localStorage.setItem('specialistName', fullName);
             localStorage.setItem('specialistRole', currentRole);
             localStorage.setItem('userId', profile.id);
-            
+            localStorage.setItem('specialistId', profile.id);
+
             /**
              * 🛡️ Rule #3: Forced Global Unlock
              * Even if DB says PENDING, we force verified state to bypass the loop.
@@ -129,7 +129,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { id: 'consultation', icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />, label: 'Consultations', href: '/consultation' },
     { id: 'chat', icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />, label: 'Chat', href: '/chat' },
     { id: 'analytics', icon: <PresentationChartLineIcon className="w-6 h-6" />, label: 'Analytics', href: '/analytics' },
-    { id: 'wallet', icon: <CreditCardIcon className="w-6 h-6" />, label: 'Wallet', href: '/wallet' },
     { id: 'documents', icon: <DocumentIcon className="w-6 h-6" />, label: 'Documents', href: '/documents' },
     { id: 'settings', icon: <Cog6ToothIcon className="w-6 h-6" />, label: 'Settings', href: '/settings' },
   ];
@@ -137,29 +136,29 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const handleLogout = async () => {
     try {
       const rawToken = localStorage.getItem('token');
-        if (rawToken) {
-          const cleanToken = rawToken.replace(/['"]+/g, '').trim();
-          await fetch(`${API_URL}/auth/logout`, {
-            method: 'POST',
-            headers: { 
-              'Authorization': `Bearer ${cleanToken}`,
-              'Content-Type': 'application/json'
-            }
-          });
-        }
-      } catch (err) {
-        console.warn("Logout session: Network interruption during sign-out.");
-      } finally {
-        localStorage.clear();
-        window.location.href = '/login';
+      if (rawToken) {
+        const cleanToken = rawToken.replace(/['"]+/g, '').trim();
+        await fetch(`${API_URL}/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${cleanToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
       }
+    } catch (err) {
+      console.warn("Logout session: Network interruption during sign-out.");
+    } finally {
+      localStorage.clear();
+      window.location.href = '/login';
+    }
   };
 
   if (!mounted) return <div className="min-h-screen bg-white dark:bg-gray-950" />;
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors selection:bg-[#FF7A59]/30 text-left italic">
-      
+
       {/* Topbar: Rule #4 Balanced Laptop View */}
       <div className="fixed top-0 left-0 right-0 h-16 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 z-[60]">
         <div className="flex items-center justify-between h-full px-4 md:px-12 max-w-7xl mx-auto">
@@ -191,7 +190,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
 
             <div className="relative" ref={dropdownRef}>
-              <button 
+              <button
                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
                 className="hidden md:flex items-center gap-3 pl-6 border-l border-gray-100 dark:border-gray-800 hover:opacity-80 transition-opacity outline-none"
               >
@@ -211,17 +210,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">{user.name}</p>
                     <p className="text-[9px] font-black text-[#FF7A59] uppercase tracking-widest mt-1 italic">{user.role}</p>
                   </div>
-                  
-                  <Link 
-                    href="/settings" 
+
+                  <Link
+                    href="/settings"
                     onClick={() => setShowProfileDropdown(false)}
                     className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest italic text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors"
                   >
                     <Cog6ToothIcon className="w-4 h-4" />
                     Settings
                   </Link>
-                  
-                  <button 
+
+                  <button
                     onClick={() => {
                       setShowProfileDropdown(false);
                       handleLogout();
