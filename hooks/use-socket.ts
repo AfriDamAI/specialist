@@ -7,6 +7,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
+import { SOCKET_OPTIONS } from "@/lib/config";
 
 // 🧬 Define the Message Data structure
 export interface SocketData {
@@ -49,12 +50,14 @@ export const useSocket = (url: string) => {
     const cleanToken = rawToken ? rawToken.replace(/['"]+/g, '').trim() : null;
 
     const socketInstance = io(url, {
-      transports: ["websocket"],
-      secure: true,
-      reconnection: true,
+      ...SOCKET_OPTIONS,
       auth: {
         token: cleanToken
       }
+    });
+
+    socketInstance.on("connect_error", (err) => {
+      console.warn("Specialist Sync: Handshake Hiccup", err.message);
     });
 
     socketInstance.on("connect", () => {

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Toaster, toast } from 'react-hot-toast';
 import { io, Socket } from 'socket.io-client';
 import { apiClient } from '@/lib/api-client';
-import { SOCKET_URL } from '@/lib/config';
+import { SOCKET_URL, SOCKET_OPTIONS } from '@/lib/config';
 
 /**
  * 🏛️ Rule #5 & #6: Synced with NotificationBell Interface
@@ -85,7 +85,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     const cleanToken = rawToken.replace(/['"]+/g, '').trim();
 
     const newSocket = io(SOCKET_URL, {
-      transports: ['websocket'],
+      ...SOCKET_OPTIONS,
       auth: { token: cleanToken }, // Rule #6: standard NestJS WsGuard check
     });
 
@@ -126,7 +126,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     newSocket.on('notification_received', handleIncomingAlert);
 
     newSocket.on('connect_error', (err) => {
-      // console.error('❌ Socket Handshake Failed:', err.message);
+      console.error('❌ Notification Engine: Pulse Interrupt:', err.message);
     });
 
     setSocket(newSocket);
