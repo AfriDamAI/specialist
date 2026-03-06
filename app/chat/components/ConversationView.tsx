@@ -110,6 +110,21 @@ export default function ConversationView({
       {/* Call Overlay */}
       {callActive && (
         <div className="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center">
+          {/* Audio element for all calls to ensure sound plays even if video is not rendered or fails */}
+          <audio
+            autoPlay
+            playsInline
+            ref={(el) => {
+              if (el && remoteStream) {
+                el.srcObject = remoteStream;
+                // Ensure audio is NOT muted for remote stream
+                el.muted = false;
+                el.play().catch(e => console.error("Error playing remote audio:", e));
+              }
+            }}
+            className="hidden"
+          />
+
           {/* Video Streams */}
           <div className="relative w-full h-full flex items-center justify-center">
             {callType === 'video' ? (

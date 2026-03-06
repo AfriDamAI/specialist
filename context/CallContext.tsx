@@ -41,6 +41,23 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const remoteChatId = useRef<string | null>(null);
   const remoteUserId = useRef<string | null>(null);
+  const iceCandidateQueue = useRef<RTCIceCandidateInit[]>([]);
+
+  const processIceQueue = useCallback(async () => {
+    if (!peerConnection.current || !peerConnection.current.remoteDescription) return;
+    
+    console.log(`📞 Processing ${iceCandidateQueue.current.length} queued ICE candidates`);
+    while (iceCandidateQueue.current.length > 0) {
+      const candidate = iceCandidateQueue.current.shift();
+      if (candidate) {
+        try {
+          await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          console.error('Error adding queued ice candidate', e);
+        }
+      }
+    }
+  }, []);
 
   // Initialize Socket
   useEffect(() => {
@@ -79,19 +96,27 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     newSocket.on('call-answer', async (data: { answer: RTCSessionDescriptionInit }) => {
       console.log('📞 Received call answer');
       if (peerConnection.current) {
-        await peerConnection.current.setRemoteDescription(new RTCSessionDescription(data.answer));
-        setCallStatus('connected');
+        try {
+          await peerConnection.current.setRemoteDescription(new RTCSessionDescription(data.answer));
+          setCallStatus('connected');
+          processIceQueue();
+        } catch (e) {
+          console.error('Error setting remote description from answer', e);
+        }
       }
     });
 
     newSocket.on('ice-candidate', async (data: { candidate: RTCIceCandidateInit }) => {
       console.log('📞 Received ICE candidate');
-      if (peerConnection.current) {
+      if (peerConnection.current && peerConnection.current.remoteDescription) {
         try {
           await peerConnection.current.addIceCandidate(new RTCIceCandidate(data.candidate));
         } catch (e) {
           console.error('Error adding received ice candidate', e);
         }
+      } else {
+        console.log('📞 Queuing ICE candidate (remote description not set)');
+        iceCandidateQueue.current.push(data.candidate);
       }
     });
 
@@ -107,7 +132,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       newSocket.off();
       newSocket.disconnect();
     };
-  }, [typeof window !== 'undefined' ? localStorage.getItem('token') : null]);
+  }, [processIceQueue, typeof window !== 'undefined' ? localStorage.getItem('token') : null]);
 
   const cleanupCall = useCallback(() => {
     if (localStream) {
@@ -126,11 +151,16 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setRemoteUser(null);
     remoteChatId.current = null;
     remoteUserId.current = null;
+    iceCandidateQueue.current = [];
   }, [localStream]);
 
   const setupPeerConnection = useCallback(async (type: 'voice' | 'video') => {
+    console.log(`📞 Setting up PeerConnection for ${type}...`);
     const pc = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+      ],
     });
 
     pc.onicecandidate = (event) => {
@@ -144,21 +174,51 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     pc.ontrack = (event) => {
-      console.log('📞 Received remote track');
-      setRemoteStream(event.streams[0]);
+      console.log('📞 Received remote track:', event.track.kind);
+      if (event.streams && event.streams[0]) {
+        setRemoteStream(event.streams[0]);
+      } else {
+        setRemoteStream(prev => {
+          if (prev) {
+            prev.addTrack(event.track);
+            return prev;
+          }
+          return new MediaStream([event.track]);
+        });
+      }
     };
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: type === 'video',
-      audio: true,
-    });
+    pc.onconnectionstatechange = () => {
+      console.log('📞 Connection State:', pc.connectionState);
+      if (pc.connectionState === 'connected') {
+        setCallStatus('connected');
+      } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+        toast.error('Call connection failed');
+        cleanupCall();
+      }
+    };
 
-    setLocalStream(stream);
-    stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: type === 'video',
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+
+      setLocalStream(stream);
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+    } catch (err) {
+      console.error('Error accessing media devices:', err);
+      toast.error('Could not access microphone/camera');
+      throw err;
+    }
 
     peerConnection.current = pc;
     return pc;
-  }, [socket]);
+  }, [socket, cleanupCall]);
 
   const initiateCall = async (toUserId: string, chatId: string, type: 'voice' | 'video') => {
     try {
@@ -196,7 +256,9 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log(`📞 Accepting ${incomingCall.type} call from ${incomingCall.from}...`);
       const pc = await setupPeerConnection(incomingCall.type);
+      
       await pc.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
+      processIceQueue();
 
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
@@ -205,6 +267,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         to: incomingCall.from,
         answer,
         chatId: incomingCall.chatId,
+        type: incomingCall.type,
       });
 
       console.log('📞 Call answer sent. Connecting...');
