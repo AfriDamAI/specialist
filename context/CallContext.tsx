@@ -14,6 +14,8 @@ interface CallContextType {
   acceptCall: () => Promise<void>;
   declineCall: () => void;
   endCall: () => void;
+  toggleMute: () => void;
+  isMuted: boolean;
   callType: 'voice' | 'video' | null;
   callStatus: 'idle' | 'ringing' | 'connected' | 'ended';
   remoteUser: { id: string; name?: string } | null;
@@ -39,12 +41,14 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [callStatus, setCallStatus] = useState<'idle' | 'ringing' | 'connected' | 'ended'>('idle');
   const [remoteUser, setRemoteUser] = useState<{ id: string; name?: string } | null>(null);
   const [callDuration, setCallDuration] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
 
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const remoteChatId = useRef<string | null>(null);
   const remoteUserId = useRef<string | null>(null);
   const iceCandidateQueue = useRef<RTCIceCandidateInit[]>([]);
   const timerInterval = useRef<NodeJS.Timeout | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
 
   const processIceQueue = useCallback(async () => {
     if (!peerConnection.current || !peerConnection.current.remoteDescription) return;
@@ -59,6 +63,38 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error('Error adding queued ice candidate', e);
         }
       }
+    }
+  }, []);
+
+  const cleanupCall = useCallback(() => {
+    console.log('📞 Cleaning up call resources...');
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        track.stop();
+        console.log(`📞 Stopped ${track.kind} track`);
+      });
+      localStreamRef.current = null;
+    }
+    if (peerConnection.current) {
+      peerConnection.current.close();
+      peerConnection.current = null;
+    }
+    setLocalStream(null);
+    setRemoteStream(null);
+    setIsCalling(false);
+    setIncomingCall(null);
+    setCallType(null);
+    setCallStatus('idle');
+    setRemoteUser(null);
+    setCallDuration(0);
+    setIsMuted(false);
+    remoteChatId.current = null;
+    remoteUserId.current = null;
+    iceCandidateQueue.current = [];
+    
+    if (timerInterval.current) {
+      clearInterval(timerInterval.current);
+      timerInterval.current = null;
     }
   }, []);
 
@@ -86,29 +122,15 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initialize Socket
   useEffect(() => {
     const rawToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (!rawToken) {
-      console.warn('📞 CallContext: No token found, skipping socket init');
-      return;
-    }
+    if (!rawToken) return;
 
     const cleanToken = rawToken.replace(/['"]+/g, '').trim();
-    console.log('📞 CallContext: Initializing socket sync...');
-
     const newSocket = io(SOCKET_URL, {
       transports: ['websocket'],
       auth: { token: cleanToken },
     });
 
-    newSocket.on('connect', () => {
-      console.log('📞 Call Socket: ACTIVE');
-    });
-
-    newSocket.on('connect_error', (error) => {
-      console.error('📞 Call Socket: Connection error:', error.message);
-    });
-
     newSocket.on('call-offer', (data: IncomingCall) => {
-      console.log('📞 Incoming call offer:', data);
       setIncomingCall(data);
       setCallType(data.type);
       setCallStatus('ringing');
@@ -118,7 +140,6 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     newSocket.on('call-answer', async (data: { answer: RTCSessionDescriptionInit }) => {
-      console.log('📞 Received call answer');
       if (peerConnection.current) {
         try {
           await peerConnection.current.setRemoteDescription(new RTCSessionDescription(data.answer));
@@ -131,7 +152,6 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     newSocket.on('ice-candidate', async (data: { candidate: RTCIceCandidateInit }) => {
-      console.log('📞 Received ICE candidate');
       if (peerConnection.current && peerConnection.current.remoteDescription) {
         try {
           await peerConnection.current.addIceCandidate(new RTCIceCandidate(data.candidate));
@@ -139,52 +159,36 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error('Error adding received ice candidate', e);
         }
       } else {
-        console.log('📞 Queuing ICE candidate (remote description not set)');
         iceCandidateQueue.current.push(data.candidate);
       }
     });
 
-    newSocket.on('call-end', () => {
-      console.log('📞 Call ended by remote user');
-      cleanupCall();
-    });
+    newSocket.on('call-end', () => cleanupCall());
 
     setSocket(newSocket);
-
     return () => {
-      console.log('📞 Call Socket: DISCONNECTING');
       newSocket.off();
       newSocket.disconnect();
     };
-  }, [processIceQueue, typeof window !== 'undefined' ? localStorage.getItem('token') : null]);
+  }, [cleanupCall, processIceQueue]);
 
-  const cleanupCall = useCallback(() => {
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
+  const toggleMute = useCallback(() => {
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsMuted(!audioTrack.enabled);
+        console.log(`📞 Mic ${audioTrack.enabled ? 'UNMUTED' : 'MUTED'}`);
+      }
     }
-    if (peerConnection.current) {
-      peerConnection.current.close();
-      peerConnection.current = null;
-    }
-    setLocalStream(null);
-    setRemoteStream(null);
-    setIsCalling(false);
-    setIncomingCall(null);
-    setCallType(null);
-    setCallStatus('idle');
-    setRemoteUser(null);
-    setCallDuration(0);
-    remoteChatId.current = null;
-    remoteUserId.current = null;
-    iceCandidateQueue.current = [];
-  }, [localStream]);
+  }, []);
 
   const setupPeerConnection = useCallback(async (type: 'voice' | 'video') => {
-    console.log(`📞 Setting up PeerConnection for ${type}...`);
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
       ],
     });
 
@@ -205,8 +209,9 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setRemoteStream(prev => {
           if (prev) {
-            prev.addTrack(event.track);
-            return prev;
+            const newStream = new MediaStream(prev.getTracks());
+            newStream.addTrack(event.track);
+            return newStream;
           }
           return new MediaStream([event.track]);
         });
@@ -214,30 +219,32 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     pc.onconnectionstatechange = () => {
-      console.log('📞 Connection State:', pc.connectionState);
-      if (pc.connectionState === 'connected') {
-        setCallStatus('connected');
-      } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-        toast.error('Call connection failed');
+      if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+        toast.error('Call connection lost');
         cleanupCall();
       }
     };
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: type === 'video',
+        video: type === 'video' ? {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        } : false,
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
+          echoCancellation: { ideal: true },
+          noiseSuppression: { ideal: true },
+          autoGainControl: { ideal: true },
         },
       });
 
+      localStreamRef.current = stream;
       setLocalStream(stream);
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
     } catch (err) {
       console.error('Error accessing media devices:', err);
-      toast.error('Could not access microphone/camera');
+      toast.error('Could not access microphone/camera. Please check permissions.');
       throw err;
     }
 
@@ -247,7 +254,6 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const initiateCall = async (toUserId: string, chatId: string, type: 'voice' | 'video') => {
     try {
-      console.log(`📞 Initiating ${type} call to user ${toUserId} for chat ${chatId}...`);
       setIsCalling(true);
       setCallType(type);
       setCallStatus('ringing');
@@ -266,48 +272,35 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
           chatId,
           type,
         });
-        console.log('📞 Call offer sent to signaling server');
       }
     } catch (error) {
-      console.error('📞 Failed to initiate call:', error);
-      toast.error('Failed to start call');
       cleanupCall();
     }
   };
 
   const acceptCall = async () => {
     if (!incomingCall || !socket) return;
-
     try {
-      console.log(`📞 Accepting ${incomingCall.type} call from ${incomingCall.from}...`);
       const pc = await setupPeerConnection(incomingCall.type);
-      
       await pc.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
       processIceQueue();
-
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-
       socket.emit('call-answer', {
         to: incomingCall.from,
         answer,
         chatId: incomingCall.chatId,
         type: incomingCall.type,
       });
-
-      console.log('📞 Call answer sent. Connecting...');
       setIncomingCall(null);
       setCallStatus('connected');
     } catch (error) {
-      console.error('📞 Failed to accept call:', error);
-      toast.error('Failed to connect call');
       cleanupCall();
     }
   };
 
   const declineCall = () => {
     if (incomingCall && socket) {
-      console.log(`📞 Declining incoming call from ${incomingCall.from}`);
       socket.emit('call-end', {
         to: incomingCall.from,
         chatId: incomingCall.chatId,
@@ -318,7 +311,6 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const endCall = () => {
     if (remoteUserId.current && socket && remoteChatId.current) {
-      console.log(`📞 Ending call with ${remoteUserId.current}`);
       socket.emit('call-end', {
         to: remoteUserId.current,
         chatId: remoteChatId.current,
@@ -326,13 +318,6 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     cleanupCall();
   };
-
-  // Log status changes
-  useEffect(() => {
-    if (callStatus !== 'idle') {
-      console.log(`📞 Call Status Update: ${callStatus.toUpperCase()}`);
-    }
-  }, [callStatus]);
 
   return (
     <CallContext.Provider
@@ -345,6 +330,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         acceptCall,
         declineCall,
         endCall,
+        toggleMute,
+        isMuted,
         callType,
         callStatus,
         remoteUser,

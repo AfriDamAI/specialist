@@ -6,7 +6,8 @@ import ChatHeader from './ChatHeader';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
 import EmptyState from './EmptyState';
-import { PhoneIcon, VideoCameraIcon, XMarkIcon } from '@heroicons/react/24/solid';
+import { PhoneIcon, VideoCameraIcon, XMarkIcon, MicrophoneIcon } from '@heroicons/react/24/solid';
+import { MicrophoneIcon as MicrophoneSlashIcon } from '@heroicons/react/24/outline';
 
 interface ConversationViewProps {
   patient: Patient | null;
@@ -49,7 +50,7 @@ export default function ConversationView({
   onClearError,
   chatId,
 }: ConversationViewProps) {
-  const { initiateCall, callStatus, callType, endCall, remoteStream, localStream, incomingCall, acceptCall, declineCall, callDuration } = useCall();
+  const { initiateCall, callStatus, callType, endCall, remoteStream, localStream, incomingCall, acceptCall, declineCall, callDuration, toggleMute, isMuted } = useCall();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const formatDuration = (seconds: number) => {
@@ -235,17 +236,41 @@ export default function ConversationView({
                   </button>
                 </>
               ) : (
-                <button
-                  onClick={handleEndCall}
-                  className="group flex flex-col items-center gap-2"
-                >
-                  <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center text-white shadow-2xl hover:bg-red-700 transition-all hover:scale-110 active:scale-95 border-4 border-red-600/20">
-                    <XMarkIcon className="w-10 h-10" />
-                  </div>
-                  <span className="text-[10px] font-black text-white uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                    {callStatus === 'connected' ? 'End Call' : 'Cancel'}
-                  </span>
-                </button>
+                <>
+                  {/* Mute/Unmute Button */}
+                  {callStatus === 'connected' && (
+                    <button
+                      onClick={toggleMute}
+                      className="group flex flex-col items-center gap-2"
+                    >
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95 border-4 ${isMuted
+                        ? 'bg-yellow-500 text-white border-yellow-500/20'
+                        : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
+                        }`}>
+                        {isMuted ? (
+                          <MicrophoneSlashIcon className="w-8 h-8" />
+                        ) : (
+                          <MicrophoneIcon className="w-8 h-8" />
+                        )}
+                      </div>
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                        {isMuted ? 'Unmute' : 'Mute'}
+                      </span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={handleEndCall}
+                    className="group flex flex-col items-center gap-2"
+                  >
+                    <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center text-white shadow-2xl hover:bg-red-700 transition-all hover:scale-110 active:scale-95 border-4 border-red-600/20">
+                      <XMarkIcon className="w-10 h-10" />
+                    </div>
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                      {callStatus === 'connected' ? 'End Call' : 'Cancel'}
+                    </span>
+                  </button>
+                </>
               )}
             </div>
           </div>
