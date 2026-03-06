@@ -49,8 +49,14 @@ export default function ConversationView({
   onClearError,
   chatId,
 }: ConversationViewProps) {
-  const { initiateCall, callStatus, callType, endCall, remoteStream, localStream, incomingCall, acceptCall, declineCall } = useCall();
+  const { initiateCall, callStatus, callType, endCall, remoteStream, localStream, incomingCall, acceptCall, declineCall, callDuration } = useCall();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -127,6 +133,15 @@ export default function ConversationView({
 
           {/* Video Streams */}
           <div className="relative w-full h-full flex items-center justify-center">
+            {/* Call Timer Overlay for Video */}
+            {callStatus === 'connected' && (
+              <div className="absolute top-8 left-1/2 -translate-x-1/2 z-[60] bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+                <span className="text-white font-mono font-medium tracking-wider">
+                  {formatDuration(callDuration)}
+                </span>
+              </div>
+            )}
+
             {callType === 'video' ? (
               <>
                 {/* Remote Stream (Main) */}
@@ -171,10 +186,18 @@ export default function ConversationView({
                   {callStatus === 'connected' ? 'Voice Call Active' :
                     incomingCall ? 'Incoming call...' : 'Ringing...'}
                 </h3>
-                <p className="text-gray-400 font-medium">
-                  {callStatus === 'connected' ? `Connected with ${patient.name}` :
-                    incomingCall ? `${patient.name} is calling you` : `Calling ${patient.name}...`}
-                </p>
+                {callStatus === 'connected' ? (
+                  <div className="flex flex-col items-center gap-1">
+                    <p className="text-gray-400 font-medium">Connected with {patient.name}</p>
+                    <span className="text-[#FF7A59] font-mono text-xl font-bold tracking-widest mt-2">
+                      {formatDuration(callDuration)}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-gray-400 font-medium">
+                    {incomingCall ? `${patient.name} is calling you` : `Calling ${patient.name}...`}
+                  </p>
+                )}
               </div>
             )}
 

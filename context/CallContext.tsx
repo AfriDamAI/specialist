@@ -17,6 +17,7 @@ interface CallContextType {
   callType: 'voice' | 'video' | null;
   callStatus: 'idle' | 'ringing' | 'connected' | 'ended';
   remoteUser: { id: string; name?: string } | null;
+  callDuration: number;
 }
 
 interface IncomingCall {
@@ -37,11 +38,13 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [callType, setCallType] = useState<'voice' | 'video' | null>(null);
   const [callStatus, setCallStatus] = useState<'idle' | 'ringing' | 'connected' | 'ended'>('idle');
   const [remoteUser, setRemoteUser] = useState<{ id: string; name?: string } | null>(null);
+  const [callDuration, setCallDuration] = useState(0);
 
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const remoteChatId = useRef<string | null>(null);
   const remoteUserId = useRef<string | null>(null);
   const iceCandidateQueue = useRef<RTCIceCandidateInit[]>([]);
+  const timerInterval = useRef<NodeJS.Timeout | null>(null);
 
   const processIceQueue = useCallback(async () => {
     if (!peerConnection.current || !peerConnection.current.remoteDescription) return;
@@ -58,6 +61,27 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
   }, []);
+
+  // Timer logic
+  useEffect(() => {
+    if (callStatus === 'connected') {
+      setCallDuration(0);
+      timerInterval.current = setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (timerInterval.current) {
+        clearInterval(timerInterval.current);
+        timerInterval.current = null;
+      }
+    }
+
+    return () => {
+      if (timerInterval.current) {
+        clearInterval(timerInterval.current);
+      }
+    };
+  }, [callStatus]);
 
   // Initialize Socket
   useEffect(() => {
@@ -149,6 +173,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCallType(null);
     setCallStatus('idle');
     setRemoteUser(null);
+    setCallDuration(0);
     remoteChatId.current = null;
     remoteUserId.current = null;
     iceCandidateQueue.current = [];
@@ -323,6 +348,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         callType,
         callStatus,
         remoteUser,
+        callDuration,
       }}
     >
       {children}
