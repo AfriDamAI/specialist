@@ -17,7 +17,8 @@ import {
   MoonIcon,
   SunIcon,
   PresentationChartLineIcon,
-  UserIcon
+  UserIcon,
+  CreditCardIcon
 } from '@heroicons/react/24/outline';
 import { useTheme } from '@/context/ThemeContext';
 import { API_URL } from '@/lib/config';
@@ -128,6 +129,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { id: 'patients', icon: <UsersIcon className="w-6 h-6" />, label: 'Patients', href: '/patients' },
     { id: 'consultation', icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />, label: 'Consultations', href: '/consultation' },
     { id: 'chat', icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />, label: 'Chat', href: '/chat' },
+    { id: 'wallet', icon: <CreditCardIcon className="w-6 h-6" />, label: 'Wallet', href: '/wallet' },
     { id: 'analytics', icon: <PresentationChartLineIcon className="w-6 h-6" />, label: 'Analytics', href: '/analytics' },
     { id: 'documents', icon: <DocumentIcon className="w-6 h-6" />, label: 'Documents', href: '/documents' },
     { id: 'settings', icon: <Cog6ToothIcon className="w-6 h-6" />, label: 'Settings', href: '/settings' },
