@@ -261,3 +261,62 @@ export const getSpecialistAppointments = async (): Promise<any[]> => {
   const response = await apiClient('/appointments/specialist/me');
   return response?.data || response?.resultData || response || [];
 };
+
+// ============ Wallet & Withdrawal API Functions ============
+
+export interface Wallet {
+  id: string;
+  ownerId: string;
+  ownerType: 'USER' | 'VENDOR' | 'SPECIALIST';
+  balance: number;
+  totalIn: number;
+  totalOut: number;
+  createdAt: string;
+  updatedAt: string;
+  transactions?: WalletTransaction[];
+  withdrawalRequests?: WithdrawalRequest[];
+}
+
+export interface WalletTransaction {
+  id: string;
+  walletId: string;
+  type: 'CREDIT' | 'DEBIT';
+  amount: number;
+  description: string;
+  relatedEntityId?: string;
+  relatedEntityType?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WithdrawalRequest {
+  id: string;
+  walletId: string;
+  amount: number;
+  status: 'PENDING' | 'APPROVED' | 'PAID' | 'REJECTED';
+  requestedById: string;
+  requestedByType: string;
+  approvedById?: string;
+  requestedAt: string;
+  approvedAt?: string;
+  paidAt?: string;
+  adminNotes?: string;
+}
+
+export const getMyWallet = async (): Promise<Wallet> => {
+  const response = await apiClient('/wallets/me');
+  return response?.resultData || response?.data || response;
+};
+
+export const getWalletTransactions = async (): Promise<WalletTransaction[]> => {
+  const response = await apiClient('/wallets/me/transactions');
+  return response?.resultData || response?.data || response || [];
+};
+
+export const requestWithdrawal = async (amount: number): Promise<WithdrawalRequest> => {
+  const response = await apiClient('/withdrawals/request', {
+    method: 'POST',
+    body: JSON.stringify({ amount }),
+  });
+  return response?.resultData || response?.data || response;
+};

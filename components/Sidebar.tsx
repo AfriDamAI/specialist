@@ -14,7 +14,8 @@ import {
   DocumentDuplicateIcon,
   Cog6ToothIcon,
   QuestionMarkCircleIcon,
-  ArrowLeftOnRectangleIcon
+  ArrowLeftOnRectangleIcon,
+  CreditCardIcon
 } from '@heroicons/react/24/solid';
 
 const menuItems = [
@@ -25,6 +26,7 @@ const menuItems = [
   { name: 'Consultations', icon: ChatBubbleBottomCenterTextIcon, href: '/consultations' },
   { name: 'Schedule', icon: ClockIcon, href: '/schedule' },
   { name: 'Analytics', icon: ChartBarIcon, href: '/analytics' },
+  { name: 'Wallet', icon: CreditCardIcon, href: '/wallet' },
   { name: 'Documents', icon: DocumentDuplicateIcon, href: '/documents' },
   { name: 'Settings', icon: Cog6ToothIcon, href: '/settings' },
   { name: 'Support', icon: QuestionMarkCircleIcon, href: '/support' },
