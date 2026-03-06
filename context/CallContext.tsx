@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { SOCKET_URL } from '@/lib/config';
+import { SOCKET_URL, SOCKET_OPTIONS } from '@/lib/config';
 import { toast } from 'react-hot-toast';
 
 interface CallContextType {
@@ -52,7 +52,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const processIceQueue = useCallback(async () => {
     if (!peerConnection.current || !peerConnection.current.remoteDescription) return;
-    
+
     console.log(`📞 Processing ${iceCandidateQueue.current.length} queued ICE candidates`);
     while (iceCandidateQueue.current.length > 0) {
       const candidate = iceCandidateQueue.current.shift();
@@ -91,7 +91,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     remoteChatId.current = null;
     remoteUserId.current = null;
     iceCandidateQueue.current = [];
-    
+
     if (timerInterval.current) {
       clearInterval(timerInterval.current);
       timerInterval.current = null;
@@ -126,8 +126,16 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const cleanToken = rawToken.replace(/['"]+/g, '').trim();
     const newSocket = io(SOCKET_URL, {
-      transports: ['websocket'],
+      ...SOCKET_OPTIONS,
       auth: { token: cleanToken },
+    });
+
+    newSocket.on('connect_error', (err) => {
+      console.error('📞 Call Context: Handshake Error:', err.message);
+    });
+
+    newSocket.on('connect', () => {
+      console.log('✅ Call Context: Pulsing');
     });
 
     newSocket.on('call-offer', (data: IncomingCall) => {

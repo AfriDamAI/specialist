@@ -1,4 +1,4 @@
-const API_URL = 'https://afridam-backend-prod-107032494605.us-central1.run.app/api';
+import { API_URL } from './config';
 
 /**
  * 🏛️ Rule #6: Centralized Backend Handshake
