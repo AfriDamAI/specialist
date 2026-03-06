@@ -45,12 +45,25 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initialize Socket
   useEffect(() => {
     const rawToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (!rawToken) return;
+    if (!rawToken) {
+      console.warn('📞 CallContext: No token found, skipping socket init');
+      return;
+    }
 
     const cleanToken = rawToken.replace(/['"]+/g, '').trim();
+    console.log('📞 CallContext: Initializing socket sync...');
+
     const newSocket = io(SOCKET_URL, {
       transports: ['websocket'],
       auth: { token: cleanToken },
+    });
+
+    newSocket.on('connect', () => {
+      console.log('📞 Call Socket: ACTIVE');
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('📞 Call Socket: Connection error:', error.message);
     });
 
     newSocket.on('call-offer', (data: IncomingCall) => {
@@ -90,9 +103,11 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSocket(newSocket);
 
     return () => {
+      console.log('📞 Call Socket: DISCONNECTING');
+      newSocket.off();
       newSocket.disconnect();
     };
-  }, []);
+  }, [typeof window !== 'undefined' ? localStorage.getItem('token') : null]);
 
   const cleanupCall = useCallback(() => {
     if (localStream) {
@@ -137,7 +152,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       video: type === 'video',
       audio: true,
     });
-    
+
     setLocalStream(stream);
     stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
@@ -147,6 +162,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const initiateCall = async (toUserId: string, chatId: string, type: 'voice' | 'video') => {
     try {
+      console.log(`📞 Initiating ${type} call to user ${toUserId} for chat ${chatId}...`);
       setIsCalling(true);
       setCallType(type);
       setCallStatus('ringing');
@@ -165,9 +181,10 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
           chatId,
           type,
         });
+        console.log('📞 Call offer sent to signaling server');
       }
     } catch (error) {
-      console.error('Failed to initiate call:', error);
+      console.error('📞 Failed to initiate call:', error);
       toast.error('Failed to start call');
       cleanupCall();
     }
@@ -177,9 +194,10 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!incomingCall || !socket) return;
 
     try {
+      console.log(`📞 Accepting ${incomingCall.type} call from ${incomingCall.from}...`);
       const pc = await setupPeerConnection(incomingCall.type);
       await pc.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
-      
+
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
@@ -189,10 +207,11 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         chatId: incomingCall.chatId,
       });
 
+      console.log('📞 Call answer sent. Connecting...');
       setIncomingCall(null);
       setCallStatus('connected');
     } catch (error) {
-      console.error('Failed to accept call:', error);
+      console.error('📞 Failed to accept call:', error);
       toast.error('Failed to connect call');
       cleanupCall();
     }
@@ -200,6 +219,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const declineCall = () => {
     if (incomingCall && socket) {
+      console.log(`📞 Declining incoming call from ${incomingCall.from}`);
       socket.emit('call-end', {
         to: incomingCall.from,
         chatId: incomingCall.chatId,
@@ -210,6 +230,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const endCall = () => {
     if (remoteUserId.current && socket && remoteChatId.current) {
+      console.log(`📞 Ending call with ${remoteUserId.current}`);
       socket.emit('call-end', {
         to: remoteUserId.current,
         chatId: remoteChatId.current,
@@ -217,6 +238,13 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     cleanupCall();
   };
+
+  // Log status changes
+  useEffect(() => {
+    if (callStatus !== 'idle') {
+      console.log(`📞 Call Status Update: ${callStatus.toUpperCase()}`);
+    }
+  }, [callStatus]);
 
   return (
     <CallContext.Provider
