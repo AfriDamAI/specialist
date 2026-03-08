@@ -51,6 +51,7 @@ export const useSocket = (url: string) => {
 
     const socketInstance = io(url, {
       ...SOCKET_OPTIONS,
+      forceNew: true,
       auth: {
         token: cleanToken
       }

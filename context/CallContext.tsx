@@ -127,6 +127,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const cleanToken = rawToken.replace(/['"]+/g, '').trim();
     const newSocket = io(SOCKET_URL, {
       ...SOCKET_OPTIONS,
+      forceNew: true,
       auth: { token: cleanToken },
     });
 

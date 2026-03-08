@@ -19,11 +19,12 @@ export const SOCKET_URL =
  * in Cloud Run/Production environments where pure WS can be flaky.
  */
 export const SOCKET_OPTIONS = {
-  transports: ['websocket', 'polling'],
+  transports: ['websocket'],
   secure: true,
   reconnection: true,
-  reconnectionAttempts: 5,
+  reconnectionAttempts: 10,
   reconnectionDelay: 2000,
+  timeout: 20000,
 };
 
 // 🏥 Specialist Identity

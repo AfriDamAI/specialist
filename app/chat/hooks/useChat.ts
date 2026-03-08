@@ -148,6 +148,7 @@ export function useChat(initialChatId?: string) {
     if (!socket) return;
 
     const handleNewMessage = (msg: ApiMessage) => {
+      console.log('DEBUG: Received new message via socket:', msg);
       const specialistId = getSpecialistId();
       
       // Skip SYSTEM messages (confirmation messages like "message sent successful")
@@ -181,9 +182,11 @@ export function useChat(initialChatId?: string) {
     };
 
     socket.on('newMessage', handleNewMessage);
+    socket.on('new_message', handleNewMessage);
 
     return () => {
       socket.off('newMessage', handleNewMessage);
+      socket.off('new_message', handleNewMessage);
     };
   }, [socket, selectedChat]);
 
