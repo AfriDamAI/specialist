@@ -104,6 +104,8 @@ export function useChat(initialChatId?: string) {
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Ref to always have the latest selectedChat inside socket listeners (fixes stale closure)
+  const selectedChatRef = useRef<ChatListItem | null>(null);
 
   // Use socket from unified CallContext
   const { socket } = useCall();
@@ -151,6 +153,11 @@ export function useChat(initialChatId?: string) {
     }
   }, [chats, selectedChat]);
 
+  // Keep ref in sync with state
+  useEffect(() => {
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
+
   // Fetch messages when chat is selected
   useEffect(() => {
     if (selectedChat) {
@@ -173,39 +180,35 @@ export function useChat(initialChatId?: string) {
   }, [messages]);
 
   // Listen for new messages via socket
+  // Uses selectedChatRef to avoid stale closure bugs that silently drop incoming messages
   useEffect(() => {
     if (!socket) return;
 
     const handleNewMessage = (msg: ApiMessage) => {
-      console.log('DEBUG: Received new message via socket:', msg);
       const specialistId = getSpecialistId();
       
-      // Skip SYSTEM messages (confirmation messages like "message sent successful")
-      if ((msg as any).type === 'SYSTEM') {
-        return;
-      }
-      
+      // Skip SYSTEM messages
+      if ((msg as any).type === 'SYSTEM') return;
+
       const transformedMsg = transformMessage(msg, specialistId);
+      const currentChat = selectedChatRef.current; // Use ref — always fresh, no stale closure
       
-      // Skip if message is from current user (already added optimistically)
-      if (msg.senderId === specialistId) {
-        return;
-      }
-      
-      if (selectedChat && msg.chatId === selectedChat.id) {
+      // Update the messages panel if this is the active chat
+      if (currentChat && msg.chatId === currentChat.id) {
         setMessages(prev => {
-          // Avoid duplicates
-          if (prev.find(m => m.id === msg.id)) return prev;
+          if (prev.find(m => m.id === msg.id)) return prev; // Avoid duplicates
           return [...prev, transformedMsg];
         });
-        // Mark as read
-        markMessageAsRead(msg.id).catch(console.error);
+        // Mark as read if it's from the patient
+        if (msg.senderId !== specialistId) {
+          markMessageAsRead(msg.id).catch(console.error);
+        }
       }
       
-      // Update chat list with last message (only for patient messages)
+      // Always update chat list to show latest message & unread badge
       setChats(prev => prev.map(chat => 
         chat.id === msg.chatId 
-          ? { ...chat, lastMessage: transformedMsg, unreadCount: chat.unreadCount + 1 }
+          ? { ...chat, lastMessage: transformedMsg, unreadCount: chat.id === currentChat?.id ? chat.unreadCount : chat.unreadCount + 1 }
           : chat
       ));
     };
@@ -217,9 +220,21 @@ export function useChat(initialChatId?: string) {
       socket.off('newMessage', handleNewMessage);
       socket.off('new_message', handleNewMessage);
     };
-  }, [socket, selectedChat]);
+  }, [socket]); // No longer depends on selectedChat — uses ref instead
 
-  //console.log("chatt", chats)
+  // Silent polling fallback for multi-instance Cloud Run environments
+  // Ensures messages arrive even when WebSocket broadcast misses a server instance
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentChat = selectedChatRef.current;
+      if (currentChat) {
+        fetchChatMessages(currentChat.id, true);
+      }
+      fetchUserChats(true);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [fetchUserChats, fetchChatMessages]);
+
 
   // Fetch all user chats
   const fetchUserChats = useCallback(async (silent = false) => {
