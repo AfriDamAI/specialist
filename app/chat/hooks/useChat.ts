@@ -222,20 +222,6 @@ export function useChat(initialChatId?: string) {
     };
   }, [socket]); // No longer depends on selectedChat — uses ref instead
 
-  // Silent polling fallback for multi-instance Cloud Run environments
-  // Ensures messages arrive even when WebSocket broadcast misses a server instance
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const currentChat = selectedChatRef.current;
-      if (currentChat) {
-        fetchChatMessages(currentChat.id, true);
-      }
-      fetchUserChats(true);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [fetchUserChats, fetchChatMessages]);
-
-
   // Fetch all user chats
   const fetchUserChats = useCallback(async (silent = false) => {
     try {
@@ -326,6 +312,19 @@ export function useChat(initialChatId?: string) {
       if (!silent) setIsLoading(false);
     }
   }, []);
+
+  // Silent polling fallback for multi-instance Cloud Run environments
+  // Ensures messages arrive even when WebSocket broadcast misses a server instance
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentChat = selectedChatRef.current;
+      if (currentChat) {
+        fetchChatMessages(currentChat.id, true);
+      }
+      fetchUserChats(true);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [fetchUserChats, fetchChatMessages]);
 
   // Fetch real-time appointment status to ensure session controls are accurate
   const fetchAppointmentStatus = useCallback(async (appointmentId: string) => {
