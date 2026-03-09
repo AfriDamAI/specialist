@@ -17,7 +17,7 @@ import {
   getAppointmentById,
 } from '@/lib/api-client';
 
-// Get specialistId from localStorage or fallback to config
+// Get specialistId from localStorage or decode from token
 const getSpecialistId = (): string => {
   if (typeof window !== 'undefined') {
     // Check for both possible keys to ensure consistency
@@ -25,8 +25,25 @@ const getSpecialistId = (): string => {
     if (storedSpecialistId) {
       return storedSpecialistId;
     }
+    
+    // Ultimate Fallback: decode JWT token to rescue old sessions
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const id = payload.id || payload.sub;
+        if (id) {
+          // Save it back so we don't have to decode every time
+          localStorage.setItem('specialistId', id);
+          localStorage.setItem('userId', id);
+          return id;
+        }
+      } catch (e) {
+        console.error('Failed to decode token for specialistId fallback', e);
+      }
+    }
   }
-  // Fallback to config value
+  // Hardcoded fallback ONLY if totally unauthenticated
   return "cmlezbj5n0001kv013cpupouo";
 };
 
