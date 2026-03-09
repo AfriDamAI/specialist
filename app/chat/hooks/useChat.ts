@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useSocket } from '@/hooks/use-socket';
+import { useCall } from '@/context/CallContext';
 import {
   getCurrentUserChats,
   getChatMessages,
@@ -88,17 +88,29 @@ export function useChat(initialChatId?: string) {
   const [isConnected, setIsConnected] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Use socket for real-time messaging
-  const { socket, isConnected: socketConnected } = useSocket(
-    typeof window !== 'undefined' 
-      ? (process.env.NEXT_PUBLIC_SOCKET_URL || 'https://afridam-backend-prod-107032494605.us-central1.run.app')
-      : ''
-  );
+  // Use socket from unified CallContext
+  const { socket } = useCall();
 
   // Update connection status
   useEffect(() => {
-    setIsConnected(socketConnected);
-  }, [socketConnected]);
+    if (!socket) {
+      setIsConnected(false);
+      return;
+    }
+    
+    setIsConnected(socket.connected);
+    
+    const onConnect = () => setIsConnected(true);
+    const onDisconnect = () => setIsConnected(false);
+    
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+    };
+  }, [socket]);
 
   // Fetch user's chats on mount
   useEffect(() => {

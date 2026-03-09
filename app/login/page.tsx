@@ -37,6 +37,8 @@ export default function LoginPage() {
          */
         localStorage.setItem('token', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
+        localStorage.setItem('specialistId', data.id);
+        localStorage.setItem('userId', data.id);
         localStorage.setItem('specialistName', data.displayName || 'Specialist');
         localStorage.setItem('specialistRole', data.role || 'Specialist');
         localStorage.setItem('specialistStatus', data.isActive ? 'verified' : 'under_review');

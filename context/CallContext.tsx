@@ -6,6 +6,7 @@ import { SOCKET_URL, SOCKET_OPTIONS } from '@/lib/config';
 import { toast } from 'react-hot-toast';
 
 interface CallContextType {
+  socket: Socket | null;
   isCalling: boolean;
   incomingCall: IncomingCall | null;
   localStream: MediaStream | null;
@@ -331,6 +332,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <CallContext.Provider
       value={{
+        socket,
         isCalling,
         incomingCall,
         localStream,
