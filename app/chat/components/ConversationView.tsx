@@ -73,7 +73,8 @@ export default function ConversationView({
     endCall();
   };
 
-  const callActive = callStatus === 'connected' || callStatus === 'ringing';
+  const callActive = callStatus === 'connected' || callStatus === 'ringing' || !!incomingCall;
+
 
   // Show error notification
   useEffect(() => {
