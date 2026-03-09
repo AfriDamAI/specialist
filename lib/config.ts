@@ -19,7 +19,7 @@ export const SOCKET_URL =
  * in Cloud Run/Production environments where pure WS can be flaky.
  */
 export const SOCKET_OPTIONS = {
-  transports: ['websocket'],
+  transports: ['polling', 'websocket'], // 🚀 Polling first for handshake, then upgrade to WS
   secure: true,
   reconnection: true,
   reconnectionAttempts: 10,
