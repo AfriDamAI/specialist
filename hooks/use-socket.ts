@@ -1,19 +1,13 @@
-/**
- * 🛡️ AFRIDAM NEURAL SOCKET HOOK
- * Location: hooks/use-socket.tsx
- * Version: 2026.1.22 (Handshake Sync)
- * Rule 5: Pure logic engine. Resolves ts(7006) 'any' errors.
- */
+'use client';
 
-import { useEffect, useState, useCallback } from "react";
-import { io, Socket } from "socket.io-client";
-import { SOCKET_OPTIONS } from "@/lib/config";
+import { useEffect, useState, useCallback } from 'react';
+import { io, Socket } from 'socket.io-client';
+import { SOCKET_URL, SOCKET_OPTIONS } from '@/lib/config';
 
-// 🧬 Define the Message Data structure
 export interface SocketData {
   chatId?: string;
   content?: string;
-  message?: string; // Support both 'content' and 'message'
+  message?: string;
   senderId?: string;
   userId?: string;
   type?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'MISSED_CALL' | 'SYSTEM';
@@ -21,81 +15,56 @@ export interface SocketData {
   mimeType?: string;
   fileSize?: number;
   duration?: number;
-  payload?: {
-    note?: string;
-    isTyping?: boolean;
-    isNote?: boolean;
-    offer?: any;
-    answer?: any;
-    candidate?: any;
-    callType?: 'voice' | 'video';
-    from?: string;
-    to?: string;
-  };
-  timestamp?: string;
 }
 
-export const useSocket = (url: string) => {
+/**
+ * useSocket — Creates and manages a single persistent Socket.io connection.
+ * Reads the SOCKET_URL from config and the JWT token from localStorage.
+ */
+export const useSocket = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    if (!url) return;
+    const rawToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!rawToken) return;
 
-    /**
-     * 🚀 THE HANDSHAKE (Rule 6)
-     * Ensuring the token is pulled from local storage for the specialist sync.
-     */
-    const rawToken = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
-    const cleanToken = rawToken ? rawToken.replace(/['"]+/g, '').trim() : null;
+    const cleanToken = rawToken.replace(/['"]+/g, '').trim();
 
-    const socketInstance = io(url, {
+    const socketInstance = io(SOCKET_URL, {
       ...SOCKET_OPTIONS,
       forceNew: true,
-      auth: {
-        token: cleanToken
-      }
+      auth: { token: cleanToken },
     });
 
-    socketInstance.on("connect_error", (err) => {
-      console.warn("Specialist Sync: Handshake Hiccup", err.message);
-    });
-
-    socketInstance.on("connect", () => {
+    socketInstance.on('connect', () => {
       setIsConnected(true);
-      // 🛡️ Soft Tone: Keep it relatable
-      console.log("Specialist Sync: ACTIVE");
+      console.log('✅ AfriDam Socket: CONNECTED');
     });
 
-    socketInstance.on("disconnect", () => {
+    socketInstance.on('disconnect', () => {
       setIsConnected(false);
-      console.log("Specialist Sync: PAUSED");
+      console.log('⚠️ AfriDam Socket: DISCONNECTED');
+    });
+
+    socketInstance.on('connect_error', (err) => {
+      console.warn('❌ AfriDam Socket: Connection Error', err.message);
     });
 
     setSocket(socketInstance);
 
     return () => {
-      // 🚀 OGA FIX: Clean up all listeners to prevent double-messages
       socketInstance.off();
       socketInstance.disconnect();
     };
-  }, [url]);
+  }, []);
 
-  /** 🛡️ listen: Type-Safe Listener **/
   const listen = useCallback((event: string, callback: (data: any) => void) => {
-    if (socket) {
-      socket.on(event, callback);
-    }
+    if (socket) socket.on(event, callback);
   }, [socket]);
 
-  /** 🛡️ emit: Type-Safe Emitter **/
   const emit = useCallback((event: string, data: any) => {
-    if (socket) {
-      socket.emit(event, {
-        ...data,
-        timestamp: new Date().toISOString(),
-      });
-    }
+    if (socket) socket.emit(event, data);
   }, [socket]);
 
   return { isConnected, listen, emit, socket };
