@@ -222,24 +222,21 @@ export function useChat(initialChatId?: string) {
   //console.log("chatt", chats)
 
   // Fetch all user chats
-  const fetchUserChats = useCallback(async () => {
+  const fetchUserChats = useCallback(async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       const response = await getCurrentUserChats() as any;
-      console.log('DEBUG: getCurrentUserChats response:', response);
       
       // Handle API response - data might be in resultData or directly in response
       const userChats = response?.resultData || response?.data || response || [];
       const specialistId = getSpecialistId();
-
-      console.log('DEBUG: userChats array:', userChats);
       
       // Ensure we have an array before mapping
       if (!Array.isArray(userChats)) {
         console.warn('Unexpected response format:', response);
         setChats([]);
-        setError(null);
-        setIsLoading(false);
+        if (!silent) setError(null);
+        if (!silent) setIsLoading(false);
         return;
       }
       
@@ -275,19 +272,19 @@ export function useChat(initialChatId?: string) {
       });
       
       setChats(chatListItems);
-      setError(null);
+      if (!silent) setError(null);
     } catch (err) {
       console.error('Error fetching chats:', err);
-      setError('Failed to fetch chats.');
+      if (!silent) setError('Failed to fetch chats.');
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, []);
 
   // Fetch messages for a specific chat
-  const fetchChatMessages = useCallback(async (chatId: string) => {
+  const fetchChatMessages = useCallback(async (chatId: string, silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       const response = await getChatMessages(chatId) as any;
       
       // Handle API response - data might be in resultData or directly in response
@@ -297,19 +294,21 @@ export function useChat(initialChatId?: string) {
       if (!Array.isArray(chatMessages)) {
         console.warn('Unexpected messages response:', response);
         setMessages([]);
-        setError(null);
-        setIsLoading(false);
+        if (!silent) setError(null);
+        if (!silent) setIsLoading(false);
         return;
       }
       
       const transformedMessages = chatMessages.map((msg: ApiMessage) => transformMessage(msg, getSpecialistId()));
+      
+      // Always update UI payload if changed
       setMessages(transformedMessages);
-      setError(null);
+      if (!silent) setError(null);
     } catch (err) {
       console.error('Error fetching messages:', err);
-      setError('Failed to fetch messages.');
+      if (!silent) setError('Failed to fetch messages.');
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, []);
 
