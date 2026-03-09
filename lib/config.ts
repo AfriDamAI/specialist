@@ -19,19 +19,10 @@ export const SOCKET_URL =
  * in Cloud Run/Production environments where pure WS can be flaky.
  */
 export const SOCKET_OPTIONS = {
-  transports: ['polling', 'websocket'],
+  transports: ['websocket'],
   secure: true,
   reconnection: true,
   reconnectionAttempts: 10,
   reconnectionDelay: 2000,
   timeout: 20000,
 };
-
-// 🏥 Specialist Identity
-// Unique Identifier for the current clinical session
-export const SPECIALIST_ID = "cmlezbj5n0001kv013cpupouo";
-
-// 💰 Global Business Rules (Nigeria Region)
-// These ensure financial consistency across the Specialist Board
-export const REVENUE_CURRENCY = '₦';
-export const CONSULTATION_FEE_BASE = 15000;
