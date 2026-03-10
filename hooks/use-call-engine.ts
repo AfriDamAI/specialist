@@ -239,17 +239,23 @@ export const useCallEngine = ({
     }
   }, [onIncomingCall, isCalling, currentChatId]);
 
+  const handleIncomingAnswer = useCallback(async (data: any) => {
+    console.log(`🤝 CALL ENGINE: Answer received (Durable/Socket)`);
+    if (peerConnectionRef.current) {
+      if (peerConnectionRef.current.signalingState === 'stable') return;
+      await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
+      startTimer();
+      await processPendingCandidates();
+      if (onCallAccepted) onCallAccepted(data.answer);
+    }
+  }, [onCallAccepted, startTimer, processPendingCandidates]);
+
   // Socket event listeners
   useEffect(() => {
     if (!socket) return;
 
     const handleCallAccepted = async (data: any) => {
-      if (peerConnectionRef.current) {
-        await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
-        startTimer();
-        await processPendingCandidates();
-        if (onCallAccepted) onCallAccepted(data.answer);
-      }
+      handleIncomingAnswer(data);
     };
 
     const handleIceCandidate = async (data: any) => {
@@ -301,6 +307,7 @@ export const useCallEngine = ({
     acceptCall,
     endCall,
     handleIncomingCall,
+    handleIncomingAnswer,
     cleanup
   };
 };

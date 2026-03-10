@@ -140,13 +140,17 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const receiveExternalSignal = useCallback((data: any) => {
-    // Only process if we aren't already in a call or already showing a ringer for this call
-    if (isCalling || (incomingCallData && incomingCallData.chatId === data.chatId)) return;
+    // 🛡️ DUAL-SIGNALING HANDSHAKE (Rule 6 Multi-Instance Fix)
+    // data.signalType identifies if it's an 'offer' (new call) or 'answer' (caller picking up recipient's response)
 
-    // If it's a durable signal from the polling, it might already be marked in localStorage.
-    // engineHandleIncoming will eventually call our onIncomingCall above which also marks it.
-    engineHandleIncoming(data);
-  }, [isCalling, incomingCallData, engineHandleIncoming]);
+    if (data.signalType === 'offer') {
+      if (isCalling || (incomingCallData && incomingCallData.chatId === data.chatId)) return;
+      engineHandleIncoming(data);
+    } else if (data.signalType === 'answer') {
+      // Caller picks up an answer via durable polling
+      engineHandleIncomingAnswer(data);
+    }
+  }, [isCalling, incomingCallData, engineHandleIncoming, engineHandleIncomingAnswer]);
 
   const acceptCall = async () => {
     if (!incomingCallData) throw new Error('No incoming call to accept');

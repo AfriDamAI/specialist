@@ -307,7 +307,10 @@ export function useChat(initialChatId?: string) {
       // Note: receiveExternalSignal is destructured at the top level of the hook
       
       transformedMessages.forEach(msg => {
-        if (msg.type === 'SYSTEM' && msg.text.startsWith('CALL_OFFER:')) {
+        if (msg.type === 'SYSTEM' && (msg.text.startsWith('CALL_OFFER:') || msg.text.startsWith('CALL_ANSWER:'))) {
+          const isOffer = msg.text.startsWith('CALL_OFFER:');
+          const signalType = isOffer ? 'offer' : 'answer';
+          
           // 🛡️ DEDUPLICATION: Use localStorage to track across refreshes and tabs
           const processedKey = `processed_signal_${msg.id}`;
           if (typeof window !== 'undefined' && localStorage.getItem(processedKey)) return;
@@ -319,19 +322,19 @@ export function useChat(initialChatId?: string) {
 
           const parts = msg.text.split(':');
           const type = parts[1] as 'voice' | 'video';
-          const offerStr = parts.slice(2).join(':');
+          const payloadStr = parts.slice(2).join(':');
           try {
-            const offer = JSON.parse(offerStr);
-            console.log("🛡️ Durable Signal Pickup (Persistent):", msg.id);
+            const payload = JSON.parse(payloadStr);
+            console.log(`🛡️ Durable Signal Pickup (${signalType}):`, msg.id);
             if (typeof window !== 'undefined') {
               localStorage.setItem(processedKey, 'true');
-              // Optional: cleanup old keys later, but for now this is safe
             }
             receiveExternalSignal({
               from: msg.senderId,
               type,
-              offer,
-              chatId: msg.chatId
+              [isOffer ? 'offer' : 'answer']: payload,
+              chatId: msg.chatId,
+              signalType: signalType
             });
           } catch (e) { console.error('Failed to parse persistent signal', e); }
         }
