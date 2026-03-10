@@ -33,6 +33,7 @@ interface CallContextType {
   endCall: () => void;
   toggleMute: () => void;
   isMuted: boolean;
+  receiveExternalSignal: (data: any) => void;
 }
 
 const CallContext = createContext<CallContextType | null>(null);
@@ -64,6 +65,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     startCall: baseStartCall,
     acceptCall: baseAcceptCall,
     endCall: baseEndCall,
+    handleIncomingCall: engineHandleIncoming,
     cleanup
   } = useCallEngine({
     socket,
@@ -134,6 +136,14 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return baseStartCall(toUserId, chatId, type);
   };
 
+  const receiveExternalSignal = useCallback((data: any) => {
+    // Only process if we aren't already in a call or already showing a ringer for this call
+    if (isCalling || (incomingCallData && incomingCallData.chatId === data.chatId)) return;
+
+    // Explicitly call the engine's signal handler
+    engineHandleIncoming(data);
+  }, [isCalling, incomingCallData, engineHandleIncoming]);
+
   const acceptCall = async () => {
     if (!incomingCallData) throw new Error('No incoming call to accept');
     if (ringtoneRef.current) { ringtoneRef.current.pause(); ringtoneRef.current.currentTime = 0; }
@@ -185,6 +195,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       endCall,
       toggleMute,
       isMuted,
+      receiveExternalSignal,
     }}>
       {children}
 

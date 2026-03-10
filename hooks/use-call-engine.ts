@@ -214,15 +214,17 @@ export const useCallEngine = ({
     cleanup();
   };
 
+  const handleIncomingCall = useCallback((data: any) => {
+    if (onIncomingCall) {
+      // Prevent duplicate UI if already in this call
+      if (isCalling && currentChatId === data.chatId) return;
+      onIncomingCall(data.from, data.type, data.offer, data.chatId);
+    }
+  }, [onIncomingCall, isCalling, currentChatId]);
+
   // Socket event listeners
   useEffect(() => {
     if (!socket) return;
-
-    const handleIncomingCall = (data: any) => {
-      if (onIncomingCall) {
-        onIncomingCall(data.from, data.type, data.offer, data.chatId);
-      }
-    };
 
     const handleCallAccepted = async (data: any) => {
       if (peerConnectionRef.current) {
@@ -269,7 +271,7 @@ export const useCallEngine = ({
       socket.off('call-missed');
       stopTimer();
     };
-  }, [socket, onIncomingCall, onCallAccepted, onCallEnded, onMissedCall, cleanup, startTimer, stopTimer, processPendingCandidates]);
+  }, [socket, handleIncomingCall, onCallAccepted, onCallEnded, onMissedCall, cleanup, startTimer, stopTimer, processPendingCandidates]);
 
   return {
     isCalling,
@@ -281,6 +283,7 @@ export const useCallEngine = ({
     startCall,
     acceptCall,
     endCall,
+    handleIncomingCall,
     cleanup
   };
 };

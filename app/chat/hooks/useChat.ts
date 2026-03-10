@@ -302,6 +302,28 @@ export function useChat(initialChatId?: string) {
       
       const transformedMessages = chatMessages.map((msg: ApiMessage) => transformMessage(msg, getSpecialistId()));
       
+      // 🛡️ DURABLE SIGNALING SCAN
+      // Look for CALL_OFFER signals in the message history (for cross-instance fallback)
+      const { receiveExternalSignal, isCalling } = useCall(); // Note: must use at top level or carefully
+      // But useChat already has useCall() at top level! I'll use that.
+      
+      transformedMessages.forEach(msg => {
+        if (msg.type === 'SYSTEM' && msg.text.startsWith('CALL_OFFER:')) {
+          const parts = msg.text.split(':');
+          const type = parts[1] as 'voice' | 'video';
+          const offerStr = parts.slice(2).join(':');
+          try {
+            const offer = JSON.parse(offerStr);
+            receiveExternalSignal({
+              from: msg.senderId,
+              type,
+              offer,
+              chatId: msg.chatId
+            });
+          } catch (e) { console.error('Failed to parse persistent signal', e); }
+        }
+      });
+
       // Always update UI payload if changed
       setMessages(transformedMessages);
       if (!silent) setError(null);
