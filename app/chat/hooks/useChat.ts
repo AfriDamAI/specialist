@@ -107,8 +107,8 @@ export function useChat(initialChatId?: string) {
   // Ref to always have the latest selectedChat inside socket listeners (fixes stale closure)
   const selectedChatRef = useRef<ChatListItem | null>(null);
 
-  // Use socket from unified CallContext
-  const { socket } = useCall();
+  // Use socket and signaling from unified CallContext
+  const { socket, receiveExternalSignal } = useCall();
 
   // Update connection status
   useEffect(() => {
@@ -302,8 +302,37 @@ export function useChat(initialChatId?: string) {
       
       const transformedMessages = chatMessages.map((msg: ApiMessage) => transformMessage(msg, getSpecialistId()));
       
+      // 🛡️ DURABLE SIGNALING SCAN
+      // Look for CALL_OFFER signals in the message history (for cross-instance fallback)
+      // Note: receiveExternalSignal is destructured at the top level of the hook
+      
+      transformedMessages.forEach(msg => {
+        if (msg.type === 'SYSTEM' && msg.text.startsWith('CALL_OFFER:')) {
+          // 🛡️ STALENESS CHECK: Only process calls from the last 60 seconds
+          const msgTime = new Date(msg.timestamp).getTime();
+          const now = Date.now();
+          if (now - msgTime > 60000) return; 
+
+          const parts = msg.text.split(':');
+          const type = parts[1] as 'voice' | 'video';
+          const offerStr = parts.slice(2).join(':');
+          try {
+            const offer = JSON.parse(offerStr);
+            receiveExternalSignal({
+              from: msg.senderId,
+              type,
+              offer,
+              chatId: msg.chatId
+            });
+          } catch (e) { console.error('Failed to parse persistent signal', e); }
+        }
+      });
+
+      // Filter out SYSTEM messages before updating UI
+      const displayMessages = transformedMessages.filter(msg => msg.type !== 'SYSTEM');
+
       // Always update UI payload if changed
-      setMessages(transformedMessages);
+      setMessages(displayMessages);
       if (!silent) setError(null);
     } catch (err) {
       console.error('Error fetching messages:', err);
