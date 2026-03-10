@@ -70,8 +70,11 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   } = useCallEngine({
     socket,
     currentUserId: getCurrentUserId(),
-    onIncomingCall: (from, type, offer, chatId) => {
+    onIncomingCall: (from, type, offer, chatId, signalId) => {
       setIncomingCallData({ from, type, offer, chatId });
+      if (signalId && typeof window !== 'undefined') {
+        localStorage.setItem(`processed_signal_${signalId}`, 'true');
+      }
       try {
         if (!ringtoneRef.current) {
           ringtoneRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
@@ -140,7 +143,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Only process if we aren't already in a call or already showing a ringer for this call
     if (isCalling || (incomingCallData && incomingCallData.chatId === data.chatId)) return;
 
-    // Explicitly call the engine's signal handler
+    // If it's a durable signal from the polling, it might already be marked in localStorage.
+    // engineHandleIncoming will eventually call our onIncomingCall above which also marks it.
     engineHandleIncoming(data);
   }, [isCalling, incomingCallData, engineHandleIncoming]);
 

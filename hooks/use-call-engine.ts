@@ -12,7 +12,7 @@ import { Socket } from "socket.io-client";
 interface UseCallProps {
   socket: Socket | null;
   currentUserId: string;
-  onIncomingCall?: (from: string, type: 'voice' | 'video', offer: any, chatId: string) => void;
+  onIncomingCall?: (from: string, type: 'voice' | 'video', offer: any, chatId: string, signalId?: string) => void;
   onCallAccepted?: (answer: any) => void;
   onCallEnded?: () => void;
   onMissedCall?: (from: string, type: 'voice' | 'video', chatId: string) => void;
@@ -43,7 +43,24 @@ export const useCallEngine = ({
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
-    ]
+      // 🌐 Production TURN Relay (Required for symmetric NAT/Vercel connectivity)
+      { 
+        urls: 'turn:openrelay.metered.ca:80', 
+        username: 'openrelayproject', 
+        credential: 'openrelayproject' 
+      },
+      { 
+        urls: 'turn:openrelay.metered.ca:443', 
+        username: 'openrelayproject', 
+        credential: 'openrelayproject' 
+      },
+      { 
+        urls: 'turn:openrelay.metered.ca:443?transport=tcp', 
+        username: 'openrelayproject', 
+        credential: 'openrelayproject' 
+      }
+    ],
+    iceCandidatePoolSize: 10,
   };
 
   const startTimer = useCallback(() => {
@@ -218,7 +235,7 @@ export const useCallEngine = ({
     if (onIncomingCall) {
       // Prevent duplicate UI if already in this call
       if (isCalling && currentChatId === data.chatId) return;
-      onIncomingCall(data.from, data.type, data.offer, data.chatId);
+      onIncomingCall(data.from, data.type, data.offer, data.chatId, data.signalId);
     }
   }, [onIncomingCall, isCalling, currentChatId]);
 
