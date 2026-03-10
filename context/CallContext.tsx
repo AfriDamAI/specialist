@@ -66,6 +66,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     acceptCall: baseAcceptCall,
     endCall: baseEndCall,
     handleIncomingCall: engineHandleIncoming,
+    handleIncomingAnswer: engineHandleIncomingAnswer,
     cleanup
   } = useCallEngine({
     socket,
