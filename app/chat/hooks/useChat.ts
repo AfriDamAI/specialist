@@ -308,6 +308,10 @@ export function useChat(initialChatId?: string) {
       
       transformedMessages.forEach(msg => {
         if (msg.type === 'SYSTEM' && msg.text.startsWith('CALL_OFFER:')) {
+          // 🛡️ DEDUPLICATION: Use localStorage to track across refreshes and tabs
+          const processedKey = `processed_signal_${msg.id}`;
+          if (typeof window !== 'undefined' && localStorage.getItem(processedKey)) return;
+
           // 🛡️ STALENESS CHECK: Only process calls from the last 60 seconds
           const msgTime = new Date(msg.timestamp).getTime();
           const now = Date.now();
@@ -318,6 +322,11 @@ export function useChat(initialChatId?: string) {
           const offerStr = parts.slice(2).join(':');
           try {
             const offer = JSON.parse(offerStr);
+            console.log("🛡️ Durable Signal Pickup (Persistent):", msg.id);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(processedKey, 'true');
+              // Optional: cleanup old keys later, but for now this is safe
+            }
             receiveExternalSignal({
               from: msg.senderId,
               type,
