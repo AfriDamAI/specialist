@@ -19,6 +19,7 @@ interface UseCallProps {
   onCallEnded?: () => void;
   onMissedCall?: (from: string, type: 'voice' | 'video', chatId: string) => void;
   onRemoteStream?: (stream: MediaStream) => void;
+  onPeerReconnect?: (userId: string) => void;
 }
 
 export const useCallEngine = ({
@@ -28,7 +29,8 @@ export const useCallEngine = ({
   onCallAccepted,
   onCallEnded,
   onMissedCall,
-  onRemoteStream
+  onRemoteStream,
+  onPeerReconnect
 }: UseCallProps) => {
   const [isCalling, setIsCalling] = useState(false);
   const [callType, setCallType] = useState<'voice' | 'video' | null>(null);
@@ -40,6 +42,7 @@ export const useCallEngine = ({
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
+  const processedSignalsRef = useRef<Set<string>>(new Set());
 
   const configuration: RTCConfiguration = {
     iceServers: [
@@ -234,6 +237,15 @@ export const useCallEngine = ({
   };
 
   const handleIncomingCall = useCallback((data: any) => {
+    // 🛡️ Deduplication
+    if (data.signalId) {
+      if (processedSignalsRef.current.has(data.signalId)) {
+        console.log(`⏭️ CALL ENGINE: Skipping duplicate signal ${data.signalId}`);
+        return;
+      }
+      processedSignalsRef.current.add(data.signalId);
+    }
+
     if (onIncomingCall) {
       // Prevent duplicate UI if already in this call
       if (isCalling && currentChatId === data.chatId) return;
@@ -280,20 +292,43 @@ export const useCallEngine = ({
       if (onCallEnded) onCallEnded();
     };
 
+    const handleCallMissed = (data: any) => {
+      if (onMissedCall) onMissedCall(data.from, data.type, data.chatId);
+    };
+
+    const handlePeerReconnect = (data: any) => {
+      console.log(`🔄 CALL ENGINE: Peer reconnected: ${data.userId}`);
+      if (onPeerReconnect) onPeerReconnect(data.userId);
+    };
+
     socket.on('call-offer', handleIncomingCall);
     socket.on('call-answer', handleCallAccepted);
     socket.on('ice-candidate', handleIceCandidate);
     socket.on('call-end', handleCallEnded);
-    socket.on('call-missed', (data: any) => {
-      if (onMissedCall) onMissedCall(data.from, data.type, data.chatId);
-    });
+    socket.on('call-missed', handleCallMissed);
+    socket.on('peer-reconnect', handlePeerReconnect);
+
+    // 🛡️ AUTOMATIC RECONNECT RECOVERY
+    const handleReconnect = () => {
+      if (isCalling && remoteUserId && currentChatId) {
+        console.log(`📡 CALL ENGINE: Socket reconnected, signaling backend to recover call...`);
+        socket.emit('call-reconnect', {
+          chatId: currentChatId,
+          peerId: remoteUserId
+        });
+      }
+    };
+
+    socket.on('connect', handleReconnect);
 
     return () => {
       socket.off('call-offer', handleIncomingCall);
       socket.off('call-answer', handleCallAccepted);
       socket.off('ice-candidate', handleIceCandidate);
       socket.off('call-end', handleCallEnded);
-      socket.off('call-missed');
+      socket.off('call-missed', handleCallMissed);
+      socket.off('peer-reconnect', handlePeerReconnect);
+      socket.off('connect', handleReconnect);
       stopTimer();
     };
   }, [socket, handleIncomingCall, onCallAccepted, onCallEnded, onMissedCall, cleanup, startTimer, stopTimer, processPendingCandidates]);
