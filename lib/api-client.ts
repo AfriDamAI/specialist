@@ -201,6 +201,11 @@ export const startAppointmentSession = async (id: string): Promise<any> => {
   return response?.data || response;
 };
 
+export const joinAppointmentSession = async (id: string): Promise<{ meetLink: string }> => {
+  const response = await apiClient(`/appointments/${id}/join`);
+  return response?.data || response;
+};
+
 export const endAppointmentSession = async (id: string): Promise<any> => {
   const response = await apiClient(`/appointments/${id}/end-session`, {
     method: 'POST',

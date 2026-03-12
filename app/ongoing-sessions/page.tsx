@@ -10,8 +10,9 @@ import {
     ArrowLeftIcon,
     CalendarDaysIcon,
     CheckBadgeIcon,
+    VideoCameraIcon,
 } from '@heroicons/react/24/solid';
-import { startAppointmentSession, getSpecialistAppointments } from '@/lib/api-client';
+import { startAppointmentSession, getSpecialistAppointments, joinAppointmentSession } from '@/lib/api-client';
 import { apiClient } from '@/lib/api-client';
 
 interface ConfirmedAppointment {
@@ -24,6 +25,8 @@ interface ConfirmedAppointment {
     scheduledAt?: string;
     createdAt: string;
     notes?: string;
+    meetLink?: string;
+    endedAt?: string;
 }
 
 function SessionCard({
@@ -115,17 +118,31 @@ function SessionCard({
             )}
 
             {/* CTA */}
-            <button
-                onClick={() => onStart(appointment.id)}
-                disabled={isStarting}
-                className={`flex items-center justify-center gap-2 ${isInProgress ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-[#FF7A59] hover:bg-[#e56b4a]'
-                    } text-white py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed relative z-10 group/btn shadow-lg shadow-black/5`}
-            >
-                <PlayCircleIcon className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
-                {isInProgress
-                    ? (isStarting ? 'Resuming Session…' : 'Resume Session')
-                    : (isStarting ? 'Starting Session…' : 'Start Session')}
-            </button>
+            <div className="flex flex-col gap-2 relative z-10">
+                <button
+                    onClick={() => onStart(appointment.id)}
+                    disabled={isStarting}
+                    className={`flex items-center justify-center gap-2 ${isInProgress ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-[#FF7A59] hover:bg-[#e56b4a]'
+                        } text-white py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed group/btn shadow-lg shadow-black/5`}
+                >
+                    <PlayCircleIcon className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
+                    {isInProgress
+                        ? (isStarting ? 'Resuming Session…' : 'Resume Session')
+                        : (isStarting ? 'Starting Session…' : 'Start Session')}
+                </button>
+                {/* Show Join on Google Meet if session is in progress and meetLink exists */}
+                {isInProgress && appointment.meetLink && (
+                    <a
+                        href={appointment.meetLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+                    >
+                        <VideoCameraIcon className="w-5 h-5" />
+                        Join on Google Meet
+                    </a>
+                )}
+            </div>
         </div>
     );
 }
@@ -153,6 +170,8 @@ export default function OngoingSessionsPage() {
                     scheduledAt: appt.scheduledAt,
                     createdAt: appt.createdAt,
                     notes: appt.notes,
+                    meetLink: appt.meetLink,
+                    endedAt: appt.endedAt,
                 }));
                 setAppointments(confirmed);
             }
@@ -174,15 +193,21 @@ export default function OngoingSessionsPage() {
         try {
             const result = await startAppointmentSession(appointmentId) as any;
             const chatId = result?.chatId || result?.resultData?.chatId;
+            const meetLink = result?.meetLink || result?.resultData?.meetLink;
 
-            // Store the appointment ID for the chat page to use for end session
+            // Store the appointment ID for session management
             localStorage.setItem('activeAppointmentId', appointmentId);
 
+            // Open Google Meet if we have a link
+            if (meetLink) {
+                window.open(meetLink, '_blank', 'noopener,noreferrer');
+            }
+
+            // Also navigate to chat for text communication
             if (chatId) {
                 localStorage.setItem('activeChatId', chatId);
                 router.push(`/chat?chatId=${chatId}`);
             } else {
-                // Fallback: navigate to chat page without a specific chat – it will auto-select
                 router.push('/chat');
             }
         } catch (err: any) {
