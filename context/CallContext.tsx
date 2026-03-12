@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useRef, useCallb
 import { useSocket } from '@/hooks/use-socket';
 import { useCallEngine } from '@/hooks/use-call-engine';
 import { Phone, PhoneOff, Video, Mic, MicOff } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -98,6 +99,12 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (ringtoneRef.current) { ringtoneRef.current.pause(); ringtoneRef.current.currentTime = 0; }
     },
     onRemoteStream: (stream) => setRemoteStream(stream),
+    onPeerReconnect: () => {
+      toast.success('Connection restored with patient', {
+        duration: 3000,
+        position: 'top-center'
+      });
+    }
   });
 
   // Derive callStatus for backward compatibility with ConversationView
