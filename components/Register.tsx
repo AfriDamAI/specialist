@@ -128,8 +128,8 @@ export default function RegistrationForm() {
       });
 
       if (response.ok) {
-        toast.success("Registration Successful! Please log in.");
-        router.push("/login");
+        toast.success("Registration Initialized! Please verify your email.");
+        router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`);
       } else {
         const error = await response.json();
         toast.error(error.message || "Registration failed.");
