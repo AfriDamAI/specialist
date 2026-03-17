@@ -24,6 +24,8 @@ interface ConversationViewProps {
   onStartSession?: () => void;
   onExtendSession?: () => void;
   onFileUpload: (file: File) => void;
+  onJoinMeet: () => void;
+  isJoiningMeet?: boolean;
   onClearError?: () => void;
   chatId?: string;
 }
@@ -43,27 +45,18 @@ export default function ConversationView({
   onStartSession,
   onExtendSession,
   onFileUpload,
+  onJoinMeet,
+  isJoiningMeet,
   onClearError,
   chatId,
 }: ConversationViewProps) {
-  const { initiateCall, callStatus, endCall, isCalling } = useCall();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleStartCall = (type: CallType) => {
-    if (type && patient && chatId) {
-      initiateCall(patient.id, chatId, type);
-    }
-  };
-
-  const handleEndCall = () => {
-    endCall();
-  };
-
-  const callActive = callStatus === 'connected' || callStatus === 'ringing' || isCalling;
+  const callActive = false; // Always false now that WebRTC is removed from this view
 
   // Show error notification
   useEffect(() => {
@@ -90,10 +83,11 @@ export default function ConversationView({
 
       <ChatHeader
         patient={patient}
-        onEndSession={callActive ? handleEndCall : onEndSession}
+        onEndSession={onEndSession}
         onStartSession={onStartSession}
         onExtendSession={onExtendSession}
-        onStartCall={handleStartCall}
+        onJoinMeet={onJoinMeet}
+        isJoiningMeet={isJoiningMeet}
         callActive={callActive}
       />
 

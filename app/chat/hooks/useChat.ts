@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { toast } from 'react-hot-toast';
 import { useCall } from '@/context/CallContext';
 import {
   getCurrentUserChats,
@@ -15,6 +16,7 @@ import {
   endAppointmentSession,
   extendAppointmentSession,
   getAppointmentById,
+  joinAppointmentSession,
 } from '@/lib/api-client';
 
 // Get specialistId from localStorage or decode from token
@@ -102,13 +104,14 @@ export function useChat(initialChatId?: string) {
   const [isSending, setIsSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isJoiningMeet, setIsJoiningMeet] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   // Ref to always have the latest selectedChat inside socket listeners (fixes stale closure)
   const selectedChatRef = useRef<ChatListItem | null>(null);
 
-  // Use socket and signaling from unified CallContext
-  const { socket, receiveExternalSignal } = useCall();
+  // Use socket from unified CallContext
+  const { socket } = useCall();
 
   // Update connection status
   useEffect(() => {
@@ -302,44 +305,6 @@ export function useChat(initialChatId?: string) {
       
       const transformedMessages = chatMessages.map((msg: ApiMessage) => transformMessage(msg, getSpecialistId()));
       
-      // 🛡️ DURABLE SIGNALING SCAN
-      // Look for CALL_OFFER signals in the message history (for cross-instance fallback)
-      // Note: receiveExternalSignal is destructured at the top level of the hook
-      
-      transformedMessages.forEach(msg => {
-        if (msg.type === 'SYSTEM' && (msg.text.startsWith('CALL_OFFER:') || msg.text.startsWith('CALL_ANSWER:'))) {
-          const isOffer = msg.text.startsWith('CALL_OFFER:');
-          const signalType = isOffer ? 'offer' : 'answer';
-          
-          // 🛡️ DEDUPLICATION: Use localStorage to track across refreshes and tabs
-          const processedKey = `processed_signal_${msg.id}`;
-          if (typeof window !== 'undefined' && localStorage.getItem(processedKey)) return;
-
-          // 🛡️ STALENESS CHECK: Only process calls from the last 60 seconds
-          const msgTime = new Date(msg.timestamp).getTime();
-          const now = Date.now();
-          if (now - msgTime > 60000) return; 
-
-          const parts = msg.text.split(':');
-          const type = parts[1] as 'voice' | 'video';
-          const payloadStr = parts.slice(2).join(':');
-          try {
-            const payload = JSON.parse(payloadStr);
-            console.log(`🛡️ Durable Signal Pickup (${signalType}):`, msg.id);
-            if (typeof window !== 'undefined') {
-              localStorage.setItem(processedKey, 'true');
-            }
-            receiveExternalSignal({
-              from: msg.senderId,
-              type,
-              [isOffer ? 'offer' : 'answer']: payload,
-              chatId: msg.chatId,
-              signalType: signalType
-            });
-          } catch (e) { console.error('Failed to parse persistent signal', e); }
-        }
-      });
-
       // Filter out SYSTEM messages before updating UI
       const displayMessages = transformedMessages.filter(msg => msg.type !== 'SYSTEM');
 
@@ -579,6 +544,7 @@ export function useChat(initialChatId?: string) {
     isUploading,
     error,
     isConnected,
+    isJoiningMeet,
     scrollRef,
     
     // Actions
@@ -596,5 +562,25 @@ export function useChat(initialChatId?: string) {
     startSession,
     endSession,
     extendSession,
+    handleJoinMeet: async (appointmentId: string) => {
+      if (!appointmentId) {
+        toast.error("No active appointment found for this chat.");
+        return;
+      }
+      setIsJoiningMeet(true);
+      try {
+        const response = await joinAppointmentSession(appointmentId);
+        if (response?.meetLink) {
+          window.open(response.meetLink, '_blank');
+        } else {
+          toast.error("Failed to retrieve Meet link. Please try again.");
+        }
+      } catch (err: any) {
+        console.error('Meet Join Error:', err);
+        toast.error(err.message || "Error joining Meet. Ensure session is started.");
+      } finally {
+        setIsJoiningMeet(false);
+      }
+    },
   };
 }

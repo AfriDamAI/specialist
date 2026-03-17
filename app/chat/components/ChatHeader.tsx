@@ -8,7 +8,8 @@ interface ChatHeaderProps {
   onEndSession: () => void;
   onStartSession?: () => void;
   onExtendSession?: () => void;
-  onStartCall: (type: CallType) => void;
+  onJoinMeet: () => void;
+  isJoiningMeet?: boolean;
   callActive?: boolean;
 }
 
@@ -17,7 +18,8 @@ export default function ChatHeader({
   onEndSession,
   onStartSession,
   onExtendSession,
-  onStartCall,
+  onJoinMeet,
+  isJoiningMeet = false,
   callActive = false
 }: ChatHeaderProps) {
   return (
@@ -43,24 +45,19 @@ export default function ChatHeader({
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Voice Call Button */}
+        {/* Join Meet Button (Replacing Legacy Call Buttons) */}
         <button
-          onClick={() => onStartCall('voice')}
-          disabled={callActive}
-          className="flex items-center justify-center w-10 h-10 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
-          title="Start voice call"
+          onClick={onJoinMeet}
+          disabled={!patient.appointmentId || isJoiningMeet}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF7A59] text-white hover:bg-[#ff8a6f] transition-all active:scale-95 disabled:opacity-50 disabled:grayscale shadow-sm"
+          title={patient.appointmentId ? "Join Google Meet" : "No active appointment"}
         >
-          <PhoneIcon className="w-5 h-5" />
-        </button>
-
-        {/* Video Call Button */}
-        <button
-          onClick={() => onStartCall('video')}
-          disabled={callActive}
-          className="flex items-center justify-center w-10 h-10 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
-          title="Start video call"
-        >
-          <VideoCameraIcon className="w-5 h-5" />
+          {isJoiningMeet ? (
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <VideoCameraIcon className="w-5 h-5" />
+          )}
+          <span className="text-xs font-bold uppercase tracking-wider">Join Meet</span>
         </button>
 
         {!callActive && (
