@@ -54,15 +54,30 @@ export default function VerifyEmail() {
         toast.update(toastId, {
           render: result.message || "Account verified successfully!",
           type: "success",
-          autoClose: 3000,
+          autoClose: 2000,
         });
         
-        // Progress message for account creation
-        toast.success("Account creation complete. You can now log in.");
+        // Auto-login logic
+        if (result.resultData) {
+          const { access_token, refresh_token, specialist } = result.resultData;
+          
+          if (access_token) localStorage.setItem('token', access_token);
+          if (refresh_token) localStorage.setItem('refreshToken', refresh_token);
+          
+          if (specialist) {
+            localStorage.setItem('specialistId', specialist.id);
+            localStorage.setItem('userId', specialist.id);
+            localStorage.setItem('specialistName', `${specialist.firstName} ${specialist.lastName}`);
+            localStorage.setItem('specialistRole', specialist.role || 'SPECIALIST');
+            localStorage.setItem('specialistStatus', specialist.isActive ? 'verified' : 'under_review');
+          }
+        }
+        
+        toast.success("Logging you in to your workspace...");
         
         setTimeout(() => {
-          router.push("/login");
-        }, 2000);
+          window.location.href = "/dashboard";
+        }, 1500);
       } else {
         toast.update(toastId, {
           render: result.message || "Verification failed. Please try again.",
