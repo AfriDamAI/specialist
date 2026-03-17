@@ -7,6 +7,7 @@ export interface Patient {
   lastMessageTime?: string;
   unreadCount: number;
   sessionActive: boolean;
+  appointmentId?: string;
 }
 
 export interface FileAttachment {

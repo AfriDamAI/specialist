@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 // Rule #3: Relative path from app/ folder to root context/ folder
+import { Toaster } from 'react-hot-toast';
 import { NotificationProvider } from "../context/NotificationContext";
 import { ThemeProvider } from "../context/ThemeContext";
 import { CallProvider } from "../context/CallContext";
-import IncomingCallModal from "../components/IncomingCallModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,7 +39,7 @@ export default function RootLayout({
           <NotificationProvider>
             <CallProvider>
               {children}
-              <IncomingCallModal />
+              <Toaster />
             </CallProvider>
           </NotificationProvider>
         </ThemeProvider>

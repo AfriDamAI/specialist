@@ -21,6 +21,7 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     isUploading,
     error,
     isConnected,
+    isJoiningMeet,
     scrollRef,
     sendMessage,
     handleFileUpload,
@@ -29,6 +30,7 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     startSession,
     endSession,
     extendSession,
+    handleJoinMeet,
   } = useChat(chatId);
 
   // Transform chat list item to patient for the UI - ensure unique patients by ID
@@ -129,6 +131,8 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
         onStartSession={() => selectedChat?.appointmentId && startSession(selectedChat.appointmentId)}
         onExtendSession={() => selectedChat?.appointmentId && extendSession(selectedChat.appointmentId)}
         onFileUpload={handleFileSelect}
+        onJoinMeet={() => selectedChat?.appointmentId && handleJoinMeet(selectedChat.appointmentId)}
+        isJoiningMeet={isJoiningMeet}
         isSending={isSending}
         isUploading={isUploading}
         error={error}
