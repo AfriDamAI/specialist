@@ -15,8 +15,11 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   PlayCircleIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/solid';
 import { apiClient } from '@/lib/api-client'; // 🏛️ Rule #6: Centralized Handshake
+import PatientProfileModal from '@/components/PatientProfileModal';
+import { PatientProfile } from '@/app/chat/types/chat';
 
 // Rule #3: Production Appointment Interface
 interface Appointment {
@@ -28,9 +31,20 @@ interface Appointment {
   assignedAt: string;
   createdAt: string;
   updatedAt: string;
-  name?: string; // Optional for backward compatibility
-  title?: string; // Optional for backward compatibility
-  notes?: string; // Add notes field
+  name?: string; 
+  title?: string;
+  notes?: string;
+  appointment?: {
+    notes?: string;
+    user?: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      phoneNo: string;
+      profile?: PatientProfile;
+    }
+  }
 }
 
 // AppointmentModal Component
@@ -38,12 +52,14 @@ const AppointmentModal = ({
   appointment,
   isOpen,
   onClose,
-  onStatusChange
+  onStatusChange,
+  onViewProfile,
 }: {
   appointment: Appointment | null;
   isOpen: boolean;
   onClose: () => void;
   onStatusChange: (id: string, status: string) => void;
+  onViewProfile: (profile: PatientProfile, name: string) => void;
 }) => {
   const router = useRouter();
   const [isConnecting, setIsConnecting] = useState(false);
@@ -51,7 +67,10 @@ const AppointmentModal = ({
 
   if (!isOpen || !appointment) return null;
 
-  const { appointmentId, specialistId, status, createdAt, id, notes } = appointment;
+  const { appointmentId, specialistId, status, createdAt, id, notes, appointment: detailedAppointment } = appointment;
+  const user = detailedAppointment?.user;
+  const patientName = user ? `${user.firstName} ${user.lastName}` : (appointment.name || 'Unknown Patient');
+  const appointmentNotes = notes || detailedAppointment?.notes || 'No message provided.';
   const formattedTime = new Date(createdAt).toLocaleTimeString('en-US', { hour12: true });
   const formattedDate = new Date(createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const isDisabled = status !== 'PENDING';
@@ -122,6 +141,27 @@ const AppointmentModal = ({
             </button>
           </div>
 
+          <div className="p-5 rounded-3xl bg-gray-50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center shadow-sm border border-gray-200 dark:border-gray-700 text-[#FF7A59]">
+                <UserCircleIcon className="w-8 h-8" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Patient</p>
+                <h3 className="font-bold text-gray-900 dark:text-white">{patientName}</h3>
+              </div>
+            </div>
+            
+            {user?.profile && (
+              <button
+                onClick={() => onViewProfile(user.profile!, patientName)}
+                className="px-4 py-2 rounded-xl bg-white dark:bg-gray-800 text-[#FF7A59] border border-[#FF7A59]/20 hover:bg-[#FF7A59] hover:text-white transition-all text-[10px] font-black uppercase tracking-wider shadow-sm"
+              >
+                Profile
+              </button>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Date</p>
@@ -143,10 +183,10 @@ const AppointmentModal = ({
             </span>
           </div>
 
-          {notes && (
+          {appointmentNotes && appointmentNotes !== 'No message provided.' && (
             <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Notes</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 italic">"{notes}"</p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Patient Message</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 italic">"{appointmentNotes}"</p>
             </div>
           )}
 
@@ -235,6 +275,9 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeShift, setActiveShift] = useState<'day' | 'night'>('day');
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<PatientProfile | undefined>(undefined);
+  const [selectedPatientName, setSelectedPatientName] = useState('');
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -279,6 +322,12 @@ export default function AppointmentsPage() {
   const handleShiftToggle = (shift: 'day' | 'night') => {
     setActiveShift(shift);
     localStorage.setItem('preferredShift', shift);
+  };
+
+  const handleViewProfile = (profile: PatientProfile, name: string) => {
+    setSelectedProfile(profile);
+    setSelectedPatientName(name);
+    setIsProfileModalOpen(true);
   };
 
   const formattedDate = new Date().toLocaleDateString('en-US', {
@@ -378,6 +427,14 @@ export default function AppointmentsPage() {
             onClose={() => setIsModalOpen(false)}
             appointment={selectedAppointment}
             onStatusChange={handleStatusChange}
+            onViewProfile={handleViewProfile}
+          />
+
+          <PatientProfileModal
+            isOpen={isProfileModalOpen}
+            onClose={() => setIsProfileModalOpen(false)}
+            profile={selectedProfile}
+            patientName={selectedPatientName}
           />
 
           {/* Shift Insights: Rule #4 Balanced view */}

@@ -1,9 +1,11 @@
 'use client';
 
 import { useChat, ChatMessage } from '../hooks/useChat';
+import { useState } from 'react';
 import PatientList from './PatientList';
 import ConversationView from './ConversationView';
-import { Patient } from '../types/chat';
+import { Patient, PatientProfile } from '../types/chat';
+import PatientProfileModal from '@/components/PatientProfileModal';
 
 interface ChatContainerProps {
   chatId?: string;
@@ -33,6 +35,17 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     handleJoinMeet,
   } = useChat(chatId);
 
+  // Profile Modal State
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<PatientProfile | undefined>(undefined);
+  const [selectedPatientName, setSelectedPatientName] = useState('');
+
+  const handleViewProfile = (profile: PatientProfile, name: string) => {
+    setSelectedProfile(profile);
+    setSelectedPatientName(name);
+    setIsProfileModalOpen(true);
+  };
+
   // Transform chat list item to patient for the UI - ensure unique patients by ID
   const patients: Patient[] = Array.from(
     chats.reduce((acc, chat) => {
@@ -47,6 +60,7 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
           lastMessageTime: chat.lastMessage?.timestamp,
           unreadCount: chat.unreadCount,
           sessionActive: chat.sessionActive,
+          profile: chat.profile,
         });
       } else {
         // If participant already exists (multiple chats), aggregate unread counts
@@ -69,6 +83,7 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     unreadCount: selectedChat.unreadCount,
     sessionActive: selectedChat.sessionActive,
     appointmentId: selectedChat.appointmentId,
+    profile: selectedChat.profile,
   } : null;
 
   // Transform messages to UI format
@@ -132,12 +147,20 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
         onExtendSession={() => selectedChat?.appointmentId && extendSession(selectedChat.appointmentId)}
         onFileUpload={handleFileSelect}
         onJoinMeet={() => selectedChat?.appointmentId && handleJoinMeet(selectedChat.appointmentId)}
+        onViewProfile={() => selectedPatient?.profile && handleViewProfile(selectedPatient.profile, selectedPatient.name)}
         isJoiningMeet={isJoiningMeet}
         isSending={isSending}
         isUploading={isUploading}
         error={error}
         onClearError={clearError}
         chatId={selectedChat?.id}
+      />
+      
+      <PatientProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        profile={selectedProfile}
+        patientName={selectedPatientName}
       />
     </div>
   );
