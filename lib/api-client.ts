@@ -13,7 +13,7 @@ export interface Chat {
   id: string;
   participant1Id: string;
   participant2Id: string;
-  participants?: Array<{ id: string; name: string; avatar?: string }>;
+  participants?: Array<{ id: string; name: string; avatar?: string; profile?: any }>;
   messages?: Message[];
   lastMessage?: Message;
   unreadCount?: number;

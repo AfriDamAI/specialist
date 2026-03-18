@@ -93,6 +93,7 @@ interface ChatListItem {
   appointmentId?: string;
   sessionActive: boolean;
   appointmentStatus?: string;
+  profile?: any;
 }
 
 export function useChat(initialChatId?: string) {
@@ -272,6 +273,7 @@ export function useChat(initialChatId?: string) {
           sessionActive: (chat as any).sessionActive ?? false,
           appointmentId: (chat as any).appointmentId || (typeof window !== 'undefined' && localStorage.getItem('patientId') === chat.participant2Id ? localStorage.getItem('activeAppointmentId') || undefined : undefined),
           appointmentStatus: (chat as any).appointmentStatus,
+          profile: patient?.profile,
         };
       });
       

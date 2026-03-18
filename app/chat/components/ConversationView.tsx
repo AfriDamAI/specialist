@@ -27,6 +27,7 @@ interface ConversationViewProps {
   onJoinMeet: () => void;
   isJoiningMeet?: boolean;
   onClearError?: () => void;
+  onViewProfile: () => void;
   chatId?: string;
 }
 
@@ -48,6 +49,7 @@ export default function ConversationView({
   onJoinMeet,
   isJoiningMeet,
   onClearError,
+  onViewProfile,
   chatId,
 }: ConversationViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -87,6 +89,7 @@ export default function ConversationView({
         onStartSession={onStartSession}
         onExtendSession={onExtendSession}
         onJoinMeet={onJoinMeet}
+        onViewProfile={onViewProfile}
         isJoiningMeet={isJoiningMeet}
         callActive={callActive}
       />

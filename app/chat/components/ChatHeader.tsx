@@ -1,6 +1,6 @@
 'use client';
 
-import { XMarkIcon, VideoCameraIcon, PhoneIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, VideoCameraIcon, PhoneIcon, UserIcon } from '@heroicons/react/24/outline';
 import { Patient, CallType } from '../types/chat';
 
 interface ChatHeaderProps {
@@ -11,6 +11,7 @@ interface ChatHeaderProps {
   onJoinMeet: () => void;
   isJoiningMeet?: boolean;
   callActive?: boolean;
+  onViewProfile: () => void;
 }
 
 export default function ChatHeader({
@@ -20,7 +21,8 @@ export default function ChatHeader({
   onExtendSession,
   onJoinMeet,
   isJoiningMeet = false,
-  callActive = false
+  callActive = false,
+  onViewProfile
 }: ChatHeaderProps) {
   return (
     <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 flex items-center justify-between">
@@ -42,6 +44,13 @@ export default function ChatHeader({
                   : 'Offline'}
           </p>
         </div>
+        <button
+          onClick={onViewProfile}
+          className="ml-2 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 hover:text-[#FF7A59] transition-all active:scale-95"
+          title="View Patient Profile"
+        >
+          <UserIcon className="w-5 h-5" />
+        </button>
       </div>
 
       <div className="flex items-center gap-2">

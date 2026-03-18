@@ -1,3 +1,18 @@
+export interface PatientProfile {
+  ageRange?: number;
+  skinType?: string;
+  melaninTone?: string;
+  primaryConcern?: string;
+  environment?: string;
+  allergies?: string;
+  previousTreatment?: string[];
+  skinHistory?: Array<{
+    id: string;
+    predictions: any;
+    createdAt: string;
+  }>;
+}
+
 export interface Patient {
   id: string;
   name: string;
@@ -8,6 +23,7 @@ export interface Patient {
   unreadCount: number;
   sessionActive: boolean;
   appointmentId?: string;
+  profile?: PatientProfile;
 }
 
 export interface FileAttachment {
