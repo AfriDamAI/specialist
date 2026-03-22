@@ -3,8 +3,9 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { useSocket } from '@/hooks/use-socket';
 import { useCallEngine } from '@/hooks/use-call-engine';
-import { Phone, PhoneOff, Video, Mic, MicOff } from 'lucide-react';
+import { Phone, PhoneOff, Video, Mic, MicOff, ExternalLink } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { startAppointmentSession, joinAppointmentSession } from '@/lib/api-client';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -132,19 +133,50 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [localStream, callType]);
 
-  const toggleMute = useCallback(() => {
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = isMuted;
-        setIsMuted(!isMuted);
+  const handleJoinMeet = async (appointmentId: string) => {
+    try {
+      const response = await joinAppointmentSession(appointmentId);
+      if (response?.meetLink) {
+        window.open(response.meetLink, '_blank');
+      } else {
+        toast.error('Google Meet link not available yet.');
       }
+    } catch (err) {
+      toast.error('Failed to fetch Google Meet link.');
     }
-  }, [localStream, isMuted]);
+  };
+
+  const toggleMute = useCallback(() => {
+    // Media logic disabled for Google Meet
+  }, []);
 
   const initiateCall = async (toUserId: string, chatId: string, type: 'voice' | 'video') => {
-    setIsMuted(false);
-    return baseStartCall(toUserId, chatId, type);
+    // 1. Start the session on the backend (this generates the Meet link)
+    // In our backend, startSession(appointmentId) is needed. 
+    // Usually, chatId in our specialists app IS the appointmentId or maps to it.
+    // Let's assume the caller has the appointmentId.
+    try {
+      await startAppointmentSession(chatId); // chatId is used as appointmentId here in some parts of the UI
+      
+      // 2. Signal the patient
+      if (socket) {
+        socket.emit('call-offer', {
+          to: toUserId,
+          from: getCurrentUserId(),
+          offer: { type: 'google-meet' },
+          chatId: chatId,
+          type: type
+        });
+      }
+
+      // 3. Open Meet Link
+      await handleJoinMeet(chatId);
+      
+      return new MediaStream(); // Dummy
+    } catch (err) {
+      toast.error('Could not start session.');
+      throw err;
+    }
   };
 
   const receiveExternalSignal = useCallback((data: any) => {
@@ -163,15 +195,21 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const acceptCall = async () => {
     if (!incomingCallData) throw new Error('No incoming call to accept');
     if (ringtoneRef.current) { ringtoneRef.current.pause(); ringtoneRef.current.currentTime = 0; }
-    setIsMuted(false);
-    const stream = await baseAcceptCall(
-      incomingCallData.from,
-      incomingCallData.chatId,
-      incomingCallData.type,
-      incomingCallData.offer
-    );
+    
+    // 1. Signal Answer
+    if (socket) {
+      socket.emit('call-answer', {
+        to: incomingCallData.from,
+        answer: { type: 'google-meet' },
+        chatId: incomingCallData.chatId
+      });
+    }
+
+    // 2. Open Meet Link
+    await handleJoinMeet(incomingCallData.chatId);
+
     setIncomingCallData(null);
-    return stream;
+    return new MediaStream(); // Dummy
   };
 
   const declineCall = () => {
@@ -219,13 +257,39 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       <audio ref={remoteAudioRef} autoPlay playsInline />
 
       {/* ─────────────────────────────────────────────────────────── */}
-      {/* GLOBAL CALL OVERLAY — DISABLED FOR GOOGLE MEET INTEGRATION */}
+      {/* GLOBAL CALL OVERLAY — UPDATED FOR GOOGLE MEET */}
       {/* ─────────────────────────────────────────────────────────── */}
-      {/* {showGlobalCallUI && (
+      {showGlobalCallUI && (
         <div className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center gap-8 p-6">
-          ... (omitted for brevity in replacement but usually I should include the content if I want to keep it commented out)
+          <div className="flex flex-col items-center gap-8">
+             <div className="w-40 h-40 rounded-full bg-gradient-to-br from-[#4DB6AC] to-[#E1784F] flex items-center justify-center text-white text-5xl font-bold animate-pulse shadow-2xl">
+                 {remoteUserId?.[0].toUpperCase() || 'P'}
+             </div>
+             <div className="text-center">
+                 <h2 className="text-3xl font-bold text-white mb-2">Consultation Active</h2>
+                 <p className="text-[#4DB6AC] uppercase tracking-[0.4em] text-[12px] font-black italic">Meeting is live in Google Meet</p>
+                 <p className="text-white/40 font-mono text-sm mt-2">Duration: {callDuration}</p>
+             </div>
+          </div>
+
+          <div className="flex items-center gap-6 mt-12">
+            <button 
+              onClick={() => currentChatId && handleJoinMeet(currentChatId)}
+              className="p-6 bg-[#4DB6AC] hover:bg-[#3d9189] text-white rounded-full transition-all transform hover:scale-110 shadow-xl flex items-center gap-3 px-8"
+            >
+              <ExternalLink className="w-6 h-6" />
+              <span className="font-bold">Re-join Meet</span>
+            </button>
+
+            <button 
+              onClick={endCall}
+              className="p-6 bg-red-500 hover:bg-red-600 text-white rounded-full transition-all transform hover:scale-110 shadow-xl"
+            >
+              <PhoneOff className="w-6 h-6" />
+            </button>
+          </div>
         </div>
-      )} */}
+      )}
     </CallContext.Provider>
   );
 };
