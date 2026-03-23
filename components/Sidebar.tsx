@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -59,7 +60,15 @@ export default function Sidebar() {
       
       {/* Brand Section */}
       <div className="p-8 flex items-center gap-3">
-        <div className="w-10 h-10 bg-black dark:bg-white rounded-xl flex items-center justify-center text-white dark:text-black font-black text-xl italic">A</div>
+        <div className="w-10 h-10 bg-black/10 dark:bg-white/10 rounded-xl flex items-center justify-center">
+          <Image
+            src="/logo.png"
+            alt="AfriDam AI logo"
+            width={32}
+            height={32}
+            className="object-contain"
+          />
+        </div>
         <span className="text-lg font-black tracking-tighter uppercase italic dark:text-white">AfriDam<span className="text-[#FF7A59]">AI</span></span>
       </div>
 

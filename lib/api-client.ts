@@ -272,6 +272,19 @@ export const getSpecialistAppointments = async (statuses?: string[]): Promise<an
   return data;
 };
 
+export const getActiveAppointmentWith = async (otherUserId: string): Promise<any> => {
+  const response = await apiClient(`/appointments/active-with/${otherUserId}`);
+  return response?.data || response?.resultData || response;
+};
+
+export const createMeetForAppointment = async (otherUserId: string): Promise<{ meetLink: string; appointmentId: string }> => {
+  const response = await apiClient('/appointments/create-meet', {
+    method: 'POST',
+    body: JSON.stringify({ otherUserId }),
+  });
+  return response?.data || response?.resultData || response;
+};
+
 // ============ Wallet & Withdrawal API Functions ============
 
 export interface Wallet {

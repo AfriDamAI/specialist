@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import NotificationBell from './NotificationBell';
 import {
@@ -165,8 +166,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="fixed top-0 left-0 right-0 h-16 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 z-[60]">
         <div className="flex items-center justify-between h-full px-4 md:px-12 max-w-7xl mx-auto">
           <Link href="/dashboard" className="flex items-center gap-2 group">
-            <div className="w-9 h-9 bg-black dark:bg-white rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 shadow-lg">
-              <span className="text-white dark:text-black text-lg font-black italic uppercase">A</span>
+            <div className="w-9 h-9 bg-black/10 dark:bg-white/10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 shadow-lg">
+              <Image src="/logo.png" alt="AfriDam AI logo" width={26} height={26} className="object-contain" />
             </div>
             <span className="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">
               Afridam<span className="text-[#FF7A59]">AI</span>

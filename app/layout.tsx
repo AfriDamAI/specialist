@@ -20,6 +20,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "AfriDam AI | Specialist Portal",
   description: "Secure clinical gateway for AfriDam AI medical specialists and consultants.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+    shortcut: "/logo.png",
+    other: [{ rel: "icon", url: "/logo.png" }],
+  },
 };
 
 export default function RootLayout({
