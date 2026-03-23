@@ -32,7 +32,8 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     startSession,
     endSession,
     extendSession,
-    handleJoinMeet,
+    currentMeetLink,
+    handleCreateOrJoinMeet,
   } = useChat(chatId);
 
   // Profile Modal State
