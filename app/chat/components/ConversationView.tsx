@@ -26,6 +26,7 @@ interface ConversationViewProps {
   onFileUpload: (file: File) => void;
   onJoinMeet: () => void;
   isJoiningMeet?: boolean;
+  hasMeetLink?: boolean;
   onClearError?: () => void;
   onViewProfile: () => void;
   chatId?: string;
@@ -48,6 +49,7 @@ export default function ConversationView({
   onFileUpload,
   onJoinMeet,
   isJoiningMeet,
+  hasMeetLink,
   onClearError,
   onViewProfile,
   chatId,
@@ -91,6 +93,7 @@ export default function ConversationView({
         onJoinMeet={onJoinMeet}
         onViewProfile={onViewProfile}
         isJoiningMeet={isJoiningMeet}
+        hasMeetLink={hasMeetLink}
         callActive={callActive}
       />
 

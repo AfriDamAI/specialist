@@ -1,7 +1,8 @@
 'use client';
 
-import { XMarkIcon, VideoCameraIcon, PhoneIcon, UserIcon } from '@heroicons/react/24/outline';
-import { Patient, CallType } from '../types/chat';
+import { XMarkIcon, VideoCameraIcon } from '@heroicons/react/24/outline';
+import { UserIcon, Video, ExternalLink } from 'lucide-react';
+import { Patient } from '../types/chat';
 
 interface ChatHeaderProps {
   patient: Patient;
@@ -10,6 +11,7 @@ interface ChatHeaderProps {
   onExtendSession?: () => void;
   onJoinMeet: () => void;
   isJoiningMeet?: boolean;
+  hasMeetLink?: boolean; // true = "Join Meeting", false = "Create Meeting"
   callActive?: boolean;
   onViewProfile: () => void;
 }
@@ -21,9 +23,13 @@ export default function ChatHeader({
   onExtendSession,
   onJoinMeet,
   isJoiningMeet = false,
+  hasMeetLink = false,
   callActive = false,
   onViewProfile
 }: ChatHeaderProps) {
+  // Button is enabled if session is CONFIRMED or IN_PROGRESS
+  const canMeet = patient.sessionActive || patient.appointmentStatus === 'CONFIRMED';
+
   return (
     <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -54,19 +60,25 @@ export default function ChatHeader({
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Join Meet Button (Replacing Legacy Call Buttons) */}
+        {/* Create/Join Meet Button — always visible if there's an active appointment */}
         <button
           onClick={onJoinMeet}
-          disabled={!patient.sessionActive || isJoiningMeet}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF7A59] text-white hover:bg-[#ff8a6f] transition-all active:scale-95 disabled:opacity-50 disabled:grayscale shadow-sm"
-          title={patient.sessionActive ? "Join Google Meet" : "Session must be started to join Meet"}
+          disabled={!canMeet || isJoiningMeet}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-white transition-all active:scale-95 disabled:opacity-50 disabled:grayscale shadow-sm text-xs font-bold uppercase tracking-wider ${
+            hasMeetLink
+              ? 'bg-green-600 hover:bg-green-700'
+              : 'bg-[#FF7A59] hover:bg-[#ff8a6f]'
+          }`}
+          title={!canMeet ? 'Session must be CONFIRMED or IN_PROGRESS' : hasMeetLink ? 'Join Google Meet' : 'Create a Google Meet for this session'}
         >
           {isJoiningMeet ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : hasMeetLink ? (
+            <ExternalLink className="w-5 h-5" />
           ) : (
-            <VideoCameraIcon className="w-5 h-5" />
+            <Video className="w-5 h-5" />
           )}
-          <span className="text-xs font-bold uppercase tracking-wider">Join Meet</span>
+          <span>{hasMeetLink ? 'Join Meeting' : 'Create Meeting'}</span>
         </button>
 
         {!callActive && (

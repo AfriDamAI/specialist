@@ -106,6 +106,7 @@ export function useChat(initialChatId?: string) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isJoiningMeet, setIsJoiningMeet] = useState(false);
+  const [currentMeetLink, setCurrentMeetLink] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   // Ref to always have the latest selectedChat inside socket listeners (fixes stale closure)
@@ -220,9 +221,27 @@ export function useChat(initialChatId?: string) {
     socket.on('newMessage', handleNewMessage);
     socket.on('new_message', handleNewMessage);
 
+    // Listen for meetingLinkCreated from backend broadcast
+    const handleMeetingLinkCreated = (data: { appointmentId: string; meetLink: string }) => {
+      const currentChat = selectedChatRef.current;
+      if (data.meetLink) {
+        setCurrentMeetLink(data.meetLink);
+        // Also update the chat in the list
+        if (currentChat) {
+          setChats(prev => prev.map(c =>
+            c.id === currentChat.id ? { ...c, sessionActive: true } : c
+          ));
+        }
+        toast.success('Google Meet is ready! Click "Join Meeting" to enter.');
+      }
+    };
+
+    socket.on('meetingLinkCreated', handleMeetingLinkCreated);
+
     return () => {
       socket.off('newMessage', handleNewMessage);
       socket.off('new_message', handleNewMessage);
+      socket.off('meetingLinkCreated', handleMeetingLinkCreated);
     };
   }, [socket]); // No longer depends on selectedChat — uses ref instead
 
@@ -564,37 +583,31 @@ export function useChat(initialChatId?: string) {
     startSession,
     endSession,
     extendSession,
-    handleJoinMeet: async () => {
+    currentMeetLink,
+    setCurrentMeetLink,
+    handleCreateOrJoinMeet: async () => {
       const currentChat = selectedChatRef.current;
       if (!currentChat) {
-        toast.error("Please select a conversation first.");
+        toast.error('Please select a conversation first.');
         return;
       }
 
       setIsJoiningMeet(true);
       try {
-        // Robust lookup: fetch appointments and match by patient ID
-        const { getSpecialistAppointments, joinAppointmentSession: joinMeetSession } = await import('@/lib/api-client');
-        const appointments = await getSpecialistAppointments(['IN_PROGRESS', 'CONFIRMED']);
-        const activeAppointment = appointments.find((apt: any) =>
-          apt.userId === currentChat.participantId &&
-          (apt.status === 'IN_PROGRESS' || apt.status === 'CONFIRMED')
-        );
-
-        if (!activeAppointment) {
-          toast.error("No active session found with this patient. Please start the session first.");
-          return;
-        }
-
-        const response = await joinMeetSession(activeAppointment.id);
-        if (response?.meetLink) {
-          window.open(response.meetLink, '_blank');
+        const { createMeetForAppointment } = await import('@/lib/api-client');
+        // createMeetForAppointment: if a link already exists, it returns the existing one.
+        // If not, it creates a new one and broadcasts to both parties.
+        const result = await createMeetForAppointment(currentChat.participantId);
+        if (result?.meetLink) {
+          setCurrentMeetLink(result.meetLink);
+          window.open(result.meetLink, '_blank');
         } else {
-          toast.error("Failed to retrieve Meet link. Ensure session is started.");
+          toast.error('Could not generate meeting link. Please try again.');
         }
       } catch (err: any) {
-        console.error('Meet Join Error:', err);
-        toast.error(err.message || "Error joining Meet.");
+        console.error('Meet Error:', err);
+        const msg = err?.message || 'Error creating/joining the meeting.';
+        toast.error(msg);
       } finally {
         setIsJoiningMeet(false);
       }

@@ -23,6 +23,7 @@ export interface Patient {
   unreadCount: number;
   sessionActive: boolean;
   appointmentId?: string;
+  appointmentStatus?: string;
   profile?: PatientProfile;
 }
 
