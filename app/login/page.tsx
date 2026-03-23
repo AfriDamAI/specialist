@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
@@ -62,8 +63,14 @@ export default function LoginPage() {
     <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col justify-center py-12 px-6 lg:px-8 transition-colors text-left">
       {/* 🏥 Visual Identity Section */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-black dark:bg-white rounded-3xl mb-6 shadow-xl">
-          <span className="text-white dark:text-black text-3xl font-black italic">A</span>
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-black/10 dark:bg-white/10 rounded-3xl mb-6 shadow-xl">
+          <Image
+            src="/logo.png"
+            alt="AfriDam AI Logo"
+            width={56}
+            height={56}
+            className="object-contain rounded-xl"
+          />
         </div>
         <h2 className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">
           Afridam<span className="text-[#FF7A59]">AI</span>

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -23,8 +24,8 @@ export default function EntryPage() {
       {/* Navigation Bar */}
       <nav className="h-20 border-b border-gray-100 dark:border-gray-800 flex items-center px-6 md:px-12 justify-between sticky top-0 bg-white dark:bg-gray-950/80 backdrop-blur-md z-50">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-black dark:bg-white rounded-full flex items-center justify-center shadow-lg shadow-gray-200 dark:shadow-none">
-            <span className="text-white dark:text-black text-xl font-bold italic">A</span>
+          <div className="w-10 h-10 bg-black/10 dark:bg-white/10 rounded-full flex items-center justify-center shadow-lg shadow-gray-200 dark:shadow-none">
+            <Image src="/logo.png" alt="AfriDam AI logo" width={24} height={24} className="object-contain" />
           </div>
           <span className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">
             Afridam<span className="text-[#FF7A59]">AI</span>
