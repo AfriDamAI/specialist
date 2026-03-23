@@ -36,6 +36,7 @@ interface CallContextType {
   toggleMute: () => void;
   isMuted: boolean;
   receiveExternalSignal: (data: any) => void;
+  handleJoinMeet: (patientUserId: string) => Promise<void>;
 }
 
 const CallContext = createContext<CallContextType | null>(null);
@@ -133,13 +134,26 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [localStream, callType]);
 
-  const handleJoinMeet = async (appointmentId: string) => {
+  const handleJoinMeet = async (patientUserId: string) => {
     try {
-      const response = await joinAppointmentSession(appointmentId);
+      // Look up the in-progress appointment with this patient
+      const { getSpecialistAppointments, joinAppointmentSession: joinMeetSession } = await import('@/lib/api-client');
+      const appointments = await getSpecialistAppointments(['IN_PROGRESS', 'CONFIRMED']);
+      const activeAppointment = appointments.find((apt: any) =>
+        apt.userId === patientUserId &&
+        (apt.status === 'IN_PROGRESS' || apt.status === 'CONFIRMED')
+      );
+
+      if (!activeAppointment) {
+        toast.error('No active session found with this patient.');
+        return;
+      }
+
+      const response = await joinMeetSession(activeAppointment.id);
       if (response?.meetLink) {
         window.open(response.meetLink, '_blank');
       } else {
-        toast.error('Google Meet link not available yet.');
+        toast.error('Google Meet link not available yet. Please start the session first.');
       }
     } catch (err) {
       toast.error('Failed to fetch Google Meet link.');
@@ -156,7 +170,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Usually, chatId in our specialists app IS the appointmentId or maps to it.
     // Let's assume the caller has the appointmentId.
     try {
-      await startAppointmentSession(chatId); // chatId is used as appointmentId here in some parts of the UI
+      await startAppointmentSession(chatId);
       
       // 2. Signal the patient
       if (socket) {
@@ -169,8 +183,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
-      // 3. Open Meet Link
-      await handleJoinMeet(chatId);
+      // 3. Open Meet Link — pass patient's userId so appointment lookup works
+      await handleJoinMeet(toUserId);
       
       return new MediaStream(); // Dummy
     } catch (err) {
@@ -205,8 +219,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     }
 
-    // 2. Open Meet Link
-    await handleJoinMeet(incomingCallData.chatId);
+    // 2. Open Meet Link — pass patient's userId so the appointment lookup works
+    await handleJoinMeet(incomingCallData.from);
 
     setIncomingCallData(null);
     return new MediaStream(); // Dummy
@@ -250,6 +264,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toggleMute,
       isMuted,
       receiveExternalSignal,
+      handleJoinMeet,
     }}>
       {children}
 
@@ -274,7 +289,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           <div className="flex items-center gap-6 mt-12">
             <button 
-              onClick={() => currentChatId && handleJoinMeet(currentChatId)}
+              onClick={() => remoteUserId && handleJoinMeet(remoteUserId)}
               className="p-6 bg-[#4DB6AC] hover:bg-[#3d9189] text-white rounded-full transition-all transform hover:scale-110 shadow-xl flex items-center gap-3 px-8"
             >
               <ExternalLink className="w-6 h-6" />

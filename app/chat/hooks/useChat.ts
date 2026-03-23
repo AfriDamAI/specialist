@@ -564,22 +564,37 @@ export function useChat(initialChatId?: string) {
     startSession,
     endSession,
     extendSession,
-    handleJoinMeet: async (appointmentId: string) => {
-      if (!appointmentId) {
-        toast.error("No active appointment found for this chat.");
+    handleJoinMeet: async () => {
+      const currentChat = selectedChatRef.current;
+      if (!currentChat) {
+        toast.error("Please select a conversation first.");
         return;
       }
+
       setIsJoiningMeet(true);
       try {
-        const response = await joinAppointmentSession(appointmentId);
+        // Robust lookup: fetch appointments and match by patient ID
+        const { getSpecialistAppointments, joinAppointmentSession: joinMeetSession } = await import('@/lib/api-client');
+        const appointments = await getSpecialistAppointments(['IN_PROGRESS', 'CONFIRMED']);
+        const activeAppointment = appointments.find((apt: any) =>
+          apt.userId === currentChat.participantId &&
+          (apt.status === 'IN_PROGRESS' || apt.status === 'CONFIRMED')
+        );
+
+        if (!activeAppointment) {
+          toast.error("No active session found with this patient. Please start the session first.");
+          return;
+        }
+
+        const response = await joinMeetSession(activeAppointment.id);
         if (response?.meetLink) {
           window.open(response.meetLink, '_blank');
         } else {
-          toast.error("Failed to retrieve Meet link. Please try again.");
+          toast.error("Failed to retrieve Meet link. Ensure session is started.");
         }
       } catch (err: any) {
         console.error('Meet Join Error:', err);
-        toast.error(err.message || "Error joining Meet. Ensure session is started.");
+        toast.error(err.message || "Error joining Meet.");
       } finally {
         setIsJoiningMeet(false);
       }

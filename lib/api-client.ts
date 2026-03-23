@@ -194,6 +194,7 @@ export const getAppointmentById = async (id: string): Promise<any> => {
   return response?.data || response;
 };
 
+
 export const startAppointmentSession = async (id: string): Promise<any> => {
   const response = await apiClient(`/appointments/${id}/start-session`, {
     method: 'POST',
@@ -262,9 +263,13 @@ export const cancelAppointment = async (id: string): Promise<any> => {
   });
   return response?.data || response;
 };
-export const getSpecialistAppointments = async (): Promise<any[]> => {
+export const getSpecialistAppointments = async (statuses?: string[]): Promise<any[]> => {
   const response = await apiClient('/appointments/specialist/me');
-  return response?.data || response?.resultData || response || [];
+  const data: any[] = response?.data || response?.resultData || response || [];
+  if (statuses && statuses.length > 0) {
+    return data.filter((apt: any) => statuses.includes(apt.status));
+  }
+  return data;
 };
 
 // ============ Wallet & Withdrawal API Functions ============

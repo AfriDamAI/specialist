@@ -146,7 +146,7 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
         onStartSession={() => selectedChat?.appointmentId && startSession(selectedChat.appointmentId)}
         onExtendSession={() => selectedChat?.appointmentId && extendSession(selectedChat.appointmentId)}
         onFileUpload={handleFileSelect}
-        onJoinMeet={() => selectedChat?.appointmentId && handleJoinMeet(selectedChat.appointmentId)}
+        onJoinMeet={handleJoinMeet}
         onViewProfile={() => selectedPatient?.profile && handleViewProfile(selectedPatient.profile, selectedPatient.name)}
         isJoiningMeet={isJoiningMeet}
         isSending={isSending}

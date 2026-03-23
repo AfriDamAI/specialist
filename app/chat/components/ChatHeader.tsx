@@ -57,9 +57,9 @@ export default function ChatHeader({
         {/* Join Meet Button (Replacing Legacy Call Buttons) */}
         <button
           onClick={onJoinMeet}
-          disabled={!patient.appointmentId || isJoiningMeet}
+          disabled={!patient.sessionActive || isJoiningMeet}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF7A59] text-white hover:bg-[#ff8a6f] transition-all active:scale-95 disabled:opacity-50 disabled:grayscale shadow-sm"
-          title={patient.appointmentId ? "Join Google Meet" : "No active appointment"}
+          title={patient.sessionActive ? "Join Google Meet" : "Session must be started to join Meet"}
         >
           {isJoiningMeet ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
