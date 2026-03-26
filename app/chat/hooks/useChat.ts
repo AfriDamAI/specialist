@@ -17,6 +17,7 @@ import {
   extendAppointmentSession,
   getAppointmentById,
   joinAppointmentSession,
+  getActiveAppointmentWith,
 } from '@/lib/api-client';
 
 // Get specialistId from localStorage or decode from token
@@ -94,6 +95,7 @@ interface ChatListItem {
   sessionActive: boolean;
   appointmentStatus?: string;
   profile?: any;
+  meetingLink?: string;
 }
 
 export function useChat(initialChatId?: string) {
@@ -168,10 +170,9 @@ export function useChat(initialChatId?: string) {
     if (selectedChat) {
       fetchChatMessages(selectedChat.id);
       
-      // Also fetch appointment status if we have an appointmentId
-      if (selectedChat.appointmentId) {
-        fetchAppointmentStatus(selectedChat.appointmentId);
-      }
+      // Always fetch the CURRENT active appointment to avoid stale chat.appointmentId
+      if (selectedChat.meetingLink) setCurrentMeetLink(selectedChat.meetingLink);
+      fetchAppointmentStatus(undefined, selectedChat.participantId);
     } else {
       setMessages([]);
     }
@@ -282,19 +283,23 @@ export function useChat(initialChatId?: string) {
           (m: Message) => m.senderId !== specialistId && !(m as any).isRead
         ).length;
         
-        return {
-          id: chat.id,
-          participantId: chat.participant2Id, // patientId
-          participantName: participantName,
-          participantAvatar: patient?.avatar,
-          lastMessage: lastMsg,
-          unreadCount,
-          sessionActive: (chat as any).sessionActive ?? false,
-          appointmentId: (chat as any).appointmentId || (typeof window !== 'undefined' && localStorage.getItem('patientId') === chat.participant2Id ? localStorage.getItem('activeAppointmentId') || undefined : undefined),
-          appointmentStatus: (chat as any).appointmentStatus,
-          profile: patient?.profile,
-        };
-      });
+          const appointmentStatus = (chat as any).appointmentStatus || (chat as any).status;
+          const sessionActive = appointmentStatus === 'IN_PROGRESS';
+          
+          return {
+            id: chat.id,
+            participantId: chat.participant2Id, // patientId
+            participantName: participantName,
+            participantAvatar: patient?.avatar,
+            lastMessage: lastMsg,
+            unreadCount,
+            sessionActive: sessionActive,
+            appointmentId: (chat as any).appointmentId || (typeof window !== 'undefined' && localStorage.getItem('patientId') === chat.participant2Id ? localStorage.getItem('activeAppointmentId') || undefined : undefined),
+            appointmentStatus: appointmentStatus,
+            profile: patient?.profile,
+            meetingLink: (chat as any).meetingLink,
+          };
+        });
       
       setChats(chatListItems);
       if (!silent) setError(null);
@@ -341,36 +346,30 @@ export function useChat(initialChatId?: string) {
   }, []);
 
   // Silent polling fallback for multi-instance Cloud Run environments
-  // Ensures messages arrive even when WebSocket broadcast misses a server instance
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const currentChat = selectedChatRef.current;
-      if (currentChat) {
-        fetchChatMessages(currentChat.id, true);
-      }
-      fetchUserChats(true);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [fetchUserChats, fetchChatMessages]);
-
   // Fetch real-time appointment status to ensure session controls are accurate
-  const fetchAppointmentStatus = useCallback(async (appointmentId: string) => {
+  const fetchAppointmentStatus = useCallback(async (appointmentId?: string, otherUserId?: string) => {
     try {
-      const appointment = await getAppointmentById(appointmentId);
+      let appointment = null;
+      if (appointmentId) {
+         appointment = await getAppointmentById(appointmentId);
+      } else if (otherUserId) {
+         appointment = await getActiveAppointmentWith(otherUserId);
+      }
+
       if (appointment) {
         const sessionActive = appointment.status === 'IN_PROGRESS';
         
         // Update the chats list
         setChats(prev => prev.map(chat => 
-          chat.appointmentId === appointmentId 
-            ? { ...chat, appointmentStatus: appointment.status, sessionActive } 
+          (chat.appointmentId === appointment.id || chat.participantId === otherUserId) 
+            ? { ...chat, appointmentId: appointment.id, appointmentStatus: appointment.status, sessionActive } 
             : chat
         ));
 
-        // Update selected chat if it's the same one
-        setSelectedChat(prev => {
-          if (prev?.appointmentId === appointmentId) {
-            return { ...prev, appointmentStatus: appointment.status, sessionActive };
+        setSelectedChat((prev) => {
+          if (prev?.id === selectedChatRef.current?.id && (prev?.appointmentId === appointment.id || prev?.participantId === otherUserId)) {
+            if (appointment.meetingLink) setCurrentMeetLink(appointment.meetingLink);
+            return { ...prev, appointmentId: appointment.id, appointmentStatus: appointment.status, sessionActive, meetingLink: appointment.meetingLink } as ChatListItem;
           }
           return prev;
         });
@@ -379,6 +378,20 @@ export function useChat(initialChatId?: string) {
       console.warn('Could not enrich chat with appointment status:', err);
     }
   }, []);
+
+  // Ensures messages arrive even when WebSocket broadcast misses a server instance
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentChat = selectedChatRef.current;
+      if (currentChat) {
+        fetchChatMessages(currentChat.id, true);
+        // Force fetching active appointment by patient ID
+        fetchAppointmentStatus(undefined, currentChat.participantId);
+      }
+      fetchUserChats(true);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [fetchUserChats, fetchChatMessages, fetchAppointmentStatus]);
 
   // Send a text message
   const sendMessage = useCallback(async (text?: string) => {
