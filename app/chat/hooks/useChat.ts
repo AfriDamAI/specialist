@@ -600,9 +600,10 @@ export function useChat(initialChatId?: string) {
         const result = await createMeetForAppointment(currentChat.participantId);
         if (result?.meetLink) {
           setCurrentMeetLink(result.meetLink);
+          toast.success('Google Meet link generated! Joining now...');
           window.open(result.meetLink, '_blank');
         } else {
-          toast.error('Could not generate meeting link. Please try again.');
+          toast.error('Could not generate meeting link. Please check if the Google Meet API is enabled.');
         }
       } catch (err: any) {
         console.error('Meet Error:', err);
