@@ -27,8 +27,8 @@ export default function ChatHeader({
   callActive = false,
   onViewProfile
 }: ChatHeaderProps) {
-  // Button is enabled if session is CONFIRMED or IN_PROGRESS
-  const canMeet = patient.sessionActive || (patient as any).appointmentStatus === 'CONFIRMED';
+  // Button is enabled ONLY if session is IN_PROGRESS
+  const canMeet = patient.sessionActive;
 
   return (
     <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 flex items-center justify-between">
@@ -60,16 +60,16 @@ export default function ChatHeader({
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Create/Join Meet Button — always visible if there's an active appointment */}
+        {/* Create/Join Meet Button — active only if session is IN_PROGRESS */}
         <button
           onClick={onJoinMeet}
           disabled={!canMeet || isJoiningMeet}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-white transition-all active:scale-95 disabled:opacity-50 disabled:grayscale shadow-sm text-xs font-bold uppercase tracking-wider ${
             hasMeetLink
               ? 'bg-green-600 hover:bg-green-700'
-              : 'bg-[#FF7A59] hover:bg-[#ff8a6f]'
+              : 'bg-blue-600 hover:bg-blue-700'
           }`}
-          title={!canMeet ? 'Session must be CONFIRMED or IN_PROGRESS' : hasMeetLink ? 'Join Google Meet' : 'Create a Google Meet for this session'}
+          title={!canMeet ? 'Session must be IN_PROGRESS' : hasMeetLink ? 'Join Google Meet' : 'Create a Google Meet for this session'}
         >
           {isJoiningMeet ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
