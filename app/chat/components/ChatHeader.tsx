@@ -27,8 +27,8 @@ export default function ChatHeader({
   callActive = false,
   onViewProfile
 }: ChatHeaderProps) {
-  // Button is enabled if an appointment link exists or can be created
-  const canMeet = true; // Always allow attempting to create/join meet
+  // Button is enabled if session is CONFIRMED or IN_PROGRESS
+  const canMeet = patient.sessionActive || (patient as any).appointmentStatus === 'CONFIRMED';
 
   return (
     <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 flex items-center justify-between">
