@@ -48,7 +48,11 @@ export async function apiClient(endpoint: string, options: FetchOptions = {}) {
   const token = rawToken?.replace(/['"]+/g, '').trim();
 
   const headers = new Headers(options.headers);
-  headers.set('Content-Type', 'application/json');
+  const isFormData = options.body instanceof FormData;
+  
+  if (!isFormData) {
+    headers.set('Content-Type', 'application/json');
+  }
   
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
@@ -140,8 +144,24 @@ export const sendUserChatMessage = async (
   attachmentUrl?: string,
   mimeType?: string,
   fileSize?: number,
-  duration?: number
+  duration?: number,
+  file?: File // Add optional file parameter
 ): Promise<Message> => {
+  if (file) {
+    const formData = new FormData();
+    formData.append("chatId", chatId);
+    formData.append("senderId", senderId);
+    if (message) formData.append("message", message);
+    formData.append("type", type);
+    formData.append("file", file); // Backend expects "file"
+    
+    const response = await apiClient("/chats/messages", {
+      method: 'POST',
+      body: formData,
+    });
+    return response?.resultData || response?.data || response;
+  }
+
   const response = await apiClient("/chats/messages", {
     method: 'POST',
     body: JSON.stringify({ 

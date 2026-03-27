@@ -7,7 +7,6 @@ import {
   getCurrentUserChats,
   getChatMessages,
   sendUserChatMessage,
-  uploadFile,
   markMessageAsRead,
   Chat,
   Message as ApiMessage,
@@ -393,37 +392,42 @@ export function useChat(initialChatId?: string) {
     return () => clearInterval(interval);
   }, [fetchUserChats, fetchChatMessages, fetchAppointmentStatus]);
 
-  // Send a text message
-  const sendMessage = useCallback(async (text?: string) => {
+  // Send a unified (text + optional file) message
+  const sendMessage = useCallback(async (text?: string, file: File | null = null) => {
     const msgText = text || inputValue;
-    if (!msgText.trim() || !selectedChat) return;
+    if (!msgText.trim() && !file && !selectedChat) return;
+    if (!selectedChat) return;
 
     const specialistId = getSpecialistId();
-    
-    // Create optimistic message object
-    const optimisticMessage: ChatMessage = {
-      id: `temp-${Date.now()}`,
-      chatId: selectedChat.id,
-      senderId: specialistId,
-      sender: 'doctor',
-      text: msgText,
-      type: 'TEXT',
-      read: true,
-      timestamp: new Date().toISOString(),
-    };
-    
-    // Add message instantly to UI (optimistic update)
-    setMessages(prev => [...prev, optimisticMessage]);
-    
     setIsSending(true);
-    setInputValue('');
-
+    
     try {
+      // Create optimistic message object for immediate UI feedback
+      const optimisticMessage: ChatMessage = {
+        id: `temp-${Date.now()}`,
+        chatId: selectedChat.id,
+        senderId: specialistId,
+        sender: 'doctor',
+        text: msgText,
+        type: (file ? 'IMAGE' : 'TEXT') as any, // Optimistic guess
+        read: true,
+        timestamp: new Date().toISOString(),
+      };
+      
+      // Add message instantly to UI
+      setMessages(prev => [...prev, optimisticMessage]);
+      setInputValue('');
+
       const newMessage = await sendUserChatMessage(
         selectedChat.id,
         specialistId,
         msgText,
-        'TEXT'
+        'TEXT',
+        '', 
+        '',
+        0,
+        0,
+        file || undefined // Pass file directly
       );
       
       const transformedMsg = transformMessage(newMessage, specialistId);
@@ -436,72 +440,14 @@ export function useChat(initialChatId?: string) {
       setError(null);
     } catch (err) {
       console.error('Error sending message:', err);
-      // Remove optimistic message on error
-      setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
       setError('Failed to send message.');
-      setInputValue(msgText); // Restore input on error
+      if (text === undefined) setInputValue(msgText); // Restore input on error if it came from state
     } finally {
       setIsSending(false);
+      setIsUploading(false);
     }
   }, [inputValue, selectedChat]);
 
-  // Send a file/media message
-  const sendMediaMessage = useCallback(async (
-    type: 'IMAGE' | 'VIDEO' | 'AUDIO',
-    metadata: { url: string; mimeType: string; size: number; duration?: number }
-  ) => {
-    if (!selectedChat) return;
-
-    setIsUploading(true);
-
-    try {
-      const newMessage = await sendUserChatMessage(
-        selectedChat.id,
-        getSpecialistId(),
-        '',
-        type,
-        metadata.url,
-        metadata.mimeType,
-        metadata.size,
-        metadata.duration
-      );
-      
-      const transformedMsg = transformMessage(newMessage, getSpecialistId());
-      
-      setMessages(prev => {
-        if (prev.find(m => m.id === transformedMsg.id)) return prev;
-        return [...prev, transformedMsg];
-      });
-      
-      setError(null);
-    } catch (err) {
-      console.error('Error sending media:', err);
-      setError('Failed to send media.');
-    } finally {
-      setIsUploading(false);
-    }
-  }, [selectedChat]);
-
-  // Handle file upload
-  const handleFileUpload = useCallback(async (file: File) => {
-    if (!selectedChat) return;
-
-    setIsUploading(true);
-    try {
-      const { url, mimeType, size } = await uploadFile(file);
-      
-      let type: 'IMAGE' | 'VIDEO' | 'AUDIO' = 'IMAGE';
-      if (mimeType.startsWith('video/')) type = 'VIDEO';
-      if (mimeType.startsWith('audio/')) type = 'AUDIO';
-
-      await sendMediaMessage(type, { url, mimeType, size });
-    } catch (err) {
-      console.error('Upload failed:', err);
-      setError('Failed to upload file.');
-    } finally {
-      setIsUploading(false);
-    }
-  }, [selectedChat, sendMediaMessage]);
 
   // Select a chat
   const selectChat = useCallback((chatId: string) => {
@@ -585,8 +531,6 @@ export function useChat(initialChatId?: string) {
     fetchUserChats,
     fetchChatMessages,
     sendMessage,
-    sendMediaMessage,
-    handleFileUpload,
     selectChat,
     setSelectedChat,
     clearError,
