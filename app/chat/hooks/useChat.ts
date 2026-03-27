@@ -402,6 +402,15 @@ export function useChat(initialChatId?: string) {
     setIsSending(true);
     
     try {
+      // Determine optimistic type
+      let optimisticType: 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'FILE' = 'TEXT';
+      if (file) {
+        if (file.type.startsWith('image/')) optimisticType = 'IMAGE';
+        else if (file.type.startsWith('video/')) optimisticType = 'VIDEO';
+        else if (file.type.startsWith('audio/')) optimisticType = 'AUDIO';
+        else optimisticType = 'FILE';
+      }
+
       // Create optimistic message object for immediate UI feedback
       const optimisticMessage: ChatMessage = {
         id: `temp-${Date.now()}`,
@@ -409,7 +418,7 @@ export function useChat(initialChatId?: string) {
         senderId: specialistId,
         sender: 'doctor',
         text: msgText,
-        type: (file ? 'IMAGE' : 'TEXT') as any, // Optimistic guess
+        type: optimisticType as any,
         read: true,
         timestamp: new Date().toISOString(),
       };
@@ -430,12 +439,14 @@ export function useChat(initialChatId?: string) {
         file || undefined // Pass file directly
       );
       
-      const transformedMsg = transformMessage(newMessage, specialistId);
-      
-      // Replace optimistic message with real message from API
-      setMessages(prev => prev.map(m => 
-        m.id === optimisticMessage.id ? transformedMsg : m
-      ));
+      if (newMessage) {
+        const transformedMsg = transformMessage(newMessage, specialistId);
+        
+        // Replace optimistic message with real message from API
+        setMessages(prev => prev.map(m => 
+          m.id === optimisticMessage.id ? transformedMsg : m
+        ));
+      }
       
       setError(null);
     } catch (err) {

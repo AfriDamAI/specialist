@@ -53,27 +53,30 @@ export default function PatientsPage() {
     async function fetchPatientsWithHistory() {
       try {
         /**
-         * 🏛️ Rule #6: Switched from hardcoded URL to apiClient.
-         * Fetches all consultations assigned to the specialist.
+         * 🏛️ Rule #6: Switched from deprecated URL to verified assignment endpoint.
+         * Fetches all consultations assigned to the specialist via appointments/assignments.
          */
-        const response = await apiClient('/consultation');
+        const response = await apiClient('/appointments/assignments/me');
         const data = response?.data || response;
         
         if (Array.isArray(data)) {
           /**
            * 🛡️ Rule #3: Optimized Triage Mapping. 
            * Instead of looping multiple fetch calls (which causes 429 errors), 
-           * we map the existing consultation data into the Directory view.
+           * we map the existing assignment data into the Directory view.
            */
-          const patientList: PatientRecord[] = data.map((patient: any) => ({
-            id: patient.id,
-            name: patient.name || (patient.user ? `${patient.user.firstName} ${patient.user.lastName}` : "Triage Case"),
-            createdAt: patient.createdAt,
-            title: patient.title || 'Clinical Analysis',
-            // Displaying the last description if a full chat sync isn't available
-            lastMessage: patient.description, 
-            lastActivityTime: patient.updatedAt || patient.createdAt
-          }));
+          const patientList: PatientRecord[] = data.map((item: any) => {
+            const user = item.appointment?.user;
+            return {
+              id: item.id,
+              name: user ? `${user.firstName} ${user.lastName}` : (item.name || "Triage Case"),
+              createdAt: item.createdAt,
+              title: item.appointment?.title || item.title || 'Clinical Analysis',
+              // Displaying the clinical notes or last description
+              lastMessage: item.appointment?.notes || item.notes || item.description, 
+              lastActivityTime: item.updatedAt || item.createdAt
+            };
+          });
 
           setPatients(patientList);
         }

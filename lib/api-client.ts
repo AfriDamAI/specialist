@@ -47,15 +47,15 @@ export async function apiClient(endpoint: string, options: FetchOptions = {}) {
    */
   const token = rawToken?.replace(/['"]+/g, '').trim();
 
-  const headers = new Headers(options.headers);
+  const headers: Record<string, string> = { ...options.headers as any };
   const isFormData = options.body instanceof FormData;
   
   if (!isFormData) {
-    headers.set('Content-Type', 'application/json');
+    headers['Content-Type'] = 'application/json';
   }
   
   if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   const config = {

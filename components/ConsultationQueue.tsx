@@ -31,19 +31,22 @@ export default function ConsultationQueue() {
 
     try {
       /**
-       * 🏛️ Rule #6: Verified Backend Path (Singular).
-       * Pulling the clinical manifest from the /consultation endpoint.
+       * 🏛️ Rule #6: Verified Backend Path for Specialists.
+       * Pulling the clinical manifest from the verified assignments endpoint.
        */
-      const response = await apiClient('/consultation');
+      const response = await apiClient('/appointments/assignments/me');
       const sourceData = response.resultData || response.data || response || [];
       
-      const activeCases: Consultation[] = Array.isArray(sourceData) ? sourceData.map((item: any) => ({
-        id: item.id,
-        patientName: item.name || (item.user ? `${item.user.firstName} ${item.user.lastName}` : "Specialist Triage"),
-        status: item.status || 'PENDING',
-        createdAt: new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        urgency: (item.planTier === 'Instant' || item.title?.toLowerCase().includes('urgent') ? 'HIGH' : 'NORMAL') as 'HIGH' | 'NORMAL'
-      })) : [];
+      const activeCases: Consultation[] = Array.isArray(sourceData) ? sourceData.map((item: any) => {
+        const user = item.appointment?.user;
+        return {
+          id: item.id,
+          patientName: user ? `${user.firstName} ${user.lastName}` : (item.name || "Specialist Triage"),
+          status: item.status || 'PENDING',
+          createdAt: new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          urgency: (item.appointment?.planTier === 'Instant' || item.appointment?.title?.toLowerCase().includes('urgent') ? 'HIGH' : 'NORMAL') as 'HIGH' | 'NORMAL'
+        };
+      }) : [];
 
       setConsultations(activeCases);
     } catch (err) {
