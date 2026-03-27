@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import { Message, FileAttachment } from '../types/chat';
 import { PaperClipIcon, DocumentIcon, PhotoIcon, VideoCameraIcon, MusicalNoteIcon, PhoneIcon } from '@heroicons/react/24/outline';
+import ImageModal from '@/components/ImageModal';
 
 interface MessageBubbleProps {
   message: Message;
@@ -28,16 +30,34 @@ function formatFileSize(bytes: number) {
 }
 
 function FileAttachmentPreview({ attachment }: { attachment: FileAttachment }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   if (attachment.type === 'image') {
     return (
-      <div className="mt-2 rounded-lg overflow-hidden relative">
-        <Image
-          src={attachment.url}
-          alt={attachment.name}
-          width={200}
-          height={150}
-          className="max-w-full h-auto max-h-48 object-cover"
+      <div className="mt-2 rounded-lg overflow-hidden relative group">
+        <div 
+          className="cursor-pointer transition-transform active:scale-95 relative"
+          onClick={() => setIsModalOpen(true)}
+        >
+          <Image
+            src={attachment.url}
+            alt={attachment.name}
+            width={200}
+            height={150}
+            className="max-w-full h-auto max-h-48 object-cover rounded-lg"
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+            <PhotoIcon className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        </div>
+
+        <ImageModal 
+          isOpen={isModalOpen} 
+          onClose={() => setIsModalOpen(false)} 
+          imageUrl={attachment.url} 
+          altText={attachment.name} 
         />
+
         <a
           href={attachment.url}
           download={attachment.name}
@@ -46,6 +66,28 @@ function FileAttachmentPreview({ attachment }: { attachment: FileAttachment }) {
           <PaperClipIcon className="w-3 h-3" />
           Download
         </a>
+      </div>
+    );
+  }
+
+  if (attachment.type === 'audio') {
+    return (
+      <div className="mt-2 min-w-[240px] bg-black/20 dark:bg-white/5 p-2 rounded-xl border border-white/10 flex flex-col gap-1">
+        <audio 
+          src={attachment.url} 
+          controls 
+          className="h-8 w-full accent-[#FF7A59]" 
+        />
+        <div className="flex justify-between items-center px-1">
+          <span className="text-[10px] text-white/50 font-bold uppercase tracking-widest">Voice Note</span>
+          <a
+            href={attachment.url}
+            download={attachment.name}
+            className="text-[10px] text-[#FF7A59] hover:underline font-bold uppercase tracking-widest"
+          >
+            Download
+          </a>
+        </div>
       </div>
     );
   }

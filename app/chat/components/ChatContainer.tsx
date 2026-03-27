@@ -26,7 +26,6 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     isJoiningMeet,
     scrollRef,
     sendMessage,
-    handleFileUpload,
     selectChat,
     clearError,
     startSession,
@@ -106,13 +105,10 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     } : undefined,
   }));
 
-  const handleSend = () => {
-    sendMessage();
+  const handleSend = (text: string, file: File | null) => {
+    sendMessage(text, file);
   };
 
-  const handleFileSelect = (file: File) => {
-    handleFileUpload(file);
-  };
 
   if (isLoading && chats.length === 0) {
     return (
@@ -146,7 +142,6 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
         onEndSession={() => selectedChat?.appointmentId && endSession(selectedChat.appointmentId)}
         onStartSession={() => selectedChat?.appointmentId && startSession(selectedChat.appointmentId)}
         onExtendSession={() => selectedChat?.appointmentId && extendSession(selectedChat.appointmentId)}
-        onFileUpload={handleFileSelect}
         onJoinMeet={handleCreateOrJoinMeet}
         hasMeetLink={!!currentMeetLink}
         onViewProfile={() => selectedPatient?.profile && handleViewProfile(selectedPatient.profile, selectedPatient.name)}

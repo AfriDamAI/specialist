@@ -40,16 +40,31 @@ export default function ConsultationsHubPage() {
     async function fetchSessions() {
       try {
         /**
-         * 🏛️ Rule #6: Precision Path - Using apiClient for automatic Token handling
-         * Backend manifest confirms singular '/consultation' for the queue.
+         * 🏛️ Rule #6: Precision Path - Using verified assignment endpoint.
+         * Backend manifest indicates specialists should use '/appointments/assignments/me'.
          */
-        const response = await apiClient('/consultation');
+        const response = await apiClient('/appointments/assignments/me');
         // Unwrapping response safely
         const data = response?.data || response;
         
         if (Array.isArray(data)) {
-          // Rule #5: Priority Triage Sorting (Newest First)
-          const sortedData = [...data].sort((a: any, b: any) => 
+          // Rule #5: Priority Triage Sorting & Mapping
+          const mappedData: Consultation[] = data.map((item: any) => {
+            const user = item.appointment?.user;
+            return {
+              id: item.id,
+              userId: user?.id || item.userId || '',
+              name: user ? `${user.firstName} ${user.lastName}` : (item.name || "Emergency Triage"),
+              email: user?.email || '',
+              phone: user?.phoneNo || '',
+              title: item.appointment?.title || item.title || 'Clinical Analysis Required',
+              description: item.appointment?.notes || item.notes || '',
+              createdAt: item.createdAt,
+              updatedAt: item.updatedAt || item.createdAt
+            };
+          });
+
+          const sortedData = [...mappedData].sort((a, b) => 
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
           setSessions(sortedData);

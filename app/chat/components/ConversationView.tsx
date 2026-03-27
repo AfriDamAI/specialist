@@ -19,11 +19,11 @@ interface ConversationViewProps {
   isUploading?: boolean;
   error?: string | null;
   onInputChange: (value: string) => void;
-  onSend: () => void;
+  onSend: (text: string, file: File | null) => void;
   onEndSession: () => void;
   onStartSession?: () => void;
   onExtendSession?: () => void;
-  onFileUpload: (file: File) => void;
+  onFileUpload?: (file: File) => void; // Keep for legacy if needed, but we use unified onSend
   onJoinMeet: () => void;
   isJoiningMeet?: boolean;
   hasMeetLink?: boolean;
@@ -46,7 +46,6 @@ export default function ConversationView({
   onEndSession,
   onStartSession,
   onExtendSession,
-  onFileUpload,
   onJoinMeet,
   isJoiningMeet,
   hasMeetLink,
@@ -158,7 +157,6 @@ export default function ConversationView({
         value={inputValue}
         onChange={onInputChange}
         onSend={onSend}
-        onFileUpload={onFileUpload}
         disabled={sessionEnded || isSending}
         isUploading={isUploading}
       />

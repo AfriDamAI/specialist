@@ -50,8 +50,11 @@ export default function DashboardPage() {
 
     async function fetchDashboardStats() {
       try {
-        // 🏛️ Rule #6: Real-time Consultation Sync
-        const consultationResponse = await apiClient('/consultation'); 
+        /**
+         * 🏛️ Rule #6: Real-time Consultation Sync
+         * Using the verified assignment endpoint for specialists.
+         */
+        const consultationResponse = await apiClient('/appointments/assignments/me'); 
         const consultations = consultationResponse?.resultData || consultationResponse?.data || consultationResponse || [];
         
         // 🏛️ Rule #6: Real-time Wallet Sync
@@ -69,7 +72,8 @@ export default function DashboardPage() {
           setStats({
             totalPatients: consultations.length,
             portfolioBalance: Number(walletData?.balance) || 0,
-            dailyEarnings: completedCases.length > 0 ? (Number(completedCases[0].price) * 0.7) : 0
+            // Rule #3: Safe unwrapping of price from the nested appointment object
+            dailyEarnings: completedCases.length > 0 ? (Number(completedCases[0].appointment?.price || 0) * 0.7) : 0
           });
         }
 

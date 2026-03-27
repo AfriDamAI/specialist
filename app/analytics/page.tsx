@@ -79,7 +79,7 @@ export default function AnalyticsPage() {
          * Fetches consultation history and wallet balance.
          */
         const [consultationResponse, walletResponse] = await Promise.all([
-          apiClient('/consultation'),
+          apiClient('/appointments/assignments/me'),
           apiClient('/wallets/me')
         ]);
 
@@ -119,13 +119,17 @@ export default function AnalyticsPage() {
     doc.text(`Role: ${specialistRole}`, 14, 35);
     doc.text(`Report Date: ${new Date().toLocaleDateString()}`, 14, 40);
 
-    const tableData = rawCases.map((c: any, i) => [
-      i + 1,
-      c.name || 'Patient',
-      c.planTier || 'Starter',
-      new Date(c.createdAt).toLocaleDateString(),
-      `N${(PAYOUT_MATRIX[(c.planTier || 'Starter') as keyof typeof PAYOUT_MATRIX][roleKey] || 0).toLocaleString()}`
-    ]);
+    const tableData = rawCases.map((item: any, i) => {
+      const user = item.appointment?.user;
+      const tier = item.appointment?.planTier || item.planTier || 'Starter';
+      return [
+        i + 1,
+        user ? `${user.firstName} ${user.lastName}` : (item.name || 'Patient'),
+        tier,
+        new Date(item.createdAt).toLocaleDateString(),
+        `₦${(PAYOUT_MATRIX[tier as keyof typeof PAYOUT_MATRIX][roleKey] || 0).toLocaleString()}`
+      ];
+    });
 
     autoTable(doc, {
       startY: 50,
