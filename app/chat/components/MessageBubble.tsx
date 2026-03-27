@@ -70,6 +70,28 @@ function FileAttachmentPreview({ attachment }: { attachment: FileAttachment }) {
     );
   }
 
+  if (attachment.type === 'audio') {
+    return (
+      <div className="mt-2 min-w-[240px] bg-black/20 dark:bg-white/5 p-2 rounded-xl border border-white/10 flex flex-col gap-1">
+        <audio 
+          src={attachment.url} 
+          controls 
+          className="h-8 w-full accent-[#FF7A59]" 
+        />
+        <div className="flex justify-between items-center px-1">
+          <span className="text-[10px] text-white/50 font-bold uppercase tracking-widest">Voice Note</span>
+          <a
+            href={attachment.url}
+            download={attachment.name}
+            className="text-[10px] text-[#FF7A59] hover:underline font-bold uppercase tracking-widest"
+          >
+            Download
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-2">
       <a

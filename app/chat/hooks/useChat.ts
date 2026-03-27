@@ -431,7 +431,7 @@ export function useChat(initialChatId?: string) {
         selectedChat.id,
         specialistId,
         msgText,
-        'TEXT',
+        optimisticType,
         '', 
         '',
         0,

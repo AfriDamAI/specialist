@@ -152,7 +152,10 @@ export const sendUserChatMessage = async (
     formData.append("chatId", chatId);
     formData.append("senderId", senderId);
     if (message) formData.append("message", message);
-    formData.append("type", type);
+    if (type) formData.append("type", type);
+    if (duration) formData.append("duration", duration.toString());
+    if (mimeType) formData.append("mimeType", mimeType);
+    if (fileSize) formData.append("fileSize", fileSize.toString());
     formData.append("file", file); // Backend expects "file"
     
     const response = await apiClient("/chats/messages", {

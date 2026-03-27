@@ -14,6 +14,8 @@ export default function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number>(0);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     startRecording();
@@ -22,12 +24,16 @@ export default function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) 
       if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
         mediaRecorderRef.current.stop();
       }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
     };
   }, []);
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
@@ -38,16 +44,20 @@ export default function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) 
 
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const actualDuration = (Date.now() - startTimeRef.current) / 1000;
         // Minimum 0.5s recording to avoid accidentally empty notes
-        if (duration > 0.5) {
-          onSend(blob, Math.floor(duration));
+        if (actualDuration > 0.5) {
+          onSend(blob, Math.max(1, Math.floor(actualDuration)));
         } else {
           onCancel();
         }
-        stream.getTracks().forEach(track => track.stop());
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+        }
       };
 
       mediaRecorder.start();
+      startTimeRef.current = Date.now();
       setIsRecording(true);
       
       timerRef.current = setInterval(() => {
