@@ -152,13 +152,6 @@ export function useChat(initialChatId?: string) {
     }
   }, [initialChatId, chats]);
 
-  // Auto-select first chat if none selected
-  useEffect(() => {
-    if (chats.length > 0 && !selectedChat) {
-      setSelectedChat(chats[0]);
-    }
-  }, [chats, selectedChat]);
-
   // Keep ref in sync with state
   useEffect(() => {
     selectedChatRef.current = selectedChat;
