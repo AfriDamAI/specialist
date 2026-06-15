@@ -65,8 +65,8 @@ export default function WalletPage() {
       setIsWithdrawModalOpen(false);
       setWithdrawAmount('');
       fetchWalletData(); // Refresh data
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to submit withdrawal request');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to submit withdrawal request');
     } finally {
       setIsSubmitting(false);
     }
@@ -104,12 +104,11 @@ export default function WalletPage() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FF7A59]"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             
             {/* Balance Card */}
             <div className="lg:col-span-1 space-y-6">
-              <div className="bg-black dark:bg-white rounded-[2.5rem] p-8 text-white dark:text-black shadow-2xl relative overflow-hidden group">
-                <div className="absolute -right-10 -top-10 w-40 h-40 bg-[#FF7A59]/20 rounded-full blur-3xl group-hover:bg-[#FF7A59]/40 transition-all duration-500"></div>
+              <div className="dashboard-card rounded-[2rem] md:rounded-[2.5rem] p-6 sm:p-8 relative overflow-hidden group">
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-8">
                     <div className="w-10 h-10 bg-[#FF7A59] rounded-xl flex items-center justify-center">
@@ -131,14 +130,14 @@ export default function WalletPage() {
 
               {/* Stats Cards */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] p-6 shadow-sm">
+                <div className="dashboard-card rounded-[2rem] p-5 sm:p-6">
                   <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center mb-4">
                     <ArrowUpRightIcon className="w-4 h-4 text-green-500" />
                   </div>
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Total Earned</p>
                   <p className="text-lg font-black text-gray-900 dark:text-white italic">{formatCurrency(wallet?.totalIn || 0)}</p>
                 </div>
-                <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] p-6 shadow-sm">
+                <div className="dashboard-card rounded-[2rem] p-5 sm:p-6">
                   <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center mb-4">
                     <ArrowDownLeftIcon className="w-4 h-4 text-blue-500" />
                   </div>
@@ -150,8 +149,8 @@ export default function WalletPage() {
 
             {/* Transactions Section */}
             <div className="lg:col-span-2">
-              <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2.5rem] shadow-sm overflow-hidden">
-                <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+              <div className="dashboard-card rounded-[2rem] md:rounded-[2.5rem] overflow-hidden">
+                <div className="p-6 md:p-8 border-b border-[var(--dashboard-border)] flex items-center justify-between bg-[var(--dashboard-surface-soft)]">
                   <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase italic tracking-tighter">Transaction History</h3>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -159,17 +158,17 @@ export default function WalletPage() {
                   </div>
                 </div>
 
-                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                <div className="divide-y divide-[var(--dashboard-border)]">
                   {transactions.length === 0 ? (
                     <div className="p-12 text-center">
-                      <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <div className="w-16 h-16 dashboard-icon-tile rounded-2xl flex items-center justify-center mx-auto mb-4">
                         <ClockIcon className="w-8 h-8 text-gray-300 dark:text-gray-600" />
                       </div>
                       <p className="text-sm font-black text-gray-400 uppercase tracking-widest italic">No transactions found</p>
                     </div>
                   ) : (
                     transactions.map((tx) => (
-                      <div key={tx.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex items-center justify-between group">
+                      <div key={tx.id} className="p-5 md:p-6 hover:bg-[var(--dashboard-surface-soft)] transition-colors flex items-center justify-between group">
                         <div className="flex items-center gap-4">
                           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
                             tx.type === 'CREDIT' ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'
@@ -208,7 +207,7 @@ export default function WalletPage() {
       {/* Withdrawal Modal */}
       {isWithdrawModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-gray-900 rounded-[3rem] shadow-2xl w-full max-w-md p-8 animate-in zoom-in duration-300">
+          <div className="dashboard-card rounded-[2rem] md:rounded-[3rem] w-full max-w-md p-6 sm:p-8 animate-in zoom-in duration-300">
             <div className="text-center mb-8">
               <div className="w-20 h-20 bg-[#FF7A59]/10 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
                 <CurrencyDollarIcon className="w-10 h-10 text-[#FF7A59]" />
@@ -235,7 +234,7 @@ export default function WalletPage() {
                     step="0.01"
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
-                    className="w-full bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-800 rounded-2xl py-4 pl-12 pr-6 text-lg font-black text-gray-900 dark:text-white italic focus:border-[#FF7A59] focus:outline-none transition-all"
+                    className="w-full dashboard-card-muted rounded-2xl py-4 pl-12 pr-6 text-lg font-black text-gray-900 dark:text-white italic focus:border-[#FF7A59] focus:outline-none transition-all"
                     placeholder="0.00"
                     required
                   />
@@ -258,17 +257,17 @@ export default function WalletPage() {
                 <button
                   type="button"
                   onClick={() => setIsWithdrawModalOpen(false)}
-                  className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+                  className="flex-1 dashboard-icon-tile hover:bg-[var(--dashboard-surface-soft)] text-gray-600 dark:text-gray-300 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-[2] bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-[2] bg-[#FF7A59] hover:bg-[#ff8a6f] text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
-                    <div className="w-5 h-5 border-2 border-[#FF7A59] border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-5 h-5 border-2 border-white/70 border-t-transparent rounded-full animate-spin"></div>
                   ) : (
                     'Request Payout'
                   )}

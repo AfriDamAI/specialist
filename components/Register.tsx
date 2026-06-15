@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, ChangeEvent } from "react";
+import { useState, ChangeEvent, InputHTMLAttributes } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { toast } from "react-toastify";
@@ -134,7 +134,7 @@ export default function RegistrationForm() {
         const error = await response.json();
         toast.error(error.message || "Registration failed.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Could not connect to local server.");
     } finally {
       setLoading(false);
@@ -142,7 +142,7 @@ export default function RegistrationForm() {
   };
 
   return (
-    <div className="bg-white p-2 italic">
+    <div className="bg-white dark:bg-gray-950 p-2 italic transition-colors">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Avatar Section */}
         <div className="flex flex-col items-center mb-6">
@@ -150,12 +150,12 @@ export default function RegistrationForm() {
             {formData.photoPreview ? (
               <Image src={formData.photoPreview} alt="Preview" fill className="rounded-full object-cover border-4 border-[#FF7A59]" />
             ) : (
-              <div className="w-24 h-24 rounded-full bg-gray-50 flex items-center justify-center border-2 border-dashed border-gray-200 group-hover:border-[#FF7A59] transition-colors">
+              <div className="w-24 h-24 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-700 group-hover:border-[#FF7A59] transition-colors">
                 <span className="text-3xl grayscale opacity-30">👤</span>
               </div>
             )}
           </div>
-          <label className="cursor-pointer bg-black text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-[#FF7A59] transition-all active:scale-95 shadow-lg">
+          <label className="cursor-pointer bg-black dark:bg-white text-white dark:text-black px-6 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-[#FF7A59] hover:text-white transition-all active:scale-95 shadow-lg">
             {formData.photo ? "Change Portrait" : "Upload Avatar"}
             <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
           </label>
@@ -176,7 +176,7 @@ export default function RegistrationForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">Sex</label>
-            <select name="gender" value={formData.gender} onChange={handleInputChange} className="w-full px-6 py-4 rounded-2xl border-none bg-gray-50 focus:ring-2 focus:ring-[#FF7A59] outline-none transition font-bold text-sm">
+            <select name="gender" value={formData.gender} onChange={handleInputChange} className="w-full px-6 py-4 rounded-2xl border-none bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#FF7A59] outline-none transition font-bold text-sm">
               <option value="">Select</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
@@ -184,7 +184,7 @@ export default function RegistrationForm() {
           </div>
           <div>
             <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">Specialist Type</label>
-            <select name="specialization" value={formData.specialization} onChange={handleInputChange} className="w-full px-6 py-4 rounded-2xl border-none bg-gray-50 focus:ring-2 focus:ring-[#FF7A59] outline-none transition font-bold text-sm">
+            <select name="specialization" value={formData.specialization} onChange={handleInputChange} className="w-full px-6 py-4 rounded-2xl border-none bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#FF7A59] outline-none transition font-bold text-sm">
               <option value="SKINCARE_CONSULTANT">Skin Care Consultant</option>
               <option value="DERMATOLOGIST">Dermatologist</option>
               <option value="MEDICAL_OFFICER">Medical Officer</option>
@@ -212,7 +212,7 @@ export default function RegistrationForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] bg-black text-white hover:bg-[#FF7A59] transition-all shadow-xl active:scale-[0.98] disabled:opacity-50"
+          className="w-full py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] bg-black dark:bg-white text-white dark:text-black hover:bg-[#FF7A59] hover:text-white transition-all shadow-xl active:scale-[0.98] disabled:opacity-50"
         >
           {loading ? "Registering Specialist..." : "Join Workspace"}
         </button>
@@ -222,11 +222,15 @@ export default function RegistrationForm() {
 }
 
 // 🛡️ Premium UI Atoms
-function InputField({ label, ...props }: any) {
+type InputFieldProps = InputHTMLAttributes<HTMLInputElement> & {
+  label: string;
+};
+
+function InputField({ label, ...props }: InputFieldProps) {
   return (
     <div>
       <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">{label}</label>
-      <input {...props} className="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 dark:border-gray-800 focus:border-[#FF7A59] focus:outline-none transition bg-white dark:bg-gray-800 text-black dark:text-white font-bold italic shadow-sm placeholder:text-gray-200 dark:placeholder:text-gray-600" />
+      <input {...props} className="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 dark:border-gray-800 focus:border-[#FF7A59] focus:outline-none transition bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-bold italic shadow-sm placeholder:text-gray-300 dark:placeholder:text-gray-600" />
     </div>
   );
 }
