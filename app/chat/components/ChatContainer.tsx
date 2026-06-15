@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat, ChatMessage } from '../hooks/useChat';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PatientList from './PatientList';
 import ConversationView from './ConversationView';
 import { Patient, PatientProfile } from '../types/chat';
@@ -27,6 +27,7 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     scrollRef,
     sendMessage,
     selectChat,
+    setSelectedChat, // <-- We pull this directly from your hook now
     clearError,
     startSession,
     endSession,
@@ -35,10 +36,17 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     handleCreateOrJoinMeet,
   } = useChat(chatId);
 
-  // Profile Modal State
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<PatientProfile | undefined>(undefined);
   const [selectedPatientName, setSelectedPatientName] = useState('');
+
+  // Notify the parent page layout whenever mobile chat view toggles
+  useEffect(() => {
+    const event = new CustomEvent('mobile-chat-view-changed', {
+      detail: { hasActiveChat: !!selectedChat }
+    });
+    window.dispatchEvent(event);
+  }, [selectedChat]);
 
   const handleViewProfile = (profile: PatientProfile, name: string) => {
     setSelectedProfile(profile);
@@ -46,10 +54,8 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     setIsProfileModalOpen(true);
   };
 
-  // Transform chat list item to patient for the UI - ensure unique patients by ID
   const patients: Patient[] = Array.from(
     chats.reduce((acc, chat) => {
-      // If we haven't seen this participant, add them as a patient entry
       if (!acc.has(chat.participantId)) {
         acc.set(chat.participantId, {
           id: chat.participantId,
@@ -63,7 +69,6 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
           profile: chat.profile,
         });
       } else {
-        // If participant already exists (multiple chats), aggregate unread counts
         const existing = acc.get(chat.participantId)!;
         existing.unreadCount += chat.unreadCount;
         if (chat.unreadCount > 0) existing.status = 'online';
@@ -72,7 +77,6 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     }, new Map<string, Patient>()).values()
   );
 
-  // Transform selected chat to patient
   const selectedPatient = selectedChat ? {
     id: selectedChat.participantId,
     name: selectedChat.participantName,
@@ -86,7 +90,6 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     profile: selectedChat.profile,
   } : null;
 
-  // Transform messages to UI format
   const uiMessages: import('../types/chat').Message[] = messages.map((msg: ChatMessage) => ({
     id: msg.id,
     sender: msg.sender,
@@ -105,14 +108,9 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     } : undefined,
   }));
 
-  const handleSend = (text: string, file: File | null) => {
-    sendMessage(text, file);
-  };
-
-
   if (isLoading && chats.length === 0) {
     return (
-      <div className="flex h-[calc(100vh-11rem)] bg-white dark:bg-gray-950 rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm">
+      <div className="flex h-full md:h-[calc(100vh-11rem)] bg-white dark:bg-gray-950 md:rounded-3xl overflow-hidden md:border border-gray-100 dark:border-gray-800 shadow-sm">
         <div className="flex items-center justify-center w-full">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF7A59]"></div>
         </div>
@@ -121,37 +119,51 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
   }
 
   return (
-    <div className="flex h-[calc(100vh-11rem)] bg-white dark:bg-gray-950 rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm">
-      <PatientList
-        patients={patients}
-        selectedPatientId={selectedChat?.participantId || null}
-        onSelectPatient={(patientId) => {
-          const chat = chats.find(c => c.participantId === patientId);
-          if (chat) selectChat(chat.id);
-        }}
-      />
-      <ConversationView
-        patient={selectedPatient}
-        messages={uiMessages}
-        inputValue={inputValue}
-        sessionEnded={false}
-        isLoading={isLoading}
-        isConnected={isConnected}
-        onInputChange={setInputValue}
-        onSend={handleSend}
-        onEndSession={() => selectedChat?.appointmentId && endSession(selectedChat.appointmentId)}
-        onStartSession={() => selectedChat?.appointmentId && startSession(selectedChat.appointmentId)}
-        onExtendSession={() => selectedChat?.appointmentId && extendSession(selectedChat.appointmentId)}
-        onJoinMeet={handleCreateOrJoinMeet}
-        hasMeetLink={!!currentMeetLink}
-        onViewProfile={() => selectedPatient?.profile && handleViewProfile(selectedPatient.profile, selectedPatient.name)}
-        isJoiningMeet={isJoiningMeet}
-        isSending={isSending}
-        isUploading={isUploading}
-        error={error}
-        onClearError={clearError}
-        chatId={selectedChat?.id}
-      />
+    <div className="flex h-full md:h-[calc(100vh-11rem)] bg-white dark:bg-gray-950 md:rounded-3xl overflow-hidden md:border border-gray-100 dark:border-gray-800 shadow-sm relative">
+      
+      {/* WhatsApp Patient List */}
+      <div className={`h-full w-full md:w-80 lg:w-96 shrink-0 transition-all ${
+        selectedChat ? 'hidden md:block' : 'block'
+      }`}>
+        <PatientList
+          patients={patients}
+          selectedPatientId={selectedChat?.participantId || null}
+          onSelectPatient={(patientId) => {
+            const chat = chats.find(c => c.participantId === patientId);
+            if (chat) selectChat(chat.id);
+          }}
+        />
+      </div>
+
+      {/* WhatsApp Active Chat View */}
+      <div className={`h-full w-full flex-1 transition-all ${
+        selectedChat ? 'block' : 'hidden md:block'
+      }`}>
+        <ConversationView
+          patient={selectedPatient}
+          messages={uiMessages}
+          inputValue={inputValue}
+          sessionEnded={false}
+          isLoading={isLoading}
+          isConnected={isConnected}
+          onInputChange={setInputValue}
+          onSend={(text, file) => sendMessage(text, file)}
+          onEndSession={() => selectedChat?.appointmentId && endSession(selectedChat.appointmentId)}
+          onStartSession={() => selectedChat?.appointmentId && startSession(selectedChat.appointmentId)}
+          onExtendSession={() => selectedChat?.appointmentId && extendSession(selectedChat.appointmentId)}
+          onJoinMeet={handleCreateOrJoinMeet}
+          meetLink={currentMeetLink}
+          hasMeetLink={!!currentMeetLink}
+          onViewProfile={() => selectedPatient?.profile && handleViewProfile(selectedPatient.profile, selectedPatient.name)}
+          isJoiningMeet={isJoiningMeet}
+          isSending={isSending}
+          isUploading={isUploading}
+          error={error}
+          onClearError={clearError}
+          chatId={selectedChat?.id}
+          onBack={() => setSelectedChat(null)} // <-- FIXED: Directly sets it to null to successfully close the chat
+        />
+      </div>
       
       <PatientProfileModal
         isOpen={isProfileModalOpen}
