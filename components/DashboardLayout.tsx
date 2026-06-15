@@ -14,12 +14,12 @@ import {
   DocumentIcon,
   Cog6ToothIcon,
   ArrowLeftOnRectangleIcon,
-  ArrowRightOnRectangleIcon,
   MoonIcon,
   SunIcon,
   PresentationChartLineIcon,
-  UserIcon,
-  CreditCardIcon
+  CreditCardIcon,
+  Bars3Icon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import { useTheme } from '@/context/ThemeContext';
 import { API_URL } from '@/lib/config';
@@ -35,7 +35,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { isDarkMode, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  
+  // State to handle manual desktop sidebar override toggle
+  const [isCollapsed, setIsCollapsed] = useState(true);
+
   const [user, setUser] = useState({
     name: 'Specialist',
     role: 'Medical Personnel',
@@ -48,7 +55,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const savedRole = localStorage.getItem('specialistRole');
     const rawToken = localStorage.getItem('token');
 
-    // 🛡️ Rule #5: Direct Authentication Guard
     if (!rawToken) {
       router.push('/login');
       return;
@@ -66,7 +72,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       const cleanToken = rawToken.replace(/['"]+/g, '').trim();
 
       try {
-        // 🏛️ Rule #6: Identity Handshake via verified /specialists/me
         const response = await fetch(`${API_URL}/specialists/me`, {
           headers: {
             'Authorization': `Bearer ${cleanToken}`,
@@ -76,11 +81,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         if (response.ok) {
           const json = await response.json();
-
-          /**
-           * 🛡️ FIX: Precision Data Mapping (Rule #3)
-           * Backend uses 'resultData' wrapper. We extract firstName and lastName.
-           */
           const profile = json.resultData;
 
           if (profile) {
@@ -89,16 +89,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
             setUser({ name: fullName, role: currentRole });
 
-            // 🛡️ Rule #3: Syncing storage for cross-page persistence
             localStorage.setItem('specialistName', fullName);
             localStorage.setItem('specialistRole', currentRole);
             localStorage.setItem('userId', profile.id);
             localStorage.setItem('specialistId', profile.id);
-
-            /**
-             * 🛡️ Rule #3: Forced Global Unlock
-             * Even if DB says PENDING, we force verified state to bypass the loop.
-             */
             localStorage.setItem('specialistStatus', 'verified');
           }
         }
@@ -113,6 +107,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowProfileDropdown(false);
       }
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+        setIsMobileMenuOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -121,9 +118,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     };
   }, []);
 
-  /**
-   * 🛡️ Rule #3: Academy (training) removed per instruction to kill the loop.
-   */
+  // Close mobile navigation drawer instantly on route transition
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
   const menuItems = [
     { id: 'dashboard', icon: <ChartBarSquareIcon className="w-6 h-6" />, label: 'Dashboard', href: '/dashboard' },
     { id: 'appointments', icon: <CalendarIcon className="w-6 h-6" />, label: 'Appointments', href: '/appointments' },
@@ -162,17 +161,34 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors selection:bg-[#FF7A59]/30 text-left italic">
 
-      {/* Topbar: Rule #4 Balanced Laptop View */}
+      {/* Topbar */}
       <div className="fixed top-0 left-0 right-0 h-16 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 z-[60]">
         <div className="flex items-center justify-between h-full px-4 md:px-12 max-w-7xl mx-auto">
-          <Link href="/dashboard" className="flex items-center gap-2 group">
-            <div className="w-9 h-9 bg-black/10 dark:bg-white/10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 shadow-lg">
-              <Image src="/logo.png" alt="AfriDam AI logo" width={26} height={26} className="object-contain" />
-            </div>
-            <span className="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">
-              Afridam<span className="text-[#FF7A59]">AI</span>
-            </span>
-          </Link>
+          
+          {/* Brand Logo & Hamburger Control Container */}
+          <div className="flex items-center gap-3">
+            {/* Premium Hamburger Toggle Menu Button for Mobile Screens */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="flex md:hidden items-center justify-center p-2 rounded-xl text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all active:scale-90"
+              aria-label="Toggle structural layout navigation menu"
+            >
+              {isMobileMenuOpen ? (
+                <XMarkIcon className="w-6 h-6 text-gray-900 dark:text-white" />
+              ) : (
+                <Bars3Icon className="w-6 h-6 text-gray-900 dark:text-white" />
+              )}
+            </button>
+
+            <Link href="/dashboard" className="flex items-center gap-2 group">
+              <div className="w-9 h-9 bg-black/10 dark:bg-white/10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 shadow-lg">
+                <Image src="/logo.png" alt="AfriDam AI logo" width={26} height={26} className="object-contain" />
+              </div>
+              <span className="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">
+                Afridam<span className="text-[#FF7A59]">AI</span>
+              </span>
+            </Link>
+          </div>
 
           <div className="flex items-center gap-4 md:gap-6">
             <div className="hidden lg:flex relative">
@@ -206,7 +222,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </div>
               </button>
 
-              {/* Profile Dropdown */}
               {showProfileDropdown && (
                 <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 py-2 z-[80] animate-in fade-in zoom-in duration-200 origin-top-right">
                   <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-800 md:hidden">
@@ -240,55 +255,139 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </div>
 
-      {/* Sidebar: Laptop Persistent View */}
-      <aside className="hidden md:flex fixed top-16 left-0 bottom-0 w-64 bg-white dark:bg-gray-950 border-r border-gray-50 dark:border-gray-800 flex-col p-6 z-50">
-        <nav className="flex-1 space-y-1 overflow-y-auto pt-4">
+      {/* 📱 Modern Floating Mobile Side Navigation Drawer Drawer */}
+      <div 
+        className={`md:hidden fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[55] transition-opacity duration-300 ${
+          isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <aside
+          ref={mobileMenuRef}
+          className={`fixed top-16 left-0 bottom-0 w-[270px] bg-white dark:bg-gray-950 flex flex-col p-5 shadow-2xl transition-transform duration-300 ease-out border-r border-gray-50 dark:border-gray-900 ${
+            isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          {/* Mobile Identity Card */}
+          <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-black font-black text-sm uppercase">
+              {user.name.charAt(0)}
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tighter truncate">{user.name}</p>
+              <p className="text-[9px] font-black text-[#FF7A59] uppercase tracking-widest truncate mt-0.5">{user.role}</p>
+            </div>
+          </div>
+
+          {/* Nav list */}
+          <nav 
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            className="flex-1 space-y-1.5 overflow-y-auto [&::-webkit-scrollbar]:hidden"
+          >
+            {menuItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link 
+                  key={item.id} 
+                  href={item.href} 
+                  className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all whitespace-nowrap ${
+                    isActive 
+                      ? 'bg-black dark:bg-white text-white dark:text-black shadow-xl' 
+                      : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <div className={isActive ? 'text-inherit' : 'text-gray-400'}>
+                    {item.icon}
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.15em]">
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Bottom Logout Action */}
+          <div className="pt-4 border-t border-gray-50 dark:border-gray-800">
+            <button 
+              onClick={handleLogout} 
+              className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-black text-[10px] uppercase tracking-widest"
+            >
+              <ArrowLeftOnRectangleIcon className="w-5 h-5 shrink-0" />
+              <span>Logout</span>
+            </button>
+          </div>
+        </aside>
+      </div>
+
+      {/* 🖥️ Desktop Setup: Instagram-Style Sidebar */}
+      <aside 
+        className={`hidden md:flex fixed top-16 left-0 bottom-0 bg-white dark:bg-gray-950 flex-col pt-6 px-4 pb-4 z-50 transition-all duration-300 ease-in-out group border-none ${
+          isCollapsed ? 'w-20 hover:w-64' : 'w-64'
+        }`}
+      >
+        <nav 
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden"
+        >
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
             return (
-              <Link key={item.id} href={item.href} className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ${isActive ? 'bg-black dark:bg-white text-white dark:text-black shadow-xl' : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-white'}`}>
-                <div className={`transition-transform group-hover:scale-110 ${isActive ? 'text-inherit' : 'text-gray-400'}`}>
+              <Link 
+                key={item.id} 
+                href={item.href} 
+                className={`flex items-center rounded-2xl transition-all group/item whitespace-nowrap h-12 ${
+                  isCollapsed ? 'justify-center group-hover:justify-start px-3' : 'justify-start px-4'
+                } ${
+                  isActive 
+                    ? 'bg-black dark:bg-white text-white dark:text-black shadow-xl' 
+                    : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                <div className={`shrink-0 flex items-center justify-center transition-transform group-hover/item:scale-110 ${
+                  isCollapsed ? 'w-6 h-6 group-hover:mr-4' : 'w-6 h-6 mr-4'
+                } ${isActive ? 'text-inherit' : 'text-gray-400'}`}>
                   {item.icon}
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-[0.15em] italic">{item.label}</span>
+                
+                <span 
+                  className={`text-[10px] font-black uppercase tracking-[0.15em] italic transition-all duration-300 truncate ${
+                    isCollapsed ? 'opacity-0 w-0 pointer-events-none group-hover:opacity-100 group-hover:w-auto' : 'opacity-100 w-auto'
+                  }`}
+                >
+                  {item.label}
+                </span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="pt-6 border-t border-gray-50 dark:border-gray-800">
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-black text-[10px] uppercase tracking-widest italic">
-            <ArrowLeftOnRectangleIcon className="w-5 h-5" />
-            Logout
+        <div className="pt-4 border-t border-gray-50 dark:border-gray-800">
+          <button 
+            onClick={handleLogout} 
+            className={`w-full flex items-center rounded-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-black text-[10px] uppercase tracking-widest italic whitespace-nowrap h-12 ${
+              isCollapsed ? 'justify-center group-hover:justify-start px-3' : 'justify-start px-4'
+            }`}
+          >
+            <div className={`shrink-0 flex items-center justify-center ${isCollapsed ? 'w-6 h-6 group-hover:mr-4' : 'w-6 h-6 mr-4'}`}>
+              <ArrowLeftOnRectangleIcon className="w-6 h-6" />
+            </div>
+            <span 
+              className={`transition-all duration-300 truncate ${
+                isCollapsed ? 'opacity-0 w-0 pointer-events-none group-hover:opacity-100 group-hover:w-auto' : 'opacity-100 w-auto'
+              }`}
+            >
+              Logout
+            </span>
           </button>
         </div>
       </aside>
 
-      {/* Mobile Nav: Rule #4 Balanced view for small screens */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 px-6 py-4 flex items-center justify-between z-50 rounded-t-[2.5rem] shadow-xl">
-        {menuItems.filter(i => ['dashboard', 'chat', 'consultation', 'analytics', 'settings'].includes(i.id)).map((item) => {
-          const isActive = pathname === item.href;
-          if (item.id === 'consultation') {
-            return (
-              <Link key={item.id} href={item.href} className="w-14 h-14 bg-[#FF7A59] rounded-2xl flex items-center justify-center -mt-14 shadow-2xl border-4 border-white dark:border-gray-950 transition-transform active:scale-90">
-                <ChatBubbleLeftRightIcon className="w-7 h-7 text-white" />
-              </Link>
-            );
-          }
-          return (
-            <Link key={item.id} href={item.href} className="flex flex-col items-center gap-1">
-              <div className={isActive ? 'text-black dark:text-white' : 'text-gray-300 dark:text-gray-500'}>
-                {item.icon}
-              </div>
-              <span className={`text-[8px] font-black uppercase tracking-tighter ${isActive ? 'text-black dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}>
-                {item.label}
-              </span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <main className="pt-16 md:pl-64 min-h-screen relative z-10">
+      {/* Main Content Area */}
+      <main 
+        className={`pt-16 min-h-screen relative z-10 transition-all duration-300 ease-in-out ${
+          isCollapsed ? 'md:pl-20' : 'md:pl-64'
+        }`}
+      >
         <div className="p-4 md:p-12 pb-28 md:pb-12 max-w-7xl mx-auto">
           {children}
         </div>
