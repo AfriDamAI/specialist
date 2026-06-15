@@ -3,6 +3,14 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --dashboard-surface: #ffffff;
+  --dashboard-surface-muted: #f9fafb;
+  --dashboard-surface-soft: rgba(249, 250, 251, 0.7);
+  --dashboard-border: #f3f4f6;
+  --dashboard-text: #111827;
+  --dashboard-text-muted: #6b7280;
+  --dashboard-icon-tile: #f9fafb;
+  --dashboard-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
 }
 
 @theme inline {
@@ -18,6 +26,14 @@
 .dark {
   --background: #0a0a0a;
   --foreground: #ededed;
+  --dashboard-surface: #030712;
+  --dashboard-surface-muted: #111827;
+  --dashboard-surface-soft: rgba(17, 24, 39, 0.45);
+  --dashboard-border: #1f2937;
+  --dashboard-text: #f9fafb;
+  --dashboard-text-muted: #9ca3af;
+  --dashboard-icon-tile: #111827;
+  --dashboard-shadow: none;
 }
 
 body {
@@ -28,4 +44,21 @@ body {
 
 .mirror {
   transform: scaleX(-1);
+}
+
+.dashboard-card {
+  background: var(--dashboard-surface);
+  border: 1px solid var(--dashboard-border);
+  box-shadow: var(--dashboard-shadow);
+  color: var(--dashboard-text);
+}
+
+.dashboard-card-muted {
+  background: var(--dashboard-surface-soft);
+  border: 1px solid var(--dashboard-border);
+  color: var(--dashboard-text);
+}
+
+.dashboard-icon-tile {
+  background: var(--dashboard-icon-tile);
 }

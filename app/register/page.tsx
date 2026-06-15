@@ -22,7 +22,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col md:flex-row italic transition-colors">
       
       {/* 🏛️ Left Side: Brand Context (Rule #4: Hidden on small screens) */}
-      <div className="hidden md:flex md:w-1/3 bg-black p-12 flex-col justify-between text-white relative overflow-hidden">
+      <div className="hidden md:flex md:w-1/3 bg-gray-950 dark:bg-black p-12 flex-col justify-between text-white relative overflow-hidden">
         <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-[#FF7A59] rounded-full blur-[120px] opacity-20"></div>
 
         <div className="relative z-10">
@@ -41,7 +41,7 @@ export default function RegisterPage() {
             Excellence.
           </h2>
           <p className="text-gray-400 font-medium text-lg max-w-xs not-italic">
-            Join Africa's premier network of specialists using AI to transform skin health.
+            Join Africa&apos;s premier network of specialists using AI to transform skin health.
           </p>
         </div>
 
@@ -69,7 +69,7 @@ export default function RegisterPage() {
             </Suspense>
           </div>
 
-          <p className="text-center text-sm text-gray-500 font-medium not-italic">
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400 font-medium not-italic transition-colors">
             Already registered?{' '}
             <Link href="/login" className="text-[#FF7A59] font-black hover:underline italic">
               Sign In

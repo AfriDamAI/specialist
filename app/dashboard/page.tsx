@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ConsultationQueue from '@/components/ConsultationQueue';
 import { apiClient } from '@/lib/api-client'; // 🏛️ Rule #6: Centralized Handshake
@@ -14,6 +14,22 @@ import {
   ArrowDownLeftIcon
 } from '@heroicons/react/24/solid';
 
+interface DashboardAssignment {
+  status?: string;
+  appointment?: {
+    price?: number | string;
+  };
+}
+
+interface WalletTransaction {
+  id: string;
+  type?: string;
+  description?: string;
+  createdAt: string | number | Date;
+  amount: number;
+  relatedEntityType?: string;
+}
+
 export default function DashboardPage() {
   const [userName, setUserName] = useState('Specialist');
   const [userRole, setUserRole] = useState('Medical Personnel');
@@ -22,9 +38,8 @@ export default function DashboardPage() {
     portfolioBalance: 0,
     totalPatients: 0,
   });
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
 
   useEffect(() => {
     async function fetchSpecialistProfile() {
@@ -43,7 +58,7 @@ export default function DashboardPage() {
           localStorage.setItem('specialistRole', data.specialization || '');
           localStorage.setItem('specialistStatus', 'verified'); 
         }
-      } catch (error) {
+      } catch {
         console.warn("👤 Profile Sync: Using cached identity.");
       }
     }
@@ -67,7 +82,7 @@ export default function DashboardPage() {
         const transactionData = transactionResponse?.resultData || transactionResponse?.data || transactionResponse || [];
 
         if (Array.isArray(consultations)) {
-          const completedCases = consultations.filter((c: any) => c.status === 'COMPLETED');
+          const completedCases = (consultations as DashboardAssignment[]).filter((c) => c.status === 'COMPLETED');
           
           setStats({
             totalPatients: consultations.length,
@@ -80,7 +95,7 @@ export default function DashboardPage() {
         if (Array.isArray(transactionData)) {
           setTransactions(transactionData);
         }
-      } catch (error) {
+      } catch {
         console.warn("📊 Stats Sync: System idling.");
       }
     }
@@ -117,33 +132,29 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Grid: Rule #4 Laptop Balanced View */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <button onClick={() => setIsModalOpen(true)} className="text-left w-full transition-all">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+          <button onClick={() => setIsModalOpen(true)} className="text-left w-full h-full transition-all">
             <StatCard 
               icon={<BanknotesIcon className="w-7 h-7" />} 
               label="Earnings today" 
               value={`₦${stats.dailyEarnings.toLocaleString()}`} 
-              color="bg-black text-white dark:bg-white dark:text-black" 
-              isDark 
             />
           </button>
           <StatCard 
             icon={<WalletIcon className="w-7 h-7" />} 
             label="Portfolio balance" 
             value={`₦${stats.portfolioBalance.toLocaleString()}`} 
-            color="bg-white dark:bg-gray-950" 
           />
           <StatCard 
             icon={<UsersIcon className="w-7 h-7" />} 
             label="Clinical cases" 
             value={stats.totalPatients.toString()} 
-            color="bg-white dark:bg-gray-950" 
           />
         </div>
 
         {/* Active Patient List: World-Class Container */}
-        <div className="bg-white dark:bg-gray-950 rounded-[3.5rem] border border-gray-100 dark:border-gray-800 shadow-2xl overflow-hidden transition-all">
-          <div className="px-8 md:px-12 py-10 border-b border-gray-50 dark:border-gray-800 flex items-center justify-between bg-gray-50/30 dark:bg-gray-900/20">
+        <div className="dashboard-card rounded-4xl md:rounded-[3.5rem] overflow-hidden transition-all">
+          <div className="px-6 md:px-12 py-8 md:py-10 border-b border-(--dashboard-border) flex items-center justify-between bg-(--dashboard-surface-soft)">
             <div>
               <h2 className="text-2xl font-black text-black dark:text-white tracking-tighter italic">Clinical Queue</h2>
               <p className="text-xs font-bold text-gray-400 mt-1 tracking-tight italic">
@@ -151,22 +162,22 @@ export default function DashboardPage() {
               </p>
             </div>
           </div>
-          <div className="p-6 md:p-12 min-h-[400px]">
+          <div className="p-4 sm:p-6 md:p-12 min-h-100">
             <ConsultationQueue />
           </div>
         </div>
 
         {/* Transaction History Modal */}
         {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsModalOpen(false)}></div>
-            <div className="bg-white dark:bg-gray-900 w-full max-w-2xl max-h-[80vh] overflow-hidden rounded-[3.5rem] relative z-10 shadow-2xl border border-gray-100 dark:border-gray-800 animate-in zoom-in duration-300 flex flex-col">
-              <div className="p-10 border-b border-gray-50 dark:border-gray-800 flex items-center justify-between">
+            <div className="dashboard-card w-full max-w-2xl max-h-[80vh] overflow-hidden rounded-4xl md:rounded-[3.5rem] relative z-10 animate-in zoom-in duration-300 flex flex-col">
+              <div className="p-6 md:p-10 border-b border-(--dashboard-border) flex items-center justify-between">
                 <div>
                   <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Transaction <span className="text-[#FF7A59]">History</span></h2>
                   <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">Real-time ledger sync</p>
                 </div>
-                <button onClick={() => setIsModalOpen(false)} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl text-gray-400 hover:text-[#FF7A59] transition-colors">
+                <button onClick={() => setIsModalOpen(false)} className="p-4 dashboard-icon-tile rounded-2xl text-gray-400 hover:text-[#FF7A59] transition-colors">
                   <XMarkIcon className="w-6 h-6" />
                 </button>
               </div>
@@ -174,15 +185,15 @@ export default function DashboardPage() {
               <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-4">
                 {transactions.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="w-20 h-20 bg-gray-50 dark:bg-gray-800 rounded-[2rem] flex items-center justify-center mb-6">
+                    <div className="w-20 h-20 dashboard-icon-tile rounded-4xl flex items-center justify-center mb-6">
                       <BanknotesIcon className="w-10 h-10 text-gray-200" />
                     </div>
                     <h3 className="text-xl font-black text-black dark:text-white italic">No transactions found</h3>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">Your ledger is currently empty</p>
                   </div>
                 ) : (
-                  transactions.map((tx: any) => (
-                    <div key={tx.id} className="flex items-center justify-between p-6 bg-gray-50/50 dark:bg-gray-800/30 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 hover:border-[#FF7A59]/30 transition-all group">
+                  transactions.map((tx) => (
+                    <div key={tx.id} className="flex items-center justify-between p-5 md:p-6 dashboard-card-muted rounded-4xl md:rounded-[2.5rem] hover:border-[#FF7A59]/30 transition-all group">
                       <div className="flex items-center gap-5">
                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
                            tx.type === 'CREDIT' ? 'bg-green-50 text-green-500' : 'bg-red-50 text-red-500'
@@ -209,7 +220,7 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <div className="p-8 border-t border-gray-50 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/50">
+              <div className="p-6 md:p-8 border-t border-(--dashboard-border) bg-(--dashboard-surface-soft)">
                 <p className="text-[9px] font-black text-gray-400 uppercase text-center tracking-[0.3em] italic">
                   End of Transaction Log <span className="mx-2">•</span> Secure Ledger Node
                 </p>
@@ -223,11 +234,11 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({ icon, label, value, color, isDark = false }: { icon: any, label: string, value: string, color: string, isDark?: boolean }) {
+function StatCard({ icon, label, value }: { icon: ReactNode, label: string, value: string }) {
   return (
-    <div className={`${color} rounded-[3.5rem] p-10 shadow-xl border ${isDark ? 'border-transparent' : 'border-gray-100 dark:border-gray-800 shadow-gray-200/50 dark:shadow-none'} flex flex-col justify-between transition-all hover:-translate-y-2`}>
-      <div className={`${isDark ? 'bg-white/10' : 'bg-gray-50 dark:bg-gray-900'} w-14 h-14 rounded-2xl flex items-center justify-center mb-12`}>
-        <div className={isDark ? 'text-white dark:text-black' : 'text-[#FF7A59]'}>{icon}</div>
+    <div className="dashboard-card rounded-4xl md:rounded-[3.5rem] p-6 sm:p-8 lg:p-10 min-h-55 md:min-h-65 flex flex-col justify-between transition-all hover:-translate-y-2">
+      <div className="dashboard-icon-tile text-[#FF7A59] w-14 h-14 rounded-2xl flex items-center justify-center mb-10 md:mb-12">
+        <div>{icon}</div>
       </div>
       <div>
         {/* World-Class Mix: Small uppercase labels, giant sentence-case values */}

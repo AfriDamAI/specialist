@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import { NotificationProvider } from "../context/NotificationContext";
 import { ThemeProvider } from "../context/ThemeContext";
 import { CallProvider } from "../context/CallContext";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,6 +41,16 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`
+            try {
+              var savedTheme = localStorage.getItem('theme');
+              var systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+              var theme = savedTheme || systemTheme;
+              document.documentElement.classList.toggle('dark', theme === 'dark');
+            } catch (_) {}
+          `}
+        </Script>
         <ThemeProvider>
           {/* Rule #5: NotificationProvider acts as the Neural Root for real-time alerts */}
           <NotificationProvider>

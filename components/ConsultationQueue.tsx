@@ -18,6 +18,21 @@ interface Consultation {
   urgency: 'HIGH' | 'NORMAL';
 }
 
+interface QueueAssignment {
+  id: string;
+  name?: string;
+  status?: string;
+  createdAt: string | number | Date;
+  appointment?: {
+    planTier?: string;
+    title?: string;
+    user?: {
+      firstName?: string;
+      lastName?: string;
+    };
+  };
+}
+
 export default function ConsultationQueue() {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,7 +52,7 @@ export default function ConsultationQueue() {
       const response = await apiClient('/appointments/assignments/me');
       const sourceData = response.resultData || response.data || response || [];
       
-      const activeCases: Consultation[] = Array.isArray(sourceData) ? sourceData.map((item: any) => {
+      const activeCases: Consultation[] = Array.isArray(sourceData) ? (sourceData as QueueAssignment[]).map((item) => {
         const user = item.appointment?.user;
         return {
           id: item.id,
@@ -49,7 +64,7 @@ export default function ConsultationQueue() {
       }) : [];
 
       setConsultations(activeCases);
-    } catch (err) {
+    } catch {
       console.warn("📊 Queue Sync: Connection to neural core interrupted.");
       setError(true);
     } finally {
@@ -83,7 +98,7 @@ export default function ConsultationQueue() {
         <button 
           onClick={() => fetchLiveQueue(true)}
           disabled={isRefreshing}
-          className="flex items-center gap-2 px-5 py-2 bg-gray-50 dark:bg-gray-800 rounded-2xl hover:bg-[#FF7A59]/10 group transition-all"
+          className="flex items-center gap-2 px-5 py-2 dashboard-icon-tile rounded-2xl hover:bg-[#FF7A59]/10 group transition-all"
         >
           <ArrowPathIcon className={`w-3.5 h-3.5 text-gray-400 group-hover:text-[#FF7A59] ${isRefreshing ? 'animate-spin text-[#FF7A59]' : ''}`} />
           <span className="text-[9px] font-black text-gray-500 group-hover:text-[#FF7A59] uppercase tracking-widest italic leading-none">
@@ -93,8 +108,8 @@ export default function ConsultationQueue() {
       </div>
 
       {consultations.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 space-y-2 text-center bg-gray-50/50 dark:bg-gray-900/30 rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-gray-800">
-          <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-[1.5rem] flex items-center justify-center mb-4 shadow-sm">
+        <div className="flex flex-col items-center justify-center py-16 space-y-2 text-center dashboard-card-muted rounded-[2rem] md:rounded-[3rem] border-dashed">
+          <div className="w-16 h-16 dashboard-icon-tile rounded-[1.5rem] flex items-center justify-center mb-4 shadow-sm">
             <ExclamationCircleIcon className="w-8 h-8 text-gray-200" />
           </div>
           <h3 className="text-xl font-black text-black dark:text-white italic">No patients found</h3>
@@ -106,11 +121,11 @@ export default function ConsultationQueue() {
             <Link 
               href={`/consultation/${item.id}`} 
               key={item.id}
-              className="flex items-center justify-between p-6 md:p-8 bg-white dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 rounded-[3rem] hover:border-[#FF7A59] hover:shadow-2xl transition-all group"
+              className="flex items-center justify-between p-5 md:p-8 dashboard-card rounded-[2rem] md:rounded-[3rem] hover:border-[#FF7A59] transition-all group"
             >
               <div className="flex items-center gap-6">
                 <div className={`w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] flex items-center justify-center transition-colors ${
-                  item.urgency === 'HIGH' ? 'bg-red-50 text-red-500' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
+                  item.urgency === 'HIGH' ? 'bg-red-50 dark:bg-red-950/30 text-red-500' : 'dashboard-icon-tile text-gray-400 dark:text-gray-500'
                 }`}>
                   <UserIcon className="w-7 h-7" />
                 </div>
@@ -130,12 +145,12 @@ export default function ConsultationQueue() {
                   <span className={`text-[9px] font-black px-4 py-1.5 rounded-full uppercase tracking-[0.2em] italic ${
                     item.urgency === 'HIGH' 
                     ? 'bg-red-500 text-white' 
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+                    : 'dashboard-icon-tile text-gray-500'
                   }`}>
                     {item.urgency === 'HIGH' ? 'Urgent' : 'Routine'}
                   </span>
                 </div>
-                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl group-hover:bg-[#FF7A59] group-hover:text-white transition-all shadow-sm">
+                <div className="p-3 dashboard-icon-tile rounded-xl group-hover:bg-[#FF7A59] group-hover:text-white transition-all shadow-sm">
                   <ChevronRightIcon className="w-5 h-5" />
                 </div>
               </div>
