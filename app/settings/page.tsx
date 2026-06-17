@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { 
   CreditCardIcon, 
@@ -27,6 +27,8 @@ export default function SettingsPage() {
   const [isEditingBank, setIsEditingBank] = useState(false);
   const { isDarkMode, toggleTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
+  const THEME_TOAST_ID = 'theme-toggle-toast';
+  const lastToggleRef = useRef<number>(0);
   
   const [user, setUser] = useState({
     firstName: '',
@@ -80,12 +82,15 @@ export default function SettingsPage() {
   }, []);
 
   const handleToggleTheme = () => {
+    const now = Date.now();
+    if (now - lastToggleRef.current < 700) return; // ignore rapid repeated clicks
+    lastToggleRef.current = now;
+
     toggleTheme();
-    if (!isDarkMode) {
-      toast.success("Dark Mode Enabled");
-    } else {
-      toast.success("Light Mode Enabled");
-    }
+
+    const message = !isDarkMode ? "Dark Mode Enabled" : "Light Mode Enabled";
+    // reuse single toast id so repeated clicks update the same toast instead of stacking
+    toast.success(message, { id: THEME_TOAST_ID, duration: 3000 });
   };
 
   const saveBankDetails = () => {
@@ -137,14 +142,14 @@ export default function SettingsPage() {
       <div className="max-w-7xl mx-auto space-y-10 pb-24 text-left italic">
         
         {/* World-Class Profile Header: Rule #4 Responsive Balance */}
-        <div className="bg-white dark:bg-gray-950 rounded-[3.5rem] border border-gray-100 dark:border-gray-800 p-8 md:p-12 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8 transition-all">
+        <div className="dashboard-card rounded-[3.5rem] p-8 md:p-12 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8 transition-all">
           <div className="flex flex-col md:flex-row items-center gap-8">
-            <div className="w-24 h-24 md:w-32 md:h-32 bg-gray-900 dark:bg-white rounded-[2.5rem] flex items-center justify-center text-4xl font-black text-white dark:text-black shadow-xl uppercase italic">
+            <div className="w-24 h-24 md:w-32 md:h-32 dashboard-icon-tile rounded-[2.5rem] flex items-center justify-center text-(--dashboard-text) shadow-xl uppercase italic">
               {user.firstName.charAt(0)}
             </div>
-            <div className="text-center md:text-left space-y-3">
+            <div className="text-center md:text-left space-y-3 text-(--dashboard-text)">
               <div className="flex flex-col md:flex-row items-center gap-3">
-                <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">
+                <h1 className="text-3xl font-black tracking-tighter uppercase italic">
                   {user.firstName} {user.lastName}
                 </h1>
                 <span className="px-4 py-1 bg-green-50 dark:bg-green-900/20 text-green-600 rounded-full text-[10px] font-black uppercase tracking-widest">
@@ -156,11 +161,11 @@ export default function SettingsPage() {
               <div className="flex flex-col gap-2">
                 <p className="text-xs font-black text-[#FF7A59] uppercase tracking-widest">{user.role}</p>
                 <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-2">
-                  <div className="flex items-center gap-2 text-gray-400">
+                  <div className="flex items-center gap-2 text-(--dashboard-text-muted)">
                     <EnvelopeIcon className="w-3.5 h-3.5" />
                     <span className="text-[10px] font-bold lowercase tracking-wider">{user.email}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-400">
+                  <div className="flex items-center gap-2 text-(--dashboard-text-muted)">
                     <PhoneIcon className="w-3.5 h-3.5" />
                     <span className="text-[10px] font-bold uppercase tracking-wider">{user.phoneNo}</span>
                   </div>
@@ -176,30 +181,30 @@ export default function SettingsPage() {
           <div className="lg:col-span-8 space-y-8">
             {settingsGroups.map((groupObj, gIdx) => (
               <div key={gIdx} className="space-y-4">
-                <h3 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] ml-4 italic">{groupObj.group}</h3>
-                <div className="bg-white dark:bg-gray-950 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 divide-y divide-gray-50 dark:divide-gray-800 overflow-hidden shadow-sm">
+                <h3 className="text-[10px] font-black text-(--dashboard-text-muted) uppercase tracking-[0.3em] ml-4 italic">{groupObj.group}</h3>
+                <div className="dashboard-card rounded-[2.5rem] overflow-hidden divide-y divide-(--dashboard-border) shadow-sm">
                   {groupObj.items.map((item, iIdx) => (
                     <div 
                       key={iIdx} 
                       onClick={item.action}
-                      className="flex items-center justify-between p-6 md:p-8 hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer group"
+                      className="flex items-center justify-between p-6 md:p-8 hover:bg-(--dashboard-surface-soft) transition-all cursor-pointer group"
                     >
                       <div className="flex items-center gap-5">
                         <div className={`p-3 rounded-2xl transition-colors ${
                           (item.label === "Medical License & ID") 
                           ? 'bg-green-50 dark:bg-green-900/20 text-green-500' 
-                          : 'bg-gray-50 dark:bg-gray-800 text-gray-400 group-hover:text-[#FF7A59]'
+                          : 'bg-(--dashboard-surface-muted) text-(--dashboard-text-muted) group-hover:text-[#FF7A59]'
                         }`}>
                           {item.icon}
                         </div>
                         <div>
-                          <p className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight leading-none">{item.label}</p>
+                          <p className="text-sm font-black text-(--dashboard-text) uppercase tracking-tight leading-none">{item.label}</p>
                           <p className={`text-xs font-bold mt-2 uppercase tracking-wide ${
-                            item.label === "Medical License & ID" ? 'text-green-600' : 'text-gray-400'
+                            item.label === "Medical License & ID" ? 'text-green-600' : 'text-(--dashboard-text-muted)'
                           }`}>{item.value}</p>
                         </div>
                       </div>
-                      <ChevronRightIcon className="w-5 h-5 text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors" />
+                      <ChevronRightIcon className="w-5 h-5 text-(--dashboard-text-muted) group-hover:text-(--dashboard-text) transition-colors" />
                     </div>
                   ))}
                 </div>
@@ -209,28 +214,28 @@ export default function SettingsPage() {
 
           {/* Compliance Sidebar: Rule #4 Balanced view */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="bg-black dark:bg-white p-8 rounded-[3rem] text-white dark:text-black shadow-2xl space-y-8 relative overflow-hidden transition-colors flex flex-col justify-center min-h-[300px]">
+            <div className="dashboard-card bg-(--dashboard-surface-soft) p-8 rounded-[3rem] shadow-2xl space-y-8 relative overflow-hidden transition-colors flex flex-col justify-center min-h-75 text-(--dashboard-text)">
               <div className="relative z-10">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-6 text-[#FF7A59] italic">Compliance Protocol</h3>
-                <p className="text-sm font-bold leading-relaxed tracking-tight uppercase italic">
+                <p className="text-sm font-bold leading-relaxed tracking-tight uppercase italic text-(--dashboard-text)">
                   AfriDam Neural Link protocols require matching biometric data for all clinical and financial adjustments.
                 </p>
               </div>
-              <ShieldCheckIcon className="absolute -right-6 -bottom-6 w-32 h-32 opacity-10 text-white dark:text-black pointer-events-none" />
+              <ShieldCheckIcon className="absolute -right-6 -bottom-6 w-32 h-32 opacity-10 text-(--dashboard-text-muted) pointer-events-none" />
             </div>
           </div>
         </div>
 
         {/* Bank Edit Modal */}
         {isEditingBank && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsEditingBank(false)}></div>
-            <div className="bg-white dark:bg-gray-900 w-full max-w-md p-10 rounded-[3.5rem] relative z-10 shadow-2xl border border-gray-100 dark:border-gray-800 animate-in zoom-in duration-300">
-              <button onClick={() => setIsEditingBank(false)} className="absolute top-8 right-8 text-gray-400 hover:text-black dark:hover:text-white transition-colors">
+            <div className="dashboard-card w-full max-w-md p-10 rounded-[3.5rem] relative z-10 shadow-2xl animate-in zoom-in duration-300">
+              <button onClick={() => setIsEditingBank(false)} className="absolute top-8 right-8 text-(--dashboard-text-muted) hover:text-(--dashboard-text) transition-colors">
                 <XMarkIcon className="w-6 h-6" />
               </button>
-              <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">Link <span className="text-[#FF7A59]">Bank</span></h2>
-              <p className="text-[10px] font-black text-gray-400 uppercase mt-2 tracking-widest italic">Payout Verification Required</p>
+              <h2 className="text-3xl font-black text-(--dashboard-text) uppercase tracking-tighter italic">Link <span className="text-[#FF7A59]">Bank</span></h2>
+              <p className="text-[10px] font-black text-(--dashboard-text-muted) uppercase mt-2 tracking-widest italic">Payout Verification Required</p>
               
               <div className="mt-8 space-y-4">
                 <input 
@@ -238,14 +243,14 @@ export default function SettingsPage() {
                   value={bankDetails.bankName}
                   onChange={(e) => setBankDetails({...bankDetails, bankName: e.target.value})}
                   placeholder="Bank Name"
-                  className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-2xl px-6 py-4 text-sm font-black text-gray-900 dark:text-white focus:ring-2 focus:ring-[#FF7A59] outline-none shadow-inner italic"
+                  className="w-full bg-(--dashboard-surface-muted) border-none rounded-2xl px-6 py-4 text-sm font-black text-(--dashboard-text) focus:ring-2 focus:ring-[#FF7A59] outline-none shadow-inner italic"
                 />
                 <input 
                   type="text" 
                   value={bankDetails.accountNumber}
                   onChange={(e) => setBankDetails({...bankDetails, accountNumber: e.target.value})}
                   placeholder="Account Number"
-                  className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-2xl px-6 py-4 text-sm font-black text-gray-900 dark:text-white focus:ring-2 focus:ring-[#FF7A59] outline-none shadow-inner italic"
+                  className="w-full bg-(--dashboard-surface-muted) border-none rounded-2xl px-6 py-4 text-sm font-black text-(--dashboard-text) focus:ring-2 focus:ring-[#FF7A59] outline-none shadow-inner italic"
                 />
                 <button 
                   onClick={saveBankDetails}

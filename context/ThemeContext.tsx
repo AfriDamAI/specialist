@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useLayoutEffect, useState, useCallback, useMemo } from 'react';
 
 type Theme = 'light' | 'dark';
 
@@ -23,17 +23,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return (localStorage.getItem('theme') as Theme | null) || getSystemTheme();
   };
 
-  const [theme, setThemeState] = useState<Theme | undefined>(getInitialTheme);
+  const [theme, setThemeState] = useState<Theme | undefined>(() => {
+    if (typeof window === 'undefined') return undefined;
+    return (localStorage.getItem('theme') as Theme | null) || getSystemTheme();
+  });
 
-  const applyTheme = (newTheme: Theme) => {
+  const applyTheme = useCallback((newTheme: Theme) => {
     if (newTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  };
+  }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     if (theme) {
       applyTheme(theme);
@@ -49,13 +52,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     mediaQuery.addEventListener('change', handleSystemThemeChange);
     return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
-  }, [theme]);
+  }, [theme, applyTheme]);
 
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
     localStorage.setItem('theme', newTheme);
     applyTheme(newTheme);
-  }, []);
+  }, [applyTheme]);
 
   const toggleTheme = useCallback(() => {
     setThemeState(prev => {
@@ -64,7 +67,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       applyTheme(nextTheme);
       return nextTheme;
     });
-  }, []);
+  }, [applyTheme]);
 
   const isDarkMode = theme === 'dark';
 
