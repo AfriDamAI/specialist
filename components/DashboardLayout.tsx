@@ -39,6 +39,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const toggleCooldownRef = useRef<number>(0);
   
   // State to handle manual desktop sidebar override toggle
   const [isCollapsed, setIsCollapsed] = useState(true);
@@ -159,10 +160,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   if (!mounted) return <div className="min-h-screen bg-white dark:bg-gray-950" />;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors selection:bg-[#FF7A59]/30 text-left italic">
+    <div className="min-h-screen bg-white dark:bg-gray-950 selection:bg-[#FF7A59]/30 text-left italic">
 
       {/* Topbar */}
-      <div className="fixed top-0 left-0 right-0 h-16 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 z-[60]">
+      <div className="fixed top-0 left-0 right-0 h-16 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 z-60">
         <div className="flex items-center justify-between h-full px-4 md:px-12 max-w-7xl mx-auto">
           
           {/* Brand Logo & Hamburger Control Container */}
@@ -200,11 +201,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3 top-1/2 transform -translate-y-1/2" />
             </div>
 
-            <button onClick={toggleTheme} className="p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-all active:scale-90 relative z-[70]">
+            <button onClick={() => {
+                const now = Date.now();
+                if (now - toggleCooldownRef.current < 700) return;
+                toggleCooldownRef.current = now;
+                toggleTheme();
+              }} className="p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-all active:scale-90 relative z-70">
               {isDarkMode ? <SunIcon className="w-6 h-6 text-amber-400" /> : <MoonIcon className="w-6 h-6 text-gray-400" />}
             </button>
 
-            <div className="relative z-[70]">
+            <div className="relative z-70">
               <NotificationBell />
             </div>
 
@@ -223,7 +229,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </button>
 
               {showProfileDropdown && (
-                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 py-2 z-[80] animate-in fade-in zoom-in duration-200 origin-top-right">
+                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 py-2 z-80 animate-in fade-in zoom-in duration-200 origin-top-right">
                   <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-800 md:hidden">
                     <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">{user.name}</p>
                     <p className="text-[9px] font-black text-[#FF7A59] uppercase tracking-widest mt-1 italic">{user.role}</p>
@@ -257,13 +263,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* 📱 Modern Floating Mobile Side Navigation Drawer Drawer */}
       <div 
-        className={`md:hidden fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[55] transition-opacity duration-300 ${
+        className={`md:hidden fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-55 transition-opacity duration-300 ${
           isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       >
         <aside
           ref={mobileMenuRef}
-          className={`fixed top-16 left-0 bottom-0 w-[270px] bg-white dark:bg-gray-950 flex flex-col p-5 shadow-2xl transition-transform duration-300 ease-out border-r border-gray-50 dark:border-gray-900 ${
+          className={`fixed top-16 left-0 bottom-0 w-67.5 bg-white dark:bg-gray-950 flex flex-col p-5 shadow-2xl transition-transform duration-300 ease-out border-r border-gray-50 dark:border-gray-900 ${
             isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >

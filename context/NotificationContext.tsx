@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Toaster, toast } from 'react-hot-toast';
 import { io, Socket } from 'socket.io-client';
 import { apiClient } from '@/lib/api-client';
+import { useTheme } from '@/context/ThemeContext';
 import { SOCKET_URL, SOCKET_OPTIONS } from '@/lib/config';
 
 /**
@@ -32,6 +33,7 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | null>(null);
 
 export const NotificationProvider = ({ children }: { children: React.ReactNode }) => {
+  const { isDarkMode } = useTheme();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
   const pathname = usePathname();
@@ -180,8 +182,8 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         position="top-right"
         toastOptions={{
           style: {
-            background: '#000000',
-            color: '#fff',
+            background: isDarkMode ? '#000000' : '#ffffff',
+            color: isDarkMode ? '#ffffff' : '#000000',
             borderRadius: '1.5rem',
             fontSize: '12px',
             fontWeight: '900',
