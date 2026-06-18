@@ -59,7 +59,7 @@ export default function ConversationView({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isSending]);
+  }, [messages]);
 
   if (!patient) return <EmptyState />;
 
@@ -90,17 +90,52 @@ export default function ConversationView({
       )}
 
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-gray-50/50 dark:bg-gray-900/50">
-        {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
-        ))}
+        {messages.map((message, index) => {
+          const currentMsgDate = new Date(message.timestamp).toLocaleDateString();
+          const prevMsgDate = index > 0 ? new Date(messages[index - 1].timestamp).toLocaleDateString() : null;
+          const showDateSeparator = currentMsgDate !== prevMsgDate;
+
+          const today = new Date().toLocaleDateString();
+          const yesterday = new Date(Date.now() - 86400000).toLocaleDateString();
+          let dateLabel = currentMsgDate;
+          if (currentMsgDate === today) dateLabel = 'Today';
+          else if (currentMsgDate === yesterday) dateLabel = 'Yesterday';
+          else {
+            dateLabel = new Date(message.timestamp).toLocaleDateString('en-US', {
+              weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+            });
+          }
+
+          return (
+            <div key={message.id}>
+              {showDateSeparator && (
+                <div className="flex items-center justify-center my-6">
+                  <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
+                  <span className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    {dateLabel}
+                  </span>
+                  <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
+                </div>
+              )}
+              <MessageBubble message={message} />
+            </div>
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 
+      {sessionEnded && (
+        <div className="px-4 py-2 bg-gray-100 dark:bg-gray-900 text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            This session has ended. You can no longer send messages.
+          </p>
+        </div>
+      )}
       <MessageInput
         value={inputValue}
         onChange={onInputChange}
         onSend={onSend}
-        disabled={sessionEnded}
+        disabled={sessionEnded || !!isSending}
         isUploading={isUploading}
       />
     </div>

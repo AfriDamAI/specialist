@@ -17,12 +17,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const getSystemTheme = () =>
     window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 
-  const getInitialTheme = (): Theme | undefined => {
-    if (typeof window === 'undefined') return undefined;
-
-    return (localStorage.getItem('theme') as Theme | null) || getSystemTheme();
-  };
-
   const [theme, setThemeState] = useState<Theme | undefined>(() => {
     if (typeof window === 'undefined') return undefined;
     return (localStorage.getItem('theme') as Theme | null) || getSystemTheme();
