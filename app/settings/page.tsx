@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { 
@@ -22,6 +23,9 @@ import { apiClient } from '@/lib/api-client'; // 🏛️ Rule #6: Centralized Ha
 import { useTheme } from '@/context/ThemeContext';
 
 export default function SettingsPage() {
+
+  const router = useRouter();
+
   // 🛡️ Rule #3: Forced true to bypass the loop for development
   const [isVerified, setIsVerified] = useState(true);
   const [isEditingBank, setIsEditingBank] = useState(false);
@@ -124,8 +128,12 @@ export default function SettingsPage() {
           icon: <CreditCardIcon className="w-5 h-5" />,
           action: () => setIsEditingBank(true)
         },
-        { label: "Tax & Compliance Info", value: "TIN Attached", icon: <ShieldCheckIcon className="w-5 h-5" /> }
-      ]
+        { 
+          label: "Tax & Compliance Info", 
+          value: "TIN Attached", 
+          icon: <ShieldCheckIcon className="w-5 h-5" />,
+          action: () => router.push('/tax-compliance')
+        }      ]
     },
     {
       group: "Security & Interface",
@@ -186,7 +194,7 @@ export default function SettingsPage() {
                   {groupObj.items.map((item, iIdx) => (
                     <div 
                       key={iIdx} 
-                      onClick={item.action}
+                      onClick={() => item.action?.()}
                       className="flex items-center justify-between p-6 md:p-8 hover:bg-(--dashboard-surface-soft) transition-all cursor-pointer group"
                     >
                       <div className="flex items-center gap-5">

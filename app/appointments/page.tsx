@@ -6,15 +6,13 @@ import DashboardLayout from '@/components/DashboardLayout';
 import {
   CalendarIcon,
   ClockIcon,
-  CheckCircleIcon,
-  ShieldCheckIcon,
   ArrowPathIcon,
   InboxIcon,
   MoonIcon,
   SunIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  PlayCircleIcon,
+  PlayIcon,
   UserCircleIcon,
 } from '@heroicons/react/24/solid';
 import { apiClient } from '@/lib/api-client'; // 🏛️ Rule #6: Centralized Handshake
@@ -265,6 +263,85 @@ const AppointmentCard = ({
   );
 };
 
+const ShiftModal = ({
+  isOpen,
+  onClose,
+  shiftStart,
+  shiftEnd,
+  onShiftStartChange,
+  onShiftEndChange,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  shiftStart: string;
+  shiftEnd: string;
+  onShiftStartChange: (val: string) => void;
+  onShiftEndChange: (val: string) => void;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-[2.5rem] p-8 space-y-6 border border-gray-100 dark:border-gray-800">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-black uppercase italic tracking-tighter text-gray-900 dark:text-white">
+            Adjust <span className="text-[#FF7A59]">Shift</span>
+          </h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+            ✕
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Shift type</p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => { onShiftStartChange('08:00'); onShiftEndChange('16:00'); }}
+              className="py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 border-[#FF7A59] text-[#FF7A59] bg-[#FF7A59]/10"
+            >
+              Day Shift
+            </button>
+            <button
+              onClick={() => { onShiftStartChange('20:00'); onShiftEndChange('04:00'); }}
+              className="py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-gray-200 dark:border-gray-700 text-gray-400"
+            >
+              Night Shift
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Start time</p>
+            <input
+              type="time"
+              value={shiftStart}
+              onChange={(e) => onShiftStartChange(e.target.value)}
+              className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm font-bold text-gray-900 dark:text-white"
+            />
+          </div>
+          <div className="space-y-2">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">End time</p>
+            <input
+              type="time"
+              value={shiftEnd}
+              onChange={(e) => onShiftEndChange(e.target.value)}
+              className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm font-bold text-gray-900 dark:text-white"
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="w-full bg-[#FF7A59] text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[#e56b4a] transition-all active:scale-95"
+        >
+          Save Shift
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export default function AppointmentsPage() {
   const router = useRouter();
   /**
@@ -280,6 +357,9 @@ export default function AppointmentsPage() {
   const [selectedPatientName, setSelectedPatientName] = useState('');
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+  const [shiftStart, setShiftStart] = useState('08:00');
+  const [shiftEnd, setShiftEnd] = useState('16:00');
 
   useEffect(() => {
     // 🛡️ Rule #5: Extraction of Real Session Identity
@@ -356,7 +436,7 @@ export default function AppointmentsPage() {
               onClick={() => router.push('/ongoing-sessions')}
               className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#FF7A59] text-white text-xs font-black uppercase tracking-widest hover:bg-[#e56b4a] transition-all active:scale-95 shadow-sm"
             >
-              <PlayCircleIcon className="w-4 h-4" />
+              <PlayIcon className="w-4 h-4" />
               Ongoing Sessions
             </button>
 
@@ -437,6 +517,15 @@ export default function AppointmentsPage() {
             patientName={selectedPatientName}
           />
 
+          <ShiftModal
+            isOpen={isShiftModalOpen}
+            onClose={() => setIsShiftModalOpen(false)}
+            shiftStart={shiftStart}
+            shiftEnd={shiftEnd}
+            onShiftStartChange={setShiftStart}
+            onShiftEndChange={setShiftEnd}
+          />
+
           {/* Shift Insights: Rule #4 Balanced view */}
           <div className="lg:col-span-4 space-y-6">
             <div className={`${activeShift === 'day' ? 'bg-gray-900' : 'bg-[#1A1A2E]'} dark:bg-black rounded-[3rem] p-8 text-white space-y-6 shadow-2xl relative overflow-hidden transition-colors`}>
@@ -454,7 +543,7 @@ export default function AppointmentsPage() {
                   </span>
                 </div>
               </div>
-              <button className="w-full bg-white dark:bg-gray-800 text-black dark:text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all relative z-10 hover:bg-[#FF7A59] hover:text-white">
+              <button onClick={() => setIsShiftModalOpen(true)} className="w-full bg-white dark:bg-gray-800 text-black dark:text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all relative z-10 hover:bg-[#FF7A59] hover:text-white">
                 Adjust Shift
               </button>
             </div>
