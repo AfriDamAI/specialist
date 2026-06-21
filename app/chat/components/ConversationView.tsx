@@ -22,14 +22,16 @@ interface ConversationViewProps {
   onEndSession: () => void;
   onStartSession?: () => void;
   onExtendSession?: () => void;
+  onFileUpload?: (file: File) => void;
   onJoinMeet: () => void;
   isJoiningMeet?: boolean;
   hasMeetLink?: boolean;
-  meetLink?: string | null;
   onClearError?: () => void;
   onViewProfile: () => void;
   chatId?: string;
-  onBack?: () => void;
+  // Mobile navigation
+  onMobileBack?: () => void;
+  isMobile?: boolean;
 }
 
 export default function ConversationView({
@@ -47,62 +49,147 @@ export default function ConversationView({
   onStartSession,
   onExtendSession,
   onJoinMeet,
-  isJoiningMeet = false,
-  hasMeetLink = false,
-  meetLink,
+  isJoiningMeet,
+  hasMeetLink,
   onClearError,
   onViewProfile,
   chatId,
-  onBack
+  onMobileBack,
+  isMobile = false,
 }: ConversationViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMessageCountRef = useRef(0);
+  const isFirstLoadRef = useRef(true);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isSending]);
+    const prevCount = prevMessageCountRef.current;
+    const newCount = messages.length;
 
-  if (!patient) return <EmptyState />;
+    // Only auto-scroll when a message is actually added — never on unrelated
+    // re-renders (polling, prop changes, etc). This stops the chat from
+    // yanking itself back down while the user is scrolled up reading history.
+    if (newCount > prevCount) {
+      messagesEndRef.current?.scrollIntoView({
+        behavior: isFirstLoadRef.current ? 'auto' : 'smooth',
+      });
+      isFirstLoadRef.current = false;
+    }
+
+    prevMessageCountRef.current = newCount;
+  }, [messages]);
+
+  // Reset scroll tracking whenever the conversation itself changes
+  useEffect(() => {
+    isFirstLoadRef.current = true;
+    prevMessageCountRef.current = 0;
+  }, [chatId]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => onClearError?.(), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, onClearError]);
+
+  // On mobile, show empty state only if no chat open (panel won't be visible anyway)
+  if (!patient) {
+    return (
+      <div className="flex flex-col flex-1 w-full min-w-0 h-full min-h-0">
+        <EmptyState />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-950 w-full relative">
-      <div className="w-full">
+    <div className="flex flex-col flex-1 w-full min-w-0 h-full min-h-0 bg-white dark:bg-gray-950 relative">
+      {/* Error Toast */}
+      {error && (
+        <div className="absolute top-0 left-0 right-0 z-50 bg-red-500 text-white px-4 py-2 text-sm text-center">
+          {error}
+        </div>
+      )}
+
+      {/* Header — fixed, never part of the scroll area, never unmounts on scroll */}
+      <div className="flex-shrink-0 z-10">
         <ChatHeader
           patient={patient}
           onEndSession={onEndSession}
           onStartSession={onStartSession}
           onExtendSession={onExtendSession}
           onJoinMeet={onJoinMeet}
+          onViewProfile={onViewProfile}
           isJoiningMeet={isJoiningMeet}
           hasMeetLink={hasMeetLink}
-          meetLink={meetLink}
-          onViewProfile={onViewProfile}
-          onBack={onBack}
+          onMobileBack={onMobileBack}
+          isMobile={isMobile}
         />
       </div>
 
-      {error && (
-        <div className="bg-red-50 text-red-600 p-2 text-sm flex justify-between items-center">
-          <span>{error}</span>
-          {onClearError && (
-            <button onClick={onClearError} className="hover:underline">Dismiss</button>
-          )}
+      {sessionEnded && (
+        <div className="flex-shrink-0 px-4 py-2 bg-gray-50 dark:bg-gray-900 text-center border-b border-gray-100 dark:border-gray-800">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            This session has ended. You can no longer send messages.
+          </p>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-gray-50/50 dark:bg-gray-900/50">
-        {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
-        ))}
+      {/* Messages — the ONLY scrollable region */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 md:px-4 py-4 space-y-0.5">
+        {isLoading && messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#FF7A59]"></div>
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-sm text-gray-400 dark:text-gray-500">No messages yet</p>
+          </div>
+        ) : (
+          messages.map((message, index) => {
+            const currentMsgDate = new Date(message.timestamp).toLocaleDateString();
+            const prevMsgDate = index > 0
+              ? new Date(messages[index - 1].timestamp).toLocaleDateString()
+              : null;
+            const showDateSeparator = currentMsgDate !== prevMsgDate;
+
+            const today = new Date().toLocaleDateString();
+            const yesterday = new Date(Date.now() - 86400000).toLocaleDateString();
+            let dateLabel = currentMsgDate;
+            if (currentMsgDate === today) dateLabel = 'Today';
+            else if (currentMsgDate === yesterday) dateLabel = 'Yesterday';
+            else {
+              dateLabel = new Date(message.timestamp).toLocaleDateString('en-US', {
+                weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+              });
+            }
+
+            return (
+              <div key={message.id}>
+                {showDateSeparator && (
+                  <div className="flex items-center justify-center my-6">
+                    <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800" />
+                    <span className="px-3 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                      {dateLabel}
+                    </span>
+                    <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800" />
+                  </div>
+                )}
+                <MessageBubble message={message} />
+              </div>
+            );
+          })
+        )}
         <div ref={messagesEndRef} />
       </div>
 
-      <MessageInput
-        value={inputValue}
-        onChange={onInputChange}
-        onSend={onSend}
-        disabled={sessionEnded}
-        isUploading={isUploading}
-      />
+      <div className="flex-shrink-0">
+        <MessageInput
+          value={inputValue}
+          onChange={onInputChange}
+          onSend={onSend}
+          disabled={sessionEnded || isSending}
+          isUploading={isUploading}
+        />
+      </div>
     </div>
   );
 }
