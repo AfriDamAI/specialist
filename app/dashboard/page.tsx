@@ -157,9 +157,9 @@ export default function DashboardPage() {
           <div className="px-6 md:px-12 py-8 md:py-10 border-b border-(--dashboard-border) flex items-center justify-between bg-(--dashboard-surface-soft)">
             <div>
               <h2 className="text-2xl font-black text-black dark:text-white tracking-tighter italic">Clinical Queue</h2>
-              <p className="text-xs font-bold text-gray-400 mt-1 tracking-tight italic">
+              {/* <p className="text-xs font-bold text-gray-400 mt-1 tracking-tight italic">
                 Synchronized with backend repository
-              </p>
+              </p> */}
             </div>
           </div>
           <div className="p-4 sm:p-6 md:p-12 min-h-100">

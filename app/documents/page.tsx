@@ -180,7 +180,7 @@ export default function DocumentsPage() {
           <div className="p-4 md:p-8">
             <div className="space-y-3">
               {recentFiles.map((file) => (
-                <div key={file.id} className="flex flex-col md:flex-row md:items-center justify-between p-5 rounded-[2rem] hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all border border-transparent hover:border-gray-100 dark:hover:border-gray-700 group">
+                <div key={file.id} className="flex flex-col md:flex-row md:items-center justify-between p-5 rounded-4xl hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all border border-transparent hover:border-gray-100 dark:hover:border-gray-700 group">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center group-hover:bg-[#FF7A59]/10 transition-colors">
                       <DocumentIcon className="w-6 h-6 text-gray-400 group-hover:text-[#FF7A59]" />
