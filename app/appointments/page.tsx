@@ -33,14 +33,14 @@ interface Appointment {
   title?: string;
   notes?: string;
   appointment?: {
-    notes?: string;
-    user?: {
-      id: string;
-      firstName: string;
-      lastName: string;
-      email: string;
-      phoneNo: string;
-      profile?: PatientProfile;
+  notes?: string;
+  user?: {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNo: string;
+  profile?: PatientProfile;
     }
   }
 }
@@ -357,9 +357,7 @@ export default function AppointmentsPage() {
   const [selectedPatientName, setSelectedPatientName] = useState('');
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
-  const [shiftStart, setShiftStart] = useState('08:00');
-  const [shiftEnd, setShiftEnd] = useState('16:00');
+  
 
   useEffect(() => {
     // 🛡️ Rule #5: Extraction of Real Session Identity
@@ -517,15 +515,6 @@ export default function AppointmentsPage() {
             patientName={selectedPatientName}
           />
 
-          <ShiftModal
-            isOpen={isShiftModalOpen}
-            onClose={() => setIsShiftModalOpen(false)}
-            shiftStart={shiftStart}
-            shiftEnd={shiftEnd}
-            onShiftStartChange={setShiftStart}
-            onShiftEndChange={setShiftEnd}
-          />
-
           {/* Shift Insights: Rule #4 Balanced view */}
           <div className="lg:col-span-4 space-y-6">
             <div className={`${activeShift === 'day' ? 'bg-gray-900' : 'bg-[#1A1A2E]'} dark:bg-black rounded-[3rem] p-8 text-white space-y-6 shadow-2xl relative overflow-hidden transition-colors`}>
@@ -543,7 +532,7 @@ export default function AppointmentsPage() {
                   </span>
                 </div>
               </div>
-              <button onClick={() => setIsShiftModalOpen(true)} className="w-full bg-white dark:bg-gray-800 text-black dark:text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all relative z-10 hover:bg-[#FF7A59] hover:text-white">
+              <button onClick={() => handleShiftToggle(activeShift === 'day' ? 'night' : 'day')} className="w-full bg-white dark:bg-gray-800 text-black dark:text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all relative z-10 hover:bg-[#FF7A59] hover:text-white">
                 Adjust Shift
               </button>
             </div>
