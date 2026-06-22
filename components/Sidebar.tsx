@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { getSpecialistDisplayRole } from '@/lib/specialist-utils';
 import { 
   Squares2X2Icon, 
   AcademicCapIcon, 
@@ -42,10 +43,10 @@ export default function Sidebar() {
     const savedName = localStorage.getItem('specialistName');
     const savedRole = localStorage.getItem('specialistRole');
 
-    if (savedName) {
+    if (savedName || savedRole) {
       setUser({
-        name: savedName,
-        role: savedRole || 'Medical Personnel'
+        name: savedName || 'Specialist',
+        role: getSpecialistDisplayRole(savedRole)
       });
     }
   }, []);

@@ -4,6 +4,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ConsultationQueue from '@/components/ConsultationQueue';
 import { apiClient } from '@/lib/api-client'; // 🏛️ Rule #6: Centralized Handshake
+import { normalizeSpecialization, getSpecialistDashboardTitle, getSpecialistDisplayRole } from '@/lib/specialist-utils';
 import { 
   CheckBadgeIcon, 
   WalletIcon, 
@@ -33,6 +34,7 @@ interface WalletTransaction {
 export default function DashboardPage() {
   const [userName, setUserName] = useState('Specialist');
   const [userRole, setUserRole] = useState('Medical Personnel');
+  const [dashboardTitle, setDashboardTitle] = useState('Specialist Dashboard');
   const [stats, setStats] = useState({
     dailyEarnings: 0,
     portfolioBalance: 0,
@@ -50,12 +52,16 @@ export default function DashboardPage() {
         
         if (data) {
           // Rule #5: Humanizing the greeting with real names
+          const rawRole = data.specialization || data.role || '';
+          const normalizedRole = normalizeSpecialization(rawRole) || 'Specialist';
+
           setUserName(data.firstName || 'Specialist');
-          setUserRole(data.specialization || 'Medical Personnel');
+          setUserRole(getSpecialistDisplayRole(normalizedRole));
+          setDashboardTitle(getSpecialistDashboardTitle(normalizedRole));
           
           // Rule #3: Persistence sync for the layout
           localStorage.setItem('specialistName', `${data.firstName} ${data.lastName}`);
-          localStorage.setItem('specialistRole', data.specialization || '');
+          localStorage.setItem('specialistRole', normalizedRole);
           localStorage.setItem('specialistStatus', 'verified'); 
         }
       } catch {
@@ -119,7 +125,7 @@ export default function DashboardPage() {
             </div>
             {/* World-Class Mix: Bold secondary labels in sentence case */}
             <p className="text-gray-500 dark:text-gray-400 font-bold text-sm md:text-base tracking-tight">
-               {userRole} <span className="mx-2 text-gray-300">•</span> Verified Specialist
+               {dashboardTitle} <span className="mx-2 text-gray-300">•</span> Verified Specialist
             </p>
           </div>
           

@@ -23,6 +23,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useTheme } from '@/context/ThemeContext';
 import { API_URL } from '@/lib/config';
+import { getSpecialistDashboardTitle, getSpecialistDisplayRole } from '@/lib/specialist-utils';
 
 interface DashboardLayoutProps {
   children?: React.ReactNode;
@@ -48,6 +49,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     name: 'Specialist',
     role: 'Medical Personnel',
   });
+  const [dashboardTitle, setDashboardTitle] = useState('Specialist Dashboard');
 
   useEffect(() => {
     setMounted(true);
@@ -61,11 +63,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       return;
     }
 
-    if (savedName) {
+    if (savedName || savedRole) {
       setUser({
-        name: savedName,
-        role: savedRole || 'Medical Personnel'
+        name: savedName || 'Specialist',
+        role: getSpecialistDisplayRole(savedRole)
       });
+      setDashboardTitle(getSpecialistDashboardTitle(savedRole));
     }
 
     const syncProfile = async () => {
@@ -86,12 +89,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           if (profile) {
             const fullName = `${profile.firstName} ${profile.lastName}`.trim();
-            const currentRole = profile.specialization || 'Specialist';
+            const rawRole = profile.specialization || profile.role || 'Specialist';
+            const normalizedRole = rawRole.toString().trim() || 'Specialist';
+            const displayRole = getSpecialistDisplayRole(normalizedRole);
 
-            setUser({ name: fullName, role: currentRole });
+            setUser({ name: fullName, role: displayRole });
+            setDashboardTitle(getSpecialistDashboardTitle(normalizedRole));
 
             localStorage.setItem('specialistName', fullName);
-            localStorage.setItem('specialistRole', currentRole);
+            localStorage.setItem('specialistRole', normalizedRole);
             localStorage.setItem('userId', profile.id);
             localStorage.setItem('specialistId', profile.id);
             localStorage.setItem('specialistStatus', 'verified');
@@ -189,6 +195,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 Afridam<span className="text-[#FF7A59]">AI</span>
               </span>
             </Link>
+            <div className="flex flex-col justify-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#FF7A59]">
+                {dashboardTitle}
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-4 md:gap-6">

@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { API_URL } from '@/lib/config';
+import { normalizeSpecialization } from '@/lib/specialist-utils';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -36,12 +37,15 @@ export default function LoginPage() {
          * 🛡️ OGA PRECISION FIX: 
          * No 'resultData' here. We map directly to the keys returned by the backend.
          */
+        const rawRole = data.specialization || data.role || '';
+        const normalizedRole = normalizeSpecialization(rawRole) || 'Specialist';
+
         localStorage.setItem('token', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
         localStorage.setItem('specialistId', data.id);
         localStorage.setItem('userId', data.id);
         localStorage.setItem('specialistName', data.displayName || 'Specialist');
-        localStorage.setItem('specialistRole', data.role || 'Specialist');
+        localStorage.setItem('specialistRole', normalizedRole);
         localStorage.setItem('specialistStatus', data.isActive ? 'verified' : 'under_review');
 
         toast.success(`Access Granted. Welcome, ${data.displayName || 'Doctor'}.`);
