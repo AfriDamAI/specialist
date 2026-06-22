@@ -54,7 +54,7 @@ export default function MessageInput({
     }
   };
 
-  const handleVoiceSend = (blob: Blob, duration: number) => {
+  const handleVoiceSend = (blob: Blob) => {
     const file = new File([blob], `voice-note-${Date.now()}.webm`, { type: 'audio/webm' });
     onSend('', file);
     setIsRecording(false);
@@ -128,7 +128,7 @@ export default function MessageInput({
             <MicrophoneIcon className="w-6 h-6" />
           </button>
 
-          <div className="flex-1">
+          <div className="flex-1 flex items-center min-h-[3rem] rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 focus-within:border-[#FF7A59] transition-colors">
             <textarea
               value={value}
               onChange={(e) => onChange(e.target.value)}
@@ -136,7 +136,7 @@ export default function MessageInput({
               placeholder={disabled ? 'Session ended' : 'Type a message...'}
               disabled={disabled}
               rows={1}
-              className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:border-[#FF7A59] focus:outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-[0.65rem] bg-transparent text-gray-900 dark:text-white text-sm leading-5 focus:outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed max-h-32"
             />
           </div>
           <button
