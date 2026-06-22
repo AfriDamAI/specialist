@@ -54,7 +54,7 @@ export default function MessageInput({
     }
   };
 
-  const handleVoiceSend = (blob: Blob, duration: number) => {
+  const handleVoiceSend = (blob: Blob) => {
     const file = new File([blob], `voice-note-${Date.now()}.webm`, { type: 'audio/webm' });
     onSend('', file);
     setIsRecording(false);

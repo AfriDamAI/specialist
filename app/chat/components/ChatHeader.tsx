@@ -23,7 +23,6 @@ interface ChatHeaderProps {
 export default function ChatHeader({
   patient,
   onEndSession,
-  onStartSession,
   onExtendSession,
   onJoinMeet,
   isJoiningMeet = false,

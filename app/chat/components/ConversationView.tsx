@@ -100,6 +100,9 @@ export default function ConversationView({
     );
   }
 
+  const today = new Date().toLocaleDateString();
+  const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toLocaleDateString();
+
   return (
     <div className="flex flex-col flex-1 w-full min-w-0 h-full min-h-0 bg-white dark:bg-gray-950 relative">
       {/* Error Toast */}
@@ -151,8 +154,6 @@ export default function ConversationView({
               : null;
             const showDateSeparator = currentMsgDate !== prevMsgDate;
 
-            const today = new Date().toLocaleDateString();
-            const yesterday = new Date(Date.now() - 86400000).toLocaleDateString();
             let dateLabel = currentMsgDate;
             if (currentMsgDate === today) dateLabel = 'Today';
             else if (currentMsgDate === yesterday) dateLabel = 'Yesterday';

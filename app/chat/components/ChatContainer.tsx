@@ -24,7 +24,6 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
     error,
     isConnected,
     isJoiningMeet,
-    scrollRef,
     sendMessage,
     selectChat,
     clearError,
