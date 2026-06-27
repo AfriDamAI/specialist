@@ -35,9 +35,9 @@ export default function DocumentsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [recentFiles, setRecentFiles] = useState<ClinicalFile[]>([
-    { id: 1, name: 'Medical_License_2026.pdf', type: 'Credential', date: 'Feb 01, 2026', size: '2.4 MB', status: 'Approved' },
-    { id: 2, name: 'Specialization_Cert_Derm.pdf', type: 'Credential', date: 'Feb 01, 2026', size: '1.8 MB', status: 'Approved' },
-    { id: 3, name: 'Tax_ID_Verification.pdf', type: 'Admin', date: 'Jan 28, 2026', size: '840 KB', status: 'Approved' },
+    // { id: 1, name: 'Medical_License_2026.pdf', type: 'Credential', date: 'Feb 01, 2026', size: '2.4 MB', status: 'Approved' },
+    // { id: 2, name: 'Specialization_Cert_Derm.pdf', type: 'Credential', date: 'Feb 01, 2026', size: '1.8 MB', status: 'Approved' },
+    // { id: 3, name: 'Tax_ID_Verification.pdf', type: 'Admin', date: 'Jan 28, 2026', size: '840 KB', status: 'Approved' },
   ]);
 
   useEffect(() => {
@@ -51,6 +51,19 @@ export default function DocumentsPage() {
         const profile = response?.resultData || response?.data;
         
         if (profile?.documents && Array.isArray(profile.documents)) {
+          const mapped: ClinicalFile[] = profile.documents.map((doc: any) => ({
+            id: doc.id ?? doc._id,
+            name: doc.fileName ?? doc.name,
+            type: doc.type ?? 'Credential',
+            date: new Date(doc.uploadedAt ?? doc.date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: '2-digit',
+            year: 'numeric',
+            }),
+            size: doc.size ?? 'N/A',
+            status: doc.status ?? 'Pending Review',
+          }));
+          setRecentFiles(mapped);
           // Rule #3: Logic to map real backend document paths to the UI list
           // This ensures documents uploaded during registration are visible.
         }
@@ -75,9 +88,9 @@ export default function DocumentsPage() {
         name: file.name,
         type: 'Credential Update',
         date: new Date().toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: '2-digit', 
-          year: 'numeric' 
+        month: 'short', 
+        day: '2-digit', 
+        year: 'numeric' 
         }),
         size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
         status: 'Approved' // Rule #3: Auto-approved for current dev phase
@@ -86,16 +99,16 @@ export default function DocumentsPage() {
       setRecentFiles([newFile, ...recentFiles]);
       setIsUploading(false);
 
-      toast.success(`DOCUMENT ADDED TO VAULT`, {
+        toast.success(`DOCUMENT ADDED TO VAULT`, {
         icon: '📤',
         style: {
-          background: '#000',
-          color: '#fff',
-          borderRadius: '1.5rem',
-          fontSize: '10px',
-          fontWeight: '900',
-          textTransform: 'uppercase',
-          padding: '16px',
+        background: '#000',
+        color: '#fff',
+        borderRadius: '1.5rem',
+        fontSize: '10px',
+        fontWeight: '900',
+        textTransform: 'uppercase',
+        padding: '16px',
         }
       });
     }, 1500);
@@ -179,7 +192,19 @@ export default function DocumentsPage() {
 
           <div className="p-4 md:p-8">
             <div className="space-y-3">
-              {recentFiles.map((file) => (
+
+              {/* ✅ Empty state — shows when no documents are loaded from the API */}
+              {recentFiles.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <FolderIcon className="w-12 h-12 text-gray-200 dark:text-gray-700 mb-4" />
+                  <p className="text-xs font-black uppercase tracking-widest text-gray-400 italic">
+                    No Documents Found
+                  </p>
+                  <p className="text-[10px] text-gray-300 dark:text-gray-600 mt-1 italic uppercase tracking-widest">
+                    Upload your Credentials to get started
+                  </p>
+                </div>
+              ) : recentFiles.map((file) => (
                 <div key={file.id} className="flex flex-col md:flex-row md:items-center justify-between p-5 rounded-4xl hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all border border-transparent hover:border-gray-100 dark:hover:border-gray-700 group">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center group-hover:bg-[#FF7A59]/10 transition-colors">
@@ -192,10 +217,26 @@ export default function DocumentsPage() {
                         <span className="w-1 h-1 bg-gray-300 dark:bg-gray-700 rounded-full"></span>
                         <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic">{file.date}</span>
                         <span className="w-1 h-1 bg-gray-300 dark:bg-gray-700 rounded-full"></span>
-                        <span className="text-[9px] font-black uppercase tracking-widest flex items-center gap-1 italic text-green-500">
-                          <CheckBadgeIcon className="w-3 h-3" />
-                          Approved
-                        </span>
+                        
+                        {/**
+                         PENDING BACKEND SUPPORT: Document Status Badges
+                         Status badges (Approved / Pending Review) have been commented out
+                         because the backend does not yet support a status field on documents.
+                         Mr Segun confirmed this on 27/06/2026.
+                         Uncomment this block once the backend adds status support.
+                         
+                         {file.status === 'Approved' ? (
+                            <span className="text-[9px] font-black uppercase tracking-widest flex items-center gap-1 italic text-green-500">
+                              <CheckBadgeIcon className="w-3 h-3" />
+                              Approved
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-black uppercase tracking-widest flex items-center gap-1 italic text-yellow-500">
+                              <ClockIcon className="w-3 h-3" />
+                              Pending Review
+                            </span>
+                          )}
+                         */}
                       </div>
                     </div>
                   </div>
@@ -210,6 +251,7 @@ export default function DocumentsPage() {
                   </div>
                 </div>
               ))}
+
             </div>
           </div>
         </div>

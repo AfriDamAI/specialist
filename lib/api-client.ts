@@ -317,6 +317,9 @@ export interface Wallet {
   balance: number;
   totalIn: number;
   totalOut: number;
+  //Added grossEarned and taxDeducted for breakdown display
+  grossEarned?: number;
+  taxDeducted?: number;
   createdAt: string;
   updatedAt: string;
   transactions?: WalletTransaction[];
@@ -331,6 +334,8 @@ export interface WalletTransaction {
   description: string;
   relatedEntityId?: string;
   relatedEntityType?: string;
+  //Added status field for Pending/Successful badge display
+  status?: 'PENDING' | 'SUCCESSFUL' | 'FAILED';
   createdAt: string;
   updatedAt: string;
 }

@@ -25,6 +25,15 @@ export default function WalletPage() {
 
   useEffect(() => {
     fetchWalletData();
+
+    // Added polling - wallet data refreshes every 30 seconds automatically
+    // Mr Segun confirmed no websocket/SSE setup exists, so polling is the agreed approach
+    const pollingInterval = setInterval(() => {
+      fetchWalletData();
+    }, 30000); // 30 seconds
+
+    // Cleanup - clears the interval when the user leaves the wallet page
+    return () => clearInterval(pollingInterval);
   }, []);
 
   async function fetchWalletData() {
@@ -72,10 +81,12 @@ export default function WalletPage() {
     }
   };
 
+  // Switched currency from USD to Naira
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-NG', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'NGN',
+      minimumFractionDigits: 2,
     }).format(amount);
   };
 
@@ -88,6 +99,13 @@ export default function WalletPage() {
       minute: '2-digit'
     });
   };
+
+  // Added tax and gross helpers for the balance breakdown.
+  // These read from wallet data - no tax logic is calculated here, only displayed
+
+  const grossEarned = wallet?.grossEarned ?? wallet?.totalIn ?? 0;
+  const taxDeducted = wallet?.taxDeducted ?? 0;
+  const netBalance = wallet?.balance ?? 0;
 
   return (
     <DashboardLayout>
@@ -116,6 +134,24 @@ export default function WalletPage() {
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 italic">Available Balance</span>
                   </div>
+              {/* Added gross/tax/net breakdown above the main balance  */}
+              <div className="space-y-2 mb-6 p-4 bg-black/5 dark:bg-white/5 rounded-2xl">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Gross Earned</span>
+                      <span className="text-[11px] font-black text-gray-600 dark:text-gray-300 italic">{formatCurrency(grossEarned)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-red-400 uppercase tracking-widest italic">Tax Deducted</span>
+                      <span className="text-[11px] font-black text-red-400 italic">- {formatCurrency(taxDeducted)}</span>
+                    </div>
+                    <div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-green-500 uppercase tracking-widest italic">Net Balance</span>
+                      <span className="text-[11px] font-black text-green-500 italic">{formatCurrency(netBalance)}</span>
+                    </div>
+                  </div>
+                      {/* end of gross/tax/net breakdown */}
+
                   <h2 className="text-5xl font-black italic tracking-tighter mb-8">
                     {formatCurrency(wallet?.balance || 0)}
                   </h2>
@@ -190,9 +226,26 @@ export default function WalletPage() {
                           }`}>
                             {tx.type === 'CREDIT' ? '+' : '-'}{formatCurrency(tx.amount)}
                           </p>
+
+                          {/* Added Pending/Successful status badge per transaction*/}
+                          {tx.status === 'PENDING' ? (
+                            <span className="text-[9px] font-black uppercase tracking-[0.2em] mt-0.5 flex items-center justify-end gap-1 text-yellow-500 italic">
+                              <ClockIcon className="w-3 h-3" />
+                              Pending
+                            </span>
+                          ) : tx.status === 'SUCCESSFUL' ? (
+                            <span className="text-[9px] font-black uppercase tracking-[0.2em] mt-0.5 flex items-center justify-end gap-1 text-green-500 italic">
+                              <CheckCircleIcon className="w-3 h-3" />
+                              Successful
+                            </span>
+                          ) : (
                           <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mt-0.5">
                             {tx.type}
                           </p>
+                          )}
+
+                          {/* end of pending/successful status badge */}
+
                         </div>
                       </div>
                     ))
@@ -222,12 +275,14 @@ export default function WalletPage() {
 
             <form onSubmit={handleWithdrawalRequest} className="space-y-6">
               <div>
+                {/* Updated label from USD to Naira (₦) */}
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 italic px-2">
-                  Amount to Withdraw (USD)
+                Amount to Withdraw (₦)
                 </label>
                 <div className="relative">
+                  {/* Switched $ symbol to ₦ */}
                   <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
-                    <span className="text-gray-400 font-black italic">$</span>
+                    <span className="text-gray-400 font-black italic">₦</span>
                   </div>
                   <input
                     type="number"
