@@ -480,7 +480,7 @@ export default function AnalyticsPage() {
                   </div>
                 </div>
 
-                <div className="flex-1 w-full h-[300px]">
+                <div className="relative flex-1 w-full h-[300px]">
                   {isMounted && (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
