@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { Eye, EyeOff } from 'lucide-react';
 import { API_URL } from '@/lib/config';
+import { normalizeSpecialization, resolveSpecialistType } from '@/lib/specialist-utils';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -49,7 +50,20 @@ export default function LoginForm() {
           localStorage.setItem('specialistName', data.displayName);
         }
 
-        localStorage.setItem('specialistRole', data.role || 'Specialist');
+        const cachedType = localStorage.getItem('selectedSpecialistType');
+        const rawRole = resolveSpecialistType({
+          backendType: data.type,
+          cachedType,
+          registeredType: localStorage.getItem('registeredSpecialistType'),
+          registeredEmail: localStorage.getItem('registeredSpecialistEmail'),
+          profileEmail: data.email || email,
+          fallbackRole: data.role || data.specialization,
+          context: 'Login',
+        });
+        const normalizedRole = normalizeSpecialization(rawRole) || 'Specialist';
+        localStorage.setItem('specialistRole', normalizedRole);
+        if (rawRole) localStorage.setItem('selectedSpecialistType', rawRole);
+        console.log('Login saved selectedSpecialistType:', localStorage.getItem('selectedSpecialistType'));
 
         // Mapping status for the specialist dashboard view
         localStorage.setItem('specialistStatus', data.isActive ? 'verified' : 'under_review');

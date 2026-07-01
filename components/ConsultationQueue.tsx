@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api-client'; // 🏛️ Rule #6: Centralized Synergy
 import { 
   UserIcon, 
@@ -16,17 +16,23 @@ interface Consultation {
   status: string;
   createdAt: string;
   urgency: 'HIGH' | 'NORMAL';
+  appointmentId?: string;
+  patientId?: string;
 }
 
 interface QueueAssignment {
   id: string;
+  appointmentId?: string;
+  userId?: string;
   name?: string;
   status?: string;
   createdAt: string | number | Date;
   appointment?: {
+    id?: string;
     planTier?: string;
     title?: string;
     user?: {
+      id?: string;
       firstName?: string;
       lastName?: string;
     };
@@ -34,6 +40,7 @@ interface QueueAssignment {
 }
 
 export default function ConsultationQueue() {
+  const router = useRouter();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -54,12 +61,17 @@ export default function ConsultationQueue() {
       
       const activeCases: Consultation[] = Array.isArray(sourceData) ? (sourceData as QueueAssignment[]).map((item) => {
         const user = item.appointment?.user;
+        const appointmentId = item.appointment?.id || item.appointmentId;
+        const patientId = user?.id || item.userId;
+
         return {
           id: item.id,
           patientName: user ? `${user.firstName} ${user.lastName}` : (item.name || "Specialist Triage"),
           status: item.status || 'PENDING',
           createdAt: new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          urgency: (item.appointment?.planTier === 'Instant' || item.appointment?.title?.toLowerCase().includes('urgent') ? 'HIGH' : 'NORMAL') as 'HIGH' | 'NORMAL'
+          urgency: (item.appointment?.planTier === 'Instant' || item.appointment?.title?.toLowerCase().includes('urgent') ? 'HIGH' : 'NORMAL') as 'HIGH' | 'NORMAL',
+          appointmentId,
+          patientId,
         };
       }) : [];
 
@@ -72,6 +84,32 @@ export default function ConsultationQueue() {
       setIsRefreshing(false);
     }
   }, []);
+
+  const handleQueueItemClick = async (item: Consultation) => {
+    const appointmentId = item.appointmentId;
+    const patientId = item.patientId;
+    const targetChatId = item.id;
+
+    const params = new URLSearchParams();
+    if (targetChatId) params.set('chatId', targetChatId);
+    if (patientId) params.set('patientId', patientId);
+    if (appointmentId) params.set('appointmentId', appointmentId);
+
+    // Persist current appointment and chat info for the chat page.
+    if (typeof window !== 'undefined') {
+      if (appointmentId) {
+        localStorage.setItem('activeAppointmentId', appointmentId);
+      }
+      if (patientId) {
+        localStorage.setItem('patientId', patientId);
+      }
+      if (targetChatId) {
+        localStorage.setItem('activeChatId', targetChatId);
+      }
+    }
+
+    router.push(`/chat?${params.toString()}`);
+  };
 
   useEffect(() => {
     fetchLiveQueue();
@@ -118,10 +156,11 @@ export default function ConsultationQueue() {
       ) : (
         <div className="space-y-4">
           {consultations.map((item) => (
-            <Link 
-              href={`/consultation/${item.id}`} 
+            <button
+              type="button"
               key={item.id}
-              className="flex items-center justify-between p-5 md:p-8 dashboard-card rounded-[2rem] md:rounded-[3rem] hover:border-[#FF7A59] transition-all group"
+              onClick={() => handleQueueItemClick(item)}
+              className="w-full text-left flex items-center justify-between p-5 md:p-8 dashboard-card rounded-[2rem] md:rounded-[3rem] hover:border-[#FF7A59] transition-all group"
             >
               <div className="flex items-center gap-6">
                 <div className={`w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] flex items-center justify-center transition-colors ${
@@ -154,7 +193,7 @@ export default function ConsultationQueue() {
                   <ChevronRightIcon className="w-5 h-5" />
                 </div>
               </div>
-            </Link>
+            </button>
           ))}
         </div>
       )}

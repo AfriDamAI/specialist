@@ -25,8 +25,10 @@ export default function ReferralGenerator({ patientName, patientId, isOpen, onCl
   useEffect(() => {
     // 🏛️ Rule #6: Extraction of Real Session Identity for Document Signature
     const savedName = localStorage.getItem('specialistName');
+    const selectedType = localStorage.getItem('selectedSpecialistType');
     const savedRole = localStorage.getItem('specialistRole');
-    if (savedName) setSpecialist({ name: savedName, role: savedRole || 'Specialist' });
+    const activeRole = selectedType || savedRole || 'Specialist';
+    if (savedName) setSpecialist({ name: savedName, role: activeRole });
   }, [isOpen]);
 
   const generatePDF = () => {

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 import { API_URL } from "@/lib/config";
+import { normalizeSpecialization, resolveSpecialistType } from '@/lib/specialist-utils';
 
 /**
  * 🛡️ VerifyEmail Component
@@ -49,8 +50,13 @@ export default function VerifyEmail() {
       });
 
       const result = await response.json();
+      console.log('Verify response:', result);
 
       if (response.ok && result.succeeded) {
+        console.log('Verify resultData:', result.resultData);
+        if (result.resultData && result.resultData.specialist) {
+          console.log('Verified specialist object:', result.resultData.specialist);
+        }
         toast.update(toastId, {
           render: result.message || "Account verified successfully!",
           type: "success",
@@ -65,11 +71,31 @@ export default function VerifyEmail() {
           if (refresh_token) localStorage.setItem('refreshToken', refresh_token);
           
           if (specialist) {
+            const selectedType = localStorage.getItem('selectedSpecialistType') || localStorage.getItem('pendingSpecialistType');
+            const registeredType = localStorage.getItem('registeredSpecialistType');
+            const registeredEmail = localStorage.getItem('registeredSpecialistEmail');
+            console.log('VerifyEmail selectedType before set:', selectedType);
+            console.log('VerifyEmail pendingSpecialistType before set:', localStorage.getItem('pendingSpecialistType'));
+            const rawRole = resolveSpecialistType({
+              backendType: specialist.type,
+              cachedType: selectedType,
+              registeredType,
+              registeredEmail,
+              profileEmail: specialist.email || email,
+              fallbackRole: specialist.role || specialist.specialization,
+              context: 'VerifyEmail',
+            });
+            const normalizedRole = normalizeSpecialization(rawRole) || 'Specialist';
+
             localStorage.setItem('specialistId', specialist.id);
             localStorage.setItem('userId', specialist.id);
             localStorage.setItem('specialistName', `${specialist.firstName} ${specialist.lastName}`);
-            localStorage.setItem('specialistRole', specialist.role || 'SPECIALIST');
+            localStorage.setItem('specialistRole', normalizedRole);
             localStorage.setItem('specialistStatus', specialist.isActive ? 'verified' : 'under_review');
+            if (rawRole) localStorage.setItem('selectedSpecialistType', rawRole);
+            localStorage.removeItem('pendingSpecialistType');
+            console.log('VerifyEmail saved selectedSpecialistType:', localStorage.getItem('selectedSpecialistType'));
+            console.log('VerifyEmail after remove pending:', localStorage.getItem('pendingSpecialistType'));
           }
         }
         
@@ -105,7 +131,7 @@ export default function VerifyEmail() {
         </div>
         <h2 className="text-xl font-black uppercase tracking-tight text-gray-900">Verify Your Email</h2>
         <p className="text-gray-500 text-sm mt-2 not-italic">
-          We've sent a code to <span className="font-bold text-black">{email}</span>. 
+          We&apos;ve sent a code to <span className="font-bold text-black">{email}</span>.
           Enter it below to complete your registration.
         </p>
       </div>
@@ -135,7 +161,7 @@ export default function VerifyEmail() {
         </button>
 
         <p className="text-center text-[10px] font-black uppercase tracking-widest text-gray-400 mt-6">
-          Didn't receive the code? Check your spam or <button type="button" onClick={() => router.back()} className="text-[#FF7A59] hover:underline">Try again</button>
+          Didn&apos;t receive the code? Check your spam or <button type="button" onClick={() => router.back()} className="text-[#FF7A59] hover:underline">Try again</button>
         </p>
       </form>
     </div>

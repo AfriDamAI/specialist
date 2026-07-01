@@ -25,6 +25,7 @@ import {
 } from 'recharts';
 import { toast } from 'react-hot-toast';
 import { apiClient } from '@/lib/api-client'; // 🏛️ Rule #6: Centralized Handshake
+import { getSpecialistDisplayRole } from '@/lib/specialist-utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -65,11 +66,12 @@ export default function AnalyticsPage() {
   });
 
   useEffect(() => {
-    const rawRole = localStorage.getItem('specialistRole') || 'Nurse';
+    const selectedType = localStorage.getItem('selectedSpecialistType');
+    const rawRole = selectedType || localStorage.getItem('specialistRole') || 'Nurse';
     // Rule #3: Sanitizing role for the matrix lookup
     const roleKey = rawRole.replace(/\s/g, '') as keyof typeof PAYOUT_MATRIX.Instant;
     
-    setSpecialistRole(rawRole);
+    setSpecialistRole(getSpecialistDisplayRole(rawRole));
     setIsMounted(true);
 
     async function fetchProductionAnalytics() {

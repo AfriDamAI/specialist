@@ -121,17 +121,29 @@ export default function RegistrationForm() {
         type: formData.specialization,
       };
 
+      console.log('Registration payload:', payload);
+      console.log('Registration payload.type:', payload.type);
+      localStorage.setItem('selectedSpecialistType', payload.type);
+      localStorage.setItem('pendingSpecialistType', payload.type);
+      localStorage.setItem('registeredSpecialistType', payload.type);
+      localStorage.setItem('registeredSpecialistEmail', payload.email.trim().toLowerCase());
+      console.log('saved selectedSpecialistType after register:', localStorage.getItem('selectedSpecialistType'));
+      console.log('saved pendingSpecialistType after register:', localStorage.getItem('pendingSpecialistType'));
+
       const response = await fetch(`${BASE_URL}/auth/specialist/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
+      const result = await response.json().catch(() => null);
+      console.log('Registration response status:', response.status, 'body:', result);
+
       if (response.ok) {
         toast.success("Registration Initialized! Please verify your email.");
         router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`);
       } else {
-        const error = await response.json();
+        const error = result || { message: 'Registration failed.' };
         toast.error(error.message || "Registration failed.");
       }
     } catch {

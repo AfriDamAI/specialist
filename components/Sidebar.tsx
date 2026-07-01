@@ -41,12 +41,14 @@ export default function Sidebar() {
   useEffect(() => {
     // Rule #3: Extracting unique session identity
     const savedName = localStorage.getItem('specialistName');
+    const selectedType = localStorage.getItem('selectedSpecialistType');
     const savedRole = localStorage.getItem('specialistRole');
+    const activeRole = selectedType || savedRole;
 
-    if (savedName || savedRole) {
+    if (savedName || activeRole) {
       setUser({
         name: savedName || 'Specialist',
-        role: getSpecialistDisplayRole(savedRole)
+        role: getSpecialistDisplayRole(activeRole)
       });
     }
   }, []);

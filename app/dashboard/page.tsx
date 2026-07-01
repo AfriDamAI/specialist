@@ -4,7 +4,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ConsultationQueue from '@/components/ConsultationQueue';
 import { apiClient } from '@/lib/api-client'; // 🏛️ Rule #6: Centralized Handshake
-import { normalizeSpecialization, getSpecialistDashboardTitle, getSpecialistDisplayRole } from '@/lib/specialist-utils';
+import { normalizeSpecialization, resolveSpecialistType, getSpecialistDashboardTitle, getSpecialistDisplayRole } from '@/lib/specialist-utils';
 import { 
   CheckBadgeIcon, 
   WalletIcon, 
@@ -52,7 +52,19 @@ export default function DashboardPage() {
         
         if (data) {
           // Rule #5: Humanizing the greeting with real names
-          const rawRole = data.specialization || data.role || '';
+          const cachedType = localStorage.getItem('selectedSpecialistType');
+          console.log('Dashboard page resultData:', data);
+          console.log('Dashboard page selectedType:', cachedType);
+          console.log('Dashboard page stored specialistRole:', localStorage.getItem('specialistRole'));
+          const rawRole = resolveSpecialistType({
+            backendType: data.type,
+            cachedType,
+            registeredType: localStorage.getItem('registeredSpecialistType'),
+            registeredEmail: localStorage.getItem('registeredSpecialistEmail'),
+            profileEmail: data.email,
+            fallbackRole: data.specialization || data.role,
+            context: 'Dashboard page',
+          });
           const normalizedRole = normalizeSpecialization(rawRole) || 'Specialist';
 
           setUserName(data.firstName || 'Specialist');
@@ -62,6 +74,7 @@ export default function DashboardPage() {
           // Rule #3: Persistence sync for the layout
           localStorage.setItem('specialistName', `${data.firstName} ${data.lastName}`);
           localStorage.setItem('specialistRole', normalizedRole);
+          if (rawRole) localStorage.setItem('selectedSpecialistType', rawRole);
           localStorage.setItem('specialistStatus', 'verified'); 
         }
       } catch {

@@ -21,6 +21,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { apiClient } from '@/lib/api-client'; // 🏛️ Rule #6: Centralized Handshake
 import { useTheme } from '@/context/ThemeContext';
+import { getSpecialistDisplayRole } from '@/lib/specialist-utils';
 
 export default function SettingsPage() {
 
@@ -58,12 +59,13 @@ export default function SettingsPage() {
         const data = response?.resultData || response?.data || response;
 
         if (data) {
+          const rawRole = data.type || data.specialization || data.role || 'Medical Personnel';
           setUser({
             firstName: data.firstName || 'Specialist',
             lastName: data.lastName || '',
             email: data.email || 'not-linked@afridam.ai',
             phoneNo: data.phoneNo || 'No Phone Linked',
-            role: data.specialization || 'Medical Personnel'
+            role: getSpecialistDisplayRole(rawRole)
           });
         }
       } catch (error) {

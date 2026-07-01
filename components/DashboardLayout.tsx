@@ -23,7 +23,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useTheme } from '@/context/ThemeContext';
 import { API_URL } from '@/lib/config';
-import { getSpecialistDashboardTitle, getSpecialistDisplayRole } from '@/lib/specialist-utils';
+import { normalizeSpecialization, resolveSpecialistType, getSpecialistDashboardTitle, getSpecialistDisplayRole } from '@/lib/specialist-utils';
 
 interface DashboardLayoutProps {
   children?: React.ReactNode;
@@ -55,7 +55,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     setMounted(true);
 
     const savedName = localStorage.getItem('specialistName');
+    const selectedType = localStorage.getItem('selectedSpecialistType');
     const savedRole = localStorage.getItem('specialistRole');
+    const initialRole = selectedType || savedRole;
     const rawToken = localStorage.getItem('token');
 
     if (!rawToken) {
@@ -63,12 +65,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       return;
     }
 
-    if (savedName || savedRole) {
+    if (savedName || initialRole) {
       setUser({
         name: savedName || 'Specialist',
-        role: getSpecialistDisplayRole(savedRole)
+        role: getSpecialistDisplayRole(initialRole)
       });
-      setDashboardTitle(getSpecialistDashboardTitle(savedRole));
+      setDashboardTitle(getSpecialistDashboardTitle(initialRole));
     }
 
     const syncProfile = async () => {
@@ -88,9 +90,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           const profile = json.resultData;
 
           if (profile) {
+            console.log('DashboardLayout profile:', profile);
+            console.log('DashboardLayout selectedType:', localStorage.getItem('selectedSpecialistType'));
+            console.log('DashboardLayout stored specialistRole:', localStorage.getItem('specialistRole'));
             const fullName = `${profile.firstName} ${profile.lastName}`.trim();
-            const rawRole = profile.specialization || profile.role || 'Specialist';
-            const normalizedRole = rawRole.toString().trim() || 'Specialist';
+            const cachedType = localStorage.getItem('selectedSpecialistType');
+            const rawRole = resolveSpecialistType({
+              backendType: profile.type,
+              cachedType,
+              registeredType: localStorage.getItem('registeredSpecialistType'),
+              registeredEmail: localStorage.getItem('registeredSpecialistEmail'),
+              profileEmail: profile.email,
+              fallbackRole: profile.specialization || profile.role,
+              context: 'DashboardLayout',
+            });
+            const normalizedRole = normalizeSpecialization(rawRole) || 'Specialist';
             const displayRole = getSpecialistDisplayRole(normalizedRole);
 
             setUser({ name: fullName, role: displayRole });
@@ -98,6 +112,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
             localStorage.setItem('specialistName', fullName);
             localStorage.setItem('specialistRole', normalizedRole);
+            if (rawRole) localStorage.setItem('selectedSpecialistType', rawRole);
             localStorage.setItem('userId', profile.id);
             localStorage.setItem('specialistId', profile.id);
             localStorage.setItem('specialistStatus', 'verified');
