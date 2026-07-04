@@ -2,8 +2,10 @@
 
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { mapSpecializationToLabel } from '@/lib/specialist-utils';
 import { 
   Squares2X2Icon, 
   AcademicCapIcon, 
@@ -23,8 +25,6 @@ const menuItems = [
   { name: 'Dashboard', icon: Squares2X2Icon, href: '/dashboard' },
   { name: 'Academy', icon: AcademicCapIcon, href: '/training' },
   { name: 'Appointments', icon: CalendarDaysIcon, href: '/appointments' },
-  { name: 'Patients', icon: UsersIcon, href: '/patients' },
-  { name: 'Consultations', icon: ChatBubbleBottomCenterTextIcon, href: '/consultations' },
   { name: 'Schedule', icon: ClockIcon, href: '/schedule' },
   { name: 'Analytics', icon: ChartBarIcon, href: '/analytics' },
   { name: 'Wallet', icon: CreditCardIcon, href: '/wallet' },
@@ -36,18 +36,38 @@ const menuItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [user, setUser] = useState({ name: 'Specialist', role: 'Medical Personnel' });
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     // Rule #3: Extracting unique session identity
     const savedName = localStorage.getItem('specialistName');
-    const savedRole = localStorage.getItem('specialistRole');
+    const sid = localStorage.getItem('specialistId') || localStorage.getItem('userId');
+    const savedRole = (sid && localStorage.getItem(`specialistRole:${sid}`)) || localStorage.getItem('specialistRole');
 
     if (savedName) {
       setUser({
         name: savedName,
-        role: savedRole || 'Medical Personnel'
+        role: mapSpecializationToLabel(savedRole || 'Medical Personnel')
       });
     }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchCount = async () => {
+      try {
+        const res = await apiClient('/appointments/assignments/me');
+        const data = res?.resultData || res?.data || res || [];
+        const pending = Array.isArray(data) ? data.filter((a: any) => a.status === 'PENDING').length : 0;
+        if (mounted) setPendingCount(pending);
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    fetchCount();
+    const iv = setInterval(fetchCount, 15000);
+    return () => { mounted = false; clearInterval(iv); };
   }, []);
 
   const handleLogout = () => {
@@ -98,7 +118,12 @@ export default function Sidebar() {
               }`}
             >
               <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-[#FF7A59]'}`} />
-              {item.name}
+              <div className="flex items-center gap-2">
+                <span>{item.name}</span>
+                {item.name === 'Appointments' && pendingCount > 0 && (
+                  <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-black text-white bg-red-600 rounded-full">{pendingCount}</span>
+                )}
+              </div>
             </Link>
           );
         })}

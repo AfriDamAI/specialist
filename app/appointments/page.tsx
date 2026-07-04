@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import {
   CalendarIcon,
+  CheckCircleIcon,
   ClockIcon,
   ArrowPathIcon,
   InboxIcon,
@@ -14,6 +15,7 @@ import {
   ChevronRightIcon,
   PlayIcon,
   UserCircleIcon,
+  XCircleIcon,
 } from '@heroicons/react/24/solid';
 import { apiClient } from '@/lib/api-client'; // 🏛️ Rule #6: Centralized Handshake
 import PatientProfileModal from '@/components/PatientProfileModal';
@@ -71,6 +73,7 @@ const AppointmentModal = ({
   const appointmentNotes = notes || detailedAppointment?.notes || 'No message provided.';
   const formattedTime = new Date(createdAt).toLocaleTimeString('en-US', { hour12: true });
   const formattedDate = new Date(createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const hasResponded = status === 'ACCEPTED' || status === 'DECLINED';
   const isDisabled = status !== 'PENDING';
 
   const handleAccept = async () => {
@@ -173,12 +176,21 @@ const AppointmentModal = ({
 
           <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</p>
-            <span className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg ${status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
-              status === 'ACCEPTED' ? 'bg-green-100 text-green-700' :
-                'bg-gray-100 text-gray-700'
-              }`}>
-              {status || 'PENDING'}
-            </span>
+            <div className="flex items-center gap-2">
+              {status === 'ACCEPTED' ? (
+                <CheckCircleIcon className="w-4 h-4 text-green-600" />
+              ) : status === 'DECLINED' ? (
+                <XCircleIcon className="w-4 h-4 text-red-600" />
+              ) : (
+                <span className="w-4 h-4 rounded-full bg-yellow-300 inline-block" />
+              )}
+              <span className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-lg ${status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                status === 'ACCEPTED' ? 'bg-green-100 text-green-700' :
+                  'bg-red-100 text-red-700'
+                }`}>
+                {status || 'PENDING'}
+              </span>
+            </div>
           </div>
 
           {appointmentNotes && appointmentNotes !== 'No message provided.' && (
@@ -192,16 +204,16 @@ const AppointmentModal = ({
             <button
               onClick={handleAccept}
               disabled={isConnecting || isDisabled}
-              className="flex-1 bg-[#FF7A59] text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-[#e56b4a] transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`flex-1 py-4 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${status === 'ACCEPTED' ? 'bg-green-400 text-white' : 'bg-[#FF7A59] text-white hover:bg-[#e56b4a]'}`}
             >
-              {isConnecting ? 'Accepting...' : 'Accept'}
+              {isConnecting ? 'Accepting...' : hasResponded ? 'Accepted' : 'Accept'}
             </button>
             <button
               onClick={handleDecline}
               disabled={isDeclining || isDisabled}
-              className="px-8 border-2 border-red-500 text-red-500 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-red-50 dark:hover:bg-red-950/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`px-8 py-4 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${status === 'DECLINED' ? 'bg-red-400 text-white' : 'border-2 border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20'}`}
             >
-              {isDeclining ? '...' : 'Decline'}
+              {isDeclining ? '...' : hasResponded ? 'Declined' : 'Decline'}
             </button>
           </div>
         </div>
@@ -221,26 +233,42 @@ const AppointmentCard = ({
   const { appointmentId, status, createdAt } = appointment;
   const formattedTime = new Date(createdAt).toLocaleTimeString('en-US', { hour12: true });
   const formattedDateCreated = new Date(createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const hasResponded = status === 'ACCEPTED' || status === 'DECLINED';
 
   return (
     <div
       onClick={() => onClick(appointment)}
-      className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-5 rounded-[2rem] flex flex-col gap-4 group hover:border-[#FF7A59] hover:shadow-xl transition-all cursor-pointer relative overflow-hidden"
+      className={`bg-white dark:bg-gray-900 border p-5 rounded-[2rem] flex flex-col gap-4 group transition-all relative overflow-hidden ${
+        status === 'ACCEPTED'
+          ? 'border-green-200 dark:border-green-700'
+          : status === 'DECLINED'
+            ? 'border-red-200 dark:border-red-700'
+            : 'border-gray-100 dark:border-gray-800 hover:border-[#FF7A59] hover:shadow-xl'
+      }`}
     >
       <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF7A59]/5 rounded-full -mr-16 -mt-16 group-hover:bg-[#FF7A59]/10 transition-colors" />
 
       <div className="flex justify-between items-start relative z-10">
         <div>
-          <h3 className="text-sm font-black text-gray-900 dark:text-white tracking-tighter group-hover:text-[#FF7A59] uppercase italic transition-colors">
+          <h3 className="text-sm font-black text-gray-900 dark:text-white tracking-tighter uppercase italic transition-colors">
             ID: {appointmentId.slice(0, 8)}
           </h3>
-          <p className="text-[10px] font-bold text-gray-400 uppercase mt-1 tracking-widest">
-            {status || 'PENDING'}
-          </p>
+          <div className="mt-1 flex items-center gap-2">
+            {status === 'ACCEPTED' ? (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-black uppercase tracking-[0.2em]">
+                <CheckCircleIcon className="w-3.5 h-3.5" /> Accepted
+              </span>
+            ) : status === 'DECLINED' ? (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-100 text-red-700 text-[10px] font-black uppercase tracking-[0.2em]">
+                <XCircleIcon className="w-3.5 h-3.5" /> Declined
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-[10px] font-black uppercase tracking-[0.2em]">
+                Pending
+              </span>
+            )}
+          </div>
         </div>
-        <div className={`w-3 h-3 rounded-full ${status === 'PENDING' ? 'bg-yellow-400 animate-pulse' :
-          status === 'ACCEPTED' ? 'bg-green-400' : 'bg-gray-400'
-          }`} />
       </div>
 
       <div className="flex flex-col gap-1 relative z-10">

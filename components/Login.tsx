@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { Eye, EyeOff } from 'lucide-react';
 import { API_URL } from '@/lib/config';
+import { mapSpecializationToLabel } from '@/lib/specialist-utils';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -28,6 +29,14 @@ export default function LoginForm() {
         body: JSON.stringify({ email, password }),
       });
 
+      if (!response.ok) {
+        const errText = await response.text().catch(() => null);
+        console.error('Login request failed', response.status, errText);
+        toast.error(errText || 'We could not verify these details.');
+        setLoading(false);
+        return;
+      }
+
       const data = await response.json();
 
       if (response.ok) {
@@ -39,8 +48,8 @@ export default function LoginForm() {
         localStorage.setItem('refreshToken', data.refreshToken);
 
         // 🛡️ Precision Fix: Storing the ID for chat and session consistency
-        if (data.id || data.specialistId) {
-          const id = data.id || data.specialistId;
+        const id = data.id || data.specialistId;
+        if (id) {
           localStorage.setItem('specialistId', id);
           localStorage.setItem('userId', id);
         }
@@ -49,7 +58,15 @@ export default function LoginForm() {
           localStorage.setItem('specialistName', data.displayName);
         }
 
-        localStorage.setItem('specialistRole', data.role || 'Specialist');
+        const mappedRole = mapSpecializationToLabel(
+          data.specialization || data.type || data.speciality || data.specialty || data.role || data.profession || data.title || 'Specialist'
+        );
+        if (id) {
+          localStorage.setItem(`specialistRole:${id}`, mappedRole);
+          localStorage.setItem('specialistRole', mappedRole);
+        } else {
+          localStorage.setItem('specialistRole', mappedRole);
+        }
 
         // Mapping status for the specialist dashboard view
         localStorage.setItem('specialistStatus', data.isActive ? 'verified' : 'under_review');

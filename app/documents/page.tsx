@@ -47,7 +47,17 @@ export default function DocumentsPage() {
          * 🏛️ Rule #6: Identity Handshake
          * We fetch the specialist profile to see the 'documents' array stored during onboarding.
          */
-        const response = await apiClient('/specialists/me');
+        const specialistId = localStorage.getItem('specialistId') || localStorage.getItem('userId');
+        let response;
+        if (specialistId) {
+          response = await apiClient(`/specialists/${specialistId}`);
+        } else {
+          try {
+            response = await apiClient('/specialists/me');
+          } catch (e) {
+            response = null;
+          }
+        }
         const profile = response?.resultData || response?.data;
         
         if (profile?.documents && Array.isArray(profile.documents)) {

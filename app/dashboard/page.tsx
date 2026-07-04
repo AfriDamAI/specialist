@@ -4,6 +4,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ConsultationQueue from '@/components/ConsultationQueue';
 import { apiClient } from '@/lib/api-client';
+import { dashboardTitleFromSpec, mapSpecializationToLabel } from '@/lib/specialist-utils';
 import {
   CheckBadgeIcon,
   WalletIcon,
@@ -63,15 +64,33 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchSpecialistProfile() {
       try {
-        const response = await apiClient('/specialists/me');
+        const specialistId = localStorage.getItem('specialistId') || localStorage.getItem('userId');
+        let response;
+        if (specialistId) {
+          response = await apiClient(`/specialists/${specialistId}`);
+        } else {
+          // Backwards-compatible fallback when the client hasn't stored an ID yet
+          try {
+            response = await apiClient('/specialists/me');
+          } catch (e) {
+            response = null;
+          }
+        }
         const data = response?.resultData ?? response?.data ?? response;
 
         if (data) {
+          const mappedRole = mapSpecializationToLabel(
+            data.specialization || data.type || data.speciality || data.specialty || data.role || data.profession || data.title || 'Specialist'
+          );
           setUserName(data.firstName || 'Specialist');
-          setUserRole(data.specialization || 'Medical Personnel');
+          setUserRole(mappedRole);
           localStorage.setItem('specialistName', `${data.firstName} ${data.lastName}`);
-          localStorage.setItem('specialistRole', data.specialization || '');
-          localStorage.setItem('specialistStatus', 'verified');
+          if (specialistId) {
+            localStorage.setItem(`specialistRole:${specialistId}`, mappedRole);
+            localStorage.setItem('specialistRole', mappedRole);
+          } else {
+            localStorage.setItem('specialistRole', mappedRole);
+          }
         }
       } catch {
         console.warn('Profile sync: using cached identity.');
@@ -149,7 +168,7 @@ export default function DashboardPage() {
               <CheckBadgeIcon className="w-8 h-8 md:w-12 md:h-12 text-[#FF7A59] drop-shadow-lg" />
             </div>
             <p className="text-gray-500 dark:text-gray-400 font-bold text-sm md:text-base tracking-tight">
-              {userRole} <span className="mx-2 text-gray-300">•</span> Verified Specialist
+              {dashboardTitleFromSpec(userRole)} <span className="mx-2 text-gray-300">•</span> Verified Specialist
             </p>
           </div>
 

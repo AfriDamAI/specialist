@@ -27,6 +27,7 @@ import {
 } from 'recharts';
 import { toast } from 'react-hot-toast';
 import { apiClient } from '@/lib/api-client';
+import { mapSpecializationToLabel } from '@/lib/specialist-utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -179,15 +180,17 @@ export default function AnalyticsPage() {
   const fetchAllData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const rawRole = localStorage.getItem('specialistRole') || 'Nurse';
+      const sid = localStorage.getItem('specialistId') || localStorage.getItem('userId');
+      const rawRole = (sid && localStorage.getItem(`specialistRole:${sid}`)) || localStorage.getItem('specialistRole') || 'Nurse';
       setSpecialistRole(rawRole);
 
+      const specialistId = localStorage.getItem('specialistId') || localStorage.getItem('userId');
       const [assignmentsRes, walletRes, transactionsRes, profileRes] =
         await Promise.allSettled([
           apiClient('/appointments/assignments/me'),
           apiClient('/wallets/me'),
           apiClient('/wallets/me/transactions'),
-          apiClient('/specialists/me'),
+          specialistId ? apiClient(`/specialists/${specialistId}`) : apiClient('/specialists/me'),
         ]);
 
       // Assignments
@@ -218,8 +221,15 @@ export default function AnalyticsPage() {
         const data = raw?.resultData ?? raw?.data ?? raw;
         if (data) {
           setProfile(data as SpecialistProfile);
-          setSpecialistRole(data.specialization || rawRole);
-          localStorage.setItem('specialistRole', data.specialization || rawRole);
+          const mapped = mapSpecializationToLabel(
+            data.specialization || data.type || data.speciality || data.specialty || data.role || rawRole
+          );
+          setSpecialistRole(mapped);
+          const sid = localStorage.getItem('specialistId') || localStorage.getItem('userId');
+          if (sid) {
+            localStorage.setItem(`specialistRole:${sid}`, mapped);
+            localStorage.setItem('specialistRole', mapped);
+          } else localStorage.setItem('specialistRole', mapped);
         }
       }
     } catch (err) {

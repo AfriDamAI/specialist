@@ -9,6 +9,7 @@ import {
   QrCodeIcon
 } from '@heroicons/react/24/solid';
 import { toast } from 'react-hot-toast';
+import { mapSpecializationToLabel } from '@/lib/specialist-utils';
 
 interface ReferralProps {
   patientName: string;
@@ -25,8 +26,9 @@ export default function ReferralGenerator({ patientName, patientId, isOpen, onCl
   useEffect(() => {
     // 🏛️ Rule #6: Extraction of Real Session Identity for Document Signature
     const savedName = localStorage.getItem('specialistName');
-    const savedRole = localStorage.getItem('specialistRole');
-    if (savedName) setSpecialist({ name: savedName, role: savedRole || 'Specialist' });
+    const sid = localStorage.getItem('specialistId') || localStorage.getItem('userId');
+    const savedRole = (sid && localStorage.getItem(`specialistRole:${sid}`)) || localStorage.getItem('specialistRole');
+    if (savedName) setSpecialist({ name: savedName, role: mapSpecializationToLabel(savedRole || 'Specialist') });
   }, [isOpen]);
 
   const generatePDF = () => {
