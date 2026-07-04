@@ -26,7 +26,10 @@ interface QueueAssignment {
   name?: string;
   status?: string;
   createdAt: string | number | Date;
+  appointmentId?: string | null;
   appointment?: {
+    id?: string;
+    appointmentId?: string;
     planTier?: string;
     title?: string;
     user?: {

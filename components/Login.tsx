@@ -48,9 +48,8 @@ export default function LoginForm() {
         localStorage.setItem('refreshToken', data.refreshToken);
 
         // 🛡️ Precision Fix: Storing the ID for chat and session consistency
-        let id: string | undefined;
-        if (data.id || data.specialistId) {
-          id = data.id || data.specialistId;
+        const id = data.id || data.specialistId;
+        if (id) {
           localStorage.setItem('specialistId', id);
           localStorage.setItem('userId', id);
         }
