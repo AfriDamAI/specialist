@@ -54,7 +54,17 @@ export default function SettingsPage() {
          * 🏛️ Rule #6: Identity Handshake
          * Fetching full details to populate Email and Phone Number from resultData
          */
-        const response = await apiClient('/specialists/me');
+        const specialistId = localStorage.getItem('specialistId') || localStorage.getItem('userId');
+        let response;
+        if (specialistId) {
+          response = await apiClient(`/specialists/${specialistId}`);
+        } else {
+          try {
+            response = await apiClient('/specialists/me');
+          } catch (e) {
+            response = null;
+          }
+        }
         const data = response?.resultData || response?.data || response;
 
         if (data) {

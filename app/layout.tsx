@@ -50,6 +50,34 @@ export default function RootLayout({
             } catch (_) {}
           `}
         </Script>
+        <Script id="role-init" strategy="beforeInteractive">
+          {`
+            try {
+              var sid = localStorage.getItem('specialistId') || localStorage.getItem('userId');
+              var globalRaw = localStorage.getItem('specialistRole') || '';
+              var perKey = sid ? localStorage.getItem('specialistRole:' + sid) : null;
+              var ROLE_MAP = {
+                SKINCARE_CONSULTANT: 'Skin Care Consultant',
+                DERMATOLOGIST: 'Dermatologist',
+                MEDICAL_OFFICER: 'Medical Officer',
+                REGISTERED_NURSE: 'Registered Nurse',
+                SPECIALIST: 'Specialist',
+                DOCTOR: 'Doctor',
+                NURSE: 'Nurse',
+                CONSULTANT: 'Consultant'
+              };
+              function mapRaw(raw){
+                var norm = ('' + raw).trim().toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_|_$/g,'');
+                return ROLE_MAP[norm] || raw;
+              }
+              if (perKey) {
+                // ensure per-key is normalized
+                var mapped = mapRaw(perKey);
+                localStorage.setItem('specialistRole:' + sid, mapped);
+              }
+            } catch (_) {}
+          `}
+        </Script>
         <ThemeProvider>
           {/* Rule #5: NotificationProvider acts as the Neural Root for real-time alerts */}
           <NotificationProvider>

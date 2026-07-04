@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { API_URL } from '@/lib/config';
+import { mapSpecializationToLabel } from '@/lib/specialist-utils';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -31,6 +32,14 @@ export default function LoginPage() {
 
       const data = await response.json();
 
+      if (!response.ok) {
+        const errText = await response.text().catch(() => null);
+        console.error('Login request failed', response.status, errText);
+        toast.error(errText || data?.message || 'Identity verification failed.');
+        setLoading(false);
+        return;
+      }
+
       if (response.ok) {
         /**
          * 🛡️ OGA PRECISION FIX: 
@@ -38,10 +47,19 @@ export default function LoginPage() {
          */
         localStorage.setItem('token', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
-        localStorage.setItem('specialistId', data.id);
-        localStorage.setItem('userId', data.id);
+        const id = data.id;
+        if (id) {
+          localStorage.setItem('specialistId', id);
+          localStorage.setItem('userId', id);
+        }
         localStorage.setItem('specialistName', data.displayName || 'Specialist');
-        localStorage.setItem('specialistRole', data.role || 'Specialist');
+        const mappedRole = mapSpecializationToLabel(
+          data.specialization || data.type || data.speciality || data.specialty || data.role || data.profession || data.title || 'Specialist'
+        );
+        if (id) {
+          localStorage.setItem(`specialistRole:${id}`, mappedRole);
+          localStorage.setItem('specialistRole', mappedRole);
+        } else localStorage.setItem('specialistRole', mappedRole);
         localStorage.setItem('specialistStatus', data.isActive ? 'verified' : 'under_review');
 
         toast.success(`Access Granted. Welcome, ${data.displayName || 'Doctor'}.`);

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 import { API_URL } from "@/lib/config";
+import { mapSpecializationToLabel } from '@/lib/specialist-utils';
 
 /**
  * 🛡️ VerifyEmail Component
@@ -68,7 +69,13 @@ export default function VerifyEmail() {
             localStorage.setItem('specialistId', specialist.id);
             localStorage.setItem('userId', specialist.id);
             localStorage.setItem('specialistName', `${specialist.firstName} ${specialist.lastName}`);
-            localStorage.setItem('specialistRole', specialist.role || 'SPECIALIST');
+            const mappedRole = mapSpecializationToLabel(
+              specialist.specialization || specialist.type || specialist.role || specialist.speciality || specialist.specialty || 'SPECIALIST'
+            );
+            if (specialist.id) {
+              localStorage.setItem(`specialistRole:${specialist.id}`, mappedRole);
+              localStorage.setItem('specialistRole', mappedRole);
+            } else localStorage.setItem('specialistRole', mappedRole);
             localStorage.setItem('specialistStatus', specialist.isActive ? 'verified' : 'under_review');
           }
         }

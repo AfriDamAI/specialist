@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import NotificationBell from './NotificationBell';
+import { dashboardTitleFromSpec, mapSpecializationToLabel } from '@/lib/specialist-utils';
 import {
   MagnifyingGlassIcon,
   ChartBarSquareIcon,
@@ -53,7 +54,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     setMounted(true);
 
     const savedName = localStorage.getItem('specialistName');
-    const savedRole = localStorage.getItem('specialistRole');
+    const sid = localStorage.getItem('specialistId') || localStorage.getItem('userId');
+    const savedRole = (sid && localStorage.getItem(`specialistRole:${sid}`)) || localStorage.getItem('specialistRole');
     const rawToken = localStorage.getItem('token');
 
     if (!rawToken) {
@@ -64,7 +66,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     if (savedName) {
       setUser({
         name: savedName,
-        role: savedRole || 'Medical Personnel'
+        role: mapSpecializationToLabel(savedRole || 'Medical Personnel')
       });
     }
 
@@ -86,14 +88,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           if (profile) {
             const fullName = `${profile.firstName} ${profile.lastName}`.trim();
-            const currentRole = profile.specialization || 'Specialist';
+            const currentRole = mapSpecializationToLabel(
+              profile.specialization || profile.type || profile.speciality || profile.specialty || profile.role || profile.profession || profile.title || 'Specialist'
+            );
 
             setUser({ name: fullName, role: currentRole });
 
             localStorage.setItem('specialistName', fullName);
-            localStorage.setItem('specialistRole', currentRole);
-            localStorage.setItem('userId', profile.id);
-            localStorage.setItem('specialistId', profile.id);
+            if (profile.id) {
+              localStorage.setItem(`specialistRole:${profile.id}`, currentRole);
+              localStorage.setItem('specialistRole', currentRole);
+              localStorage.setItem('userId', profile.id);
+              localStorage.setItem('specialistId', profile.id);
+            } else {
+              localStorage.setItem('specialistRole', currentRole);
+            }
             localStorage.setItem('specialistStatus', 'verified');
           }
         }
@@ -127,8 +136,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const menuItems = [
     { id: 'dashboard', icon: <ChartBarSquareIcon className="w-6 h-6" />, label: 'Dashboard', href: '/dashboard' },
     { id: 'appointments', icon: <CalendarIcon className="w-6 h-6" />, label: 'Appointments', href: '/appointments' },
-    { id: 'patients', icon: <UsersIcon className="w-6 h-6" />, label: 'Patients', href: '/patients' },
-    { id: 'consultation', icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />, label: 'Consultations', href: '/consultation' },
     { id: 'chat', icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />, label: 'Chat', href: '/chat' },
     { id: 'wallet', icon: <CreditCardIcon className="w-6 h-6" />, label: 'Wallet', href: '/wallet' },
     { id: 'analytics', icon: <PresentationChartLineIcon className="w-6 h-6" />, label: 'Analytics', href: '/analytics' },
