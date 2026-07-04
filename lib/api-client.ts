@@ -219,7 +219,7 @@ export const getAppointmentById = async (id: string): Promise<any> => {
 
 
 export const startAppointmentSession = async (id: string): Promise<any> => {
-  const response = await apiClient(`/appointments/${id}/start-session`, {
+  const response = await apiClient(`/session/start/${id}`, {
     method: 'POST',
   });
   return response?.data || response;
