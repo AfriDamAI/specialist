@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { API_URL } from '@/lib/config';
 import { mapSpecializationToLabel } from '@/lib/specialist-utils';
 
@@ -14,12 +14,49 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Field-level validation errors
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  // General auth / network error (shown below password field)
+  const [authError, setAuthError] = useState('');
+
   const router = useRouter();
 
   const BASE_URL = API_URL;
 
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    if (emailError) setEmailError('');
+    if (authError) setAuthError('');
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    if (passwordError) setPasswordError('');
+    if (authError) setAuthError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Reset previous errors before validating again
+    setEmailError('');
+    setPasswordError('');
+    setAuthError('');
+
+    // Client-side validation before hitting the API
+    let hasValidationError = false;
+    if (!email.trim()) {
+      setEmailError('Clinical email is required.');
+      hasValidationError = true;
+    }
+    if (!password) {
+      setPasswordError('Security key is required.');
+      hasValidationError = true;
+    }
+    if (hasValidationError) return;
+
     setLoading(true);
 
     try {
@@ -62,17 +99,24 @@ export default function LoginPage() {
         } else localStorage.setItem('specialistRole', mappedRole);
         localStorage.setItem('specialistStatus', data.isActive ? 'verified' : 'under_review');
 
+        setAuthError('');
         toast.success(`Access Granted. Welcome, ${data.displayName || 'Doctor'}.`);
 
         // Rule #5: Hard refresh to ensure layout catches the new session
         window.location.href = '/dashboard';
       } else {
-        toast.error(data.message || 'Identity verification failed.');
+        // Do not reveal which field was wrong — generic auth error only.
+        // Password field is intentionally left filled.
+        setAuthError(
+          'Invalid clinical email or security key. Please check your credentials and try again.'
+        );
+        setLoading(false);
       }
     } catch (error) {
-      console.error("Login Error:", error);
-      toast.error('The workstation is offline. Ensure the backend is reachable.');
-    } finally {
+      console.error('Login Error:', error);
+      setAuthError(
+        'Unable to connect to the server. Please check your internet connection and try again.'
+      );
       setLoading(false);
     }
   };
@@ -101,7 +145,7 @@ export default function LoginPage() {
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-md animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="bg-gray-50 dark:bg-gray-900 py-10 px-8 shadow-2xl rounded-[3.5rem] border border-gray-100 dark:border-gray-800 sm:px-12">
 
-          <form className="space-y-8" onSubmit={handleSubmit}>
+          <form className="space-y-8" onSubmit={handleSubmit} noValidate>
             {/* Email Input */}
             <div className="space-y-2">
               <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2 italic">
@@ -109,12 +153,24 @@ export default function LoginPage() {
               </label>
               <input
                 type="email"
-                required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="block w-full px-6 py-4 border-none rounded-2xl shadow-inner bg-white dark:bg-gray-800 dark:text-white font-bold text-sm outline-none focus:ring-2 focus:ring-[#FF7A59]"
+                onChange={handleEmailChange}
+                aria-invalid={Boolean(emailError || authError)}
+                className={`block w-full px-6 py-4 border-2 rounded-2xl shadow-inner bg-white dark:bg-gray-800 dark:text-white font-bold text-sm outline-none focus:ring-2 transition-colors ${
+                  emailError || authError
+                    ? 'border-red-500 focus:ring-red-500'
+                    : 'border-transparent focus:ring-[#FF7A59]'
+                }`}
                 placeholder="doctor@afridam.ai"
               />
+              {emailError && (
+                <p
+                  className="text-[11px] font-bold text-red-500 ml-2 mt-1"
+                  aria-live="polite"
+                >
+                  {emailError}
+                </p>
+              )}
             </div>
 
             {/* Password Input with Eye Toggle */}
@@ -125,10 +181,14 @@ export default function LoginPage() {
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full px-6 py-4 border-none rounded-2xl shadow-inner bg-white dark:bg-gray-800 dark:text-white font-bold text-sm outline-none focus:ring-2 focus:ring-[#FF7A59] pr-12"
+                  onChange={handlePasswordChange}
+                  aria-invalid={Boolean(passwordError || authError)}
+                  className={`block w-full px-6 py-4 border-2 rounded-2xl shadow-inner bg-white dark:bg-gray-800 dark:text-white font-bold text-sm outline-none focus:ring-2 pr-12 transition-colors ${
+                    passwordError || authError
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-transparent focus:ring-[#FF7A59]'
+                  }`}
                   placeholder="••••••••"
                 />
                 <button
@@ -139,14 +199,31 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              {passwordError && (
+                <p
+                  className="text-[11px] font-bold text-red-500 ml-2 mt-1"
+                  aria-live="polite"
+                >
+                  {passwordError}
+                </p>
+              )}
+              {authError && (
+                <p
+                  className="text-[11px] font-bold text-red-500 ml-2 mt-1"
+                  aria-live="polite"
+                >
+                  {authError}
+                </p>
+              )}
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-5 px-4 rounded-2xl shadow-xl text-xs font-black uppercase tracking-[0.2em] text-white bg-black hover:bg-[#FF7A59] transition-all active:scale-95 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 py-5 px-4 rounded-2xl shadow-xl text-xs font-black uppercase tracking-[0.2em] text-white bg-black hover:bg-[#FF7A59] transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Verifying Identity...' : 'Enter Workspace'}
+              {loading && <Loader2 size={16} className="animate-spin" />}
+              {loading ? 'Authenticating...' : 'Enter Workspace'}
             </button>
           </form>
 
