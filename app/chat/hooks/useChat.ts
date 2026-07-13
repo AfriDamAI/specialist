@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation'; // 🚀 Added useRouter
 import { toast } from 'react-hot-toast';
 import { useCall } from '@/context/CallContext';
 import {
@@ -98,6 +99,7 @@ interface ChatListItem {
 }
 
 export function useChat(initialChatId?: string) {
+  const router = useRouter(); // 🚀 Initialized router
   const [chats, setChats] = useState<ChatListItem[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatListItem | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -480,21 +482,35 @@ export function useChat(initialChatId?: string) {
       setIsLoading(false);
     }
   }, [fetchUserChats]);
-
+// 🚀 Upgraded endSession functionality (No text message, smart redirect)
   const endSession = useCallback(async (appointmentId: string) => {
     try {
       setIsLoading(true);
+
+      // 1. Hit the backend endpoint to officially close the session (Removed sendMessage)
       await endAppointmentSession(appointmentId);
-      // Refresh chats
-      await fetchUserChats();
-      setError(null);
+      
+      // 2. Clear the active session data from local storage
+      localStorage.removeItem('activeChatId');
+      localStorage.removeItem('activeAppointmentId');
+
+      // 3. Notify the specialist
+      toast.success('Session ended successfully.');
+      
+      // 4. Instantly redirect back to the dashboard's clinical queue
+      router.push('/dashboard');
+      
     } catch (err) {
       console.error('Error ending session:', err);
-      setError('Failed to end session.');
+      // If it fails, it's likely because the session is ALREADY ended in the database.
+      // Clear the local state and route to dashboard anyway to unstick the user.
+      localStorage.removeItem('activeChatId');
+      localStorage.removeItem('activeAppointmentId');
+      router.push('/dashboard');
     } finally {
       setIsLoading(false);
     }
-  }, [fetchUserChats]);
+  }, [router]);
 
   const extendSession = useCallback(async (appointmentId: string) => {
     try {

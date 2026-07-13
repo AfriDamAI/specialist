@@ -2,15 +2,12 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import ChatContainer from './components/ChatContainer';
 
 function ChatPageContent() {
   const searchParams = useSearchParams();
   const [chatId, setChatId] = useState<string | undefined>(undefined);
   const [isReady, setIsReady] = useState(false);
-  const [hasActiveMobileChat, setHasActiveMobileChat] = useState(false);
 
   useEffect(() => {
     const urlChatId = searchParams.get('chatId');
@@ -20,44 +17,18 @@ function ChatPageContent() {
     setIsReady(true);
   }, [searchParams]);
 
-  // Listen for active chat state from ChatContainer to adjust mobile layout padding
-  useEffect(() => {
-    const handleMobileChatViewChange = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      setHasActiveMobileChat(customEvent.detail?.hasActiveChat || false);
-    };
-
-    window.addEventListener('mobile-chat-view-changed', handleMobileChatViewChange);
-    return () => {
-      window.removeEventListener('mobile-chat-view-changed', handleMobileChatViewChange);
-    };
-  }, []);
-
   if (!isReady) {
     return (
-      <div className="p-4 md:p-6">
-        <div className="flex items-center justify-center h-[calc(100vh-11rem)]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF7A59]"></div>
-        </div>
+      <div className="p-4 md:p-6 h-[calc(100vh-6rem)] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF7A59]"></div>
       </div>
     );
   }
 
   return (
-    <div className={`transition-all duration-200 ${hasActiveMobileChat ? 'p-0 md:p-6' : 'p-4 md:p-6'}`}>
-      
-      {/* Hidden completely on mobile screen when a conversation is open */}
-      <div className={`mb-4 ${hasActiveMobileChat ? 'hidden md:block' : 'block'}`}>
-        <Link
-          href="/ongoing-sessions"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
-        >
-          <ArrowLeftIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sessions</span>
-        </Link>
-      </div>
-
-      <div className={`transition-all duration-200 ${hasActiveMobileChat ? 'h-screen md:h-[calc(100vh-11rem)]' : 'h-[calc(100vh-11rem)]'}`}>
+    <div className="p-0 md:p-6 transition-all duration-200">
+      {/* Container takes full available height without the back button interfering */}
+      <div className="h-[calc(100dvh-4rem)] md:h-[calc(100vh-6rem)]">
         <ChatContainer chatId={chatId} />
       </div>
     </div>
@@ -67,10 +38,8 @@ function ChatPageContent() {
 export default function ChatPage() {
   return (
     <Suspense fallback={
-      <div className="p-4 md:p-6">
-        <div className="flex items-center justify-center h-[calc(100vh-11rem)]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF7A59]"></div>
-        </div>
+      <div className="p-4 md:p-6 h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF7A59]"></div>
       </div>
     }>
       <ChatPageContent />

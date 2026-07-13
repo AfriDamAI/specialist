@@ -128,14 +128,6 @@ export default function ConversationView({
         />
       </div>
 
-      {sessionEnded && (
-        <div className="flex-shrink-0 px-4 py-2 bg-gray-50 dark:bg-gray-900 text-center border-b border-gray-100 dark:border-gray-800">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            This session has ended. You can no longer send messages.
-          </p>
-        </div>
-      )}
-
       {/* Messages — the ONLY scrollable region */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 md:px-4 py-4 space-y-0.5">
         {isLoading && messages.length === 0 ? (
@@ -179,6 +171,17 @@ export default function ConversationView({
             );
           })
         )}
+        
+        {/* 🚀 Professional Centered System Message */}
+        {sessionEnded && (
+          <div className="flex items-center justify-center my-8 animate-in fade-in zoom-in duration-500">
+            <span className="bg-gray-100 dark:bg-gray-900 text-gray-400 dark:text-gray-500 text-[10px] font-black px-6 py-2 rounded-full uppercase tracking-[0.2em] text-center border border-gray-200 dark:border-gray-800 shadow-sm flex items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
+              Session Ended
+            </span>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
