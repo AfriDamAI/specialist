@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import NotificationBell from './NotificationBell';
 import { dashboardTitleFromSpec, mapSpecializationToLabel } from '@/lib/specialist-utils';
+import { apiClient } from '@/lib/api-client'; // 🚀 Added this import back
 import {
   MagnifyingGlassIcon,
   ChartBarSquareIcon,
@@ -32,23 +33,50 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-
   const { isDarkMode, toggleTheme } = useTheme();
+  
   const [mounted, setMounted] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   
+  // 🚀 Added state for the queue badge
+  const [pendingCount, setPendingCount] = useState(0);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const toggleCooldownRef = useRef<number>(0);
-  
-  // State to handle manual desktop sidebar override toggle
-  const [isCollapsed, setIsCollapsed] = useState(true);
 
   const [user, setUser] = useState({
     name: 'Specialist',
     role: 'Medical Personnel',
   });
+
+  // 🚀 Hook to constantly check the actual queue database
+  useEffect(() => {
+    let isSubscribed = true;
+    
+    const fetchPendingCount = async () => {
+      try {
+        const res = await apiClient('/appointments/assignments/me');
+        const data = res?.resultData || res?.data || res || [];
+        if (Array.isArray(data)) {
+          const pending = data.filter((a: any) => a.status === 'PENDING').length;
+          if (isSubscribed) setPendingCount(pending);
+        }
+      } catch (e) {
+        // Silent fail to avoid spamming the console
+      }
+    };
+
+    fetchPendingCount();
+    const interval = setInterval(fetchPendingCount, 15000); // Check every 15 seconds
+    
+    return () => { 
+      isSubscribed = false; 
+      clearInterval(interval); 
+    };
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -126,9 +154,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [router]);
 
-  // Close mobile navigation drawer instantly on route transition
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
@@ -173,19 +200,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="fixed top-0 left-0 right-0 h-16 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 z-60">
         <div className="flex items-center justify-between h-full px-4 md:px-12 max-w-7xl mx-auto">
           
-          {/* Brand Logo & Hamburger Control Container */}
           <div className="flex items-center gap-3">
-            {/* Premium Hamburger Toggle Menu Button for Mobile Screens */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="flex md:hidden items-center justify-center p-2 rounded-xl text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all active:scale-90"
-              aria-label="Toggle structural layout navigation menu"
             >
-              {isMobileMenuOpen ? (
-                <XMarkIcon className="w-6 h-6 text-gray-900 dark:text-white" />
-              ) : (
-                <Bars3Icon className="w-6 h-6 text-gray-900 dark:text-white" />
-              )}
+              {isMobileMenuOpen ? <XMarkIcon className="w-6 h-6" /> : <Bars3Icon className="w-6 h-6" />}
             </button>
 
             <Link href="/dashboard" className="flex items-center gap-2 group">
@@ -203,9 +223,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <input
                 type="text"
                 placeholder="Search records..."
-                className="w-64 px-4 py-2 pl-10 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 text-gray-900 dark:text-white focus:border-[#FF7A59] focus:outline-none transition text-[10px] font-black uppercase tracking-widest italic placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="w-64 px-4 py-2 pl-10 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 text-gray-900 dark:text-white focus:border-[#FF7A59] focus:outline-none transition text-[10px] font-black uppercase tracking-widest italic placeholder:text-gray-400"
               />
-              <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
             </div>
 
             <button onClick={() => {
@@ -237,20 +257,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
               {showProfileDropdown && (
                 <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 py-2 z-80 animate-in fade-in zoom-in duration-200 origin-top-right">
-                  <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-800 md:hidden">
-                    <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">{user.name}</p>
-                    <p className="text-[9px] font-black text-[#FF7A59] uppercase tracking-widest mt-1 italic">{user.role}</p>
-                  </div>
-
                   <Link
                     href="/settings"
                     onClick={() => setShowProfileDropdown(false)}
                     className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest italic text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors"
                   >
-                    <Cog6ToothIcon className="w-4 h-4" />
-                    Settings
+                    <Cog6ToothIcon className="w-4 h-4" /> Settings
                   </Link>
-
                   <button
                     onClick={() => {
                       setShowProfileDropdown(false);
@@ -258,8 +271,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest italic text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors border-t border-gray-50 dark:border-gray-800"
                   >
-                    <ArrowLeftOnRectangleIcon className="w-4 h-4" />
-                    Logout
+                    <ArrowLeftOnRectangleIcon className="w-4 h-4" /> Logout
                   </button>
                 </div>
               )}
@@ -268,7 +280,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </div>
 
-      {/* 📱 Modern Floating Mobile Side Navigation Drawer Drawer */}
+      {/* 📱 Mobile Side Navigation Drawer */}
       <div 
         className={`md:hidden fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-55 transition-opacity duration-300 ${
           isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -280,7 +292,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
-          {/* Mobile Identity Card */}
           <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-black font-black text-sm uppercase">
               {user.name.charAt(0)}
@@ -291,11 +302,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
           </div>
 
-          {/* Nav list */}
-          <nav 
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            className="flex-1 space-y-1.5 overflow-y-auto [&::-webkit-scrollbar]:hidden"
-          >
+          <nav className="flex-1 space-y-1.5 overflow-y-auto [&::-webkit-scrollbar]:hidden">
             {menuItems.map((item) => {
               const isActive = pathname === item.href;
               return (
@@ -311,15 +318,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   <div className={isActive ? 'text-inherit' : 'text-gray-400'}>
                     {item.icon}
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-[0.15em]">
+                  <span className="text-[10px] font-black uppercase tracking-[0.15em] flex flex-1 items-center justify-between">
                     {item.label}
+                    {/* 🚀 MOBILE BADGE */}
+                    {item.id === 'appointments' && pendingCount > 0 && (
+                      <span className="ml-2 bg-red-500 text-white text-[9px] px-2 py-0.5 rounded-full animate-in zoom-in shadow-sm">
+                        {pendingCount}
+                      </span>
+                    )}
                   </span>
                 </Link>
               );
             })}
           </nav>
 
-          {/* Bottom Logout Action */}
           <div className="pt-4 border-t border-gray-50 dark:border-gray-800">
             <button 
               onClick={handleLogout} 
@@ -338,17 +350,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           isCollapsed ? 'w-20 hover:w-64' : 'w-64'
         }`}
       >
-        <nav 
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden"
-        >
+        <nav className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden">
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link 
                 key={item.id} 
                 href={item.href} 
-                className={`flex items-center rounded-2xl transition-all group/item whitespace-nowrap h-12 ${
+                className={`relative flex items-center rounded-2xl transition-all group/item whitespace-nowrap h-12 ${
                   isCollapsed ? 'justify-center group-hover:justify-start px-3' : 'justify-start px-4'
                 } ${
                   isActive 
@@ -356,18 +365,30 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
-                <div className={`shrink-0 flex items-center justify-center transition-transform group-hover/item:scale-110 ${
+                <div className={`shrink-0 flex items-center justify-center transition-transform group-hover/item:scale-110 relative ${
                   isCollapsed ? 'w-6 h-6 group-hover:mr-4' : 'w-6 h-6 mr-4'
                 } ${isActive ? 'text-inherit' : 'text-gray-400'}`}>
                   {item.icon}
+                  
+                  {/* 🚀 DESKTOP COLLAPSED BADGE (Tiny Dot) */}
+                  {item.id === 'appointments' && pendingCount > 0 && isCollapsed && (
+                     <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse group-hover:hidden" />
+                  )}
                 </div>
                 
                 <span 
-                  className={`text-[10px] font-black uppercase tracking-[0.15em] italic transition-all duration-300 truncate ${
+                  className={`text-[10px] font-black uppercase tracking-[0.15em] italic transition-all duration-300 truncate flex flex-1 items-center justify-between ${
                     isCollapsed ? 'opacity-0 w-0 pointer-events-none group-hover:opacity-100 group-hover:w-auto' : 'opacity-100 w-auto'
                   }`}
                 >
                   {item.label}
+                  
+                  {/* 🚀 DESKTOP EXPANDED BADGE (Number) */}
+                  {item.id === 'appointments' && pendingCount > 0 && (
+                    <span className="ml-3 bg-red-500 text-white text-[9px] px-2 py-0.5 rounded-full shadow-sm animate-in zoom-in">
+                      {pendingCount}
+                    </span>
+                  )}
                 </span>
               </Link>
             );
@@ -384,23 +405,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className={`shrink-0 flex items-center justify-center ${isCollapsed ? 'w-6 h-6 group-hover:mr-4' : 'w-6 h-6 mr-4'}`}>
               <ArrowLeftOnRectangleIcon className="w-6 h-6" />
             </div>
-            <span 
-              className={`transition-all duration-300 truncate ${
-                isCollapsed ? 'opacity-0 w-0 pointer-events-none group-hover:opacity-100 group-hover:w-auto' : 'opacity-100 w-auto'
-              }`}
-            >
+            <span className={`transition-all duration-300 truncate ${
+              isCollapsed ? 'opacity-0 w-0 pointer-events-none group-hover:opacity-100 group-hover:w-auto' : 'opacity-100 w-auto'
+            }`}>
               Logout
             </span>
           </button>
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main 
-        className={`pt-16 min-h-screen relative z-10 transition-all duration-300 ease-in-out ${
-          isCollapsed ? 'md:pl-20' : 'md:pl-64'
-        }`}
-      >
+      <main className={`pt-16 min-h-screen relative z-10 transition-all duration-300 ease-in-out ${
+        isCollapsed ? 'md:pl-20' : 'md:pl-64'
+      }`}>
         <div className="p-4 md:p-12 pb-28 md:pb-12 max-w-7xl mx-auto">
           {children}
         </div>

@@ -142,7 +142,7 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
           patient={selectedPatient}
           messages={uiMessages}
           inputValue={inputValue}
-          sessionEnded={false}
+          sessionEnded={selectedPatient ? !selectedPatient.sessionActive : false}
           isLoading={isLoading}
           isConnected={isConnected}
           onInputChange={setInputValue}
@@ -190,7 +190,7 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
             patient={selectedPatient}
             messages={uiMessages}
             inputValue={inputValue}
-            sessionEnded={false}
+            sessionEnded={selectedPatient ? !selectedPatient.sessionActive : false}
             isLoading={isLoading}
             isConnected={isConnected}
             onInputChange={setInputValue}
