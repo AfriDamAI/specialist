@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'react-toastify';
+import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { API_URL } from '@/lib/config';
@@ -67,56 +67,66 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      // A Response body can only be consumed once — read it as text, then
+      // attempt to parse it as JSON, so this works whether the error body is
+      // JSON, plain text, or empty.
+      const rawBody = await response.text();
+      let data: any = null;
+      try {
+        data = rawBody ? JSON.parse(rawBody) : null;
+      } catch {
+        data = null;
+      }
 
       if (!response.ok) {
-        const errText = await response.text().catch(() => null);
-        console.error('Login request failed', response.status, errText);
-        toast.error(errText || data?.message || 'Identity verification failed.');
+        console.error('Login request failed', response.status, rawBody);
+        // Credential/identity failures (wrong password, unknown email) always get
+        // a generic message — the backend's own text here can say "Specialist
+        // with email x@y.com not found", which would leak which emails are
+        // registered. Non-identity failures (e.g. account under review, server
+        // errors) are safe to show verbatim since they're actionable and don't
+        // reveal anything about other accounts.
+        const isCredentialError = [400, 401, 404].includes(response.status);
+        const message = isCredentialError
+          ? 'Invalid clinical email or security key. Please check your credentials and try again.'
+          : (data?.message || 'Identity verification failed. Please try again.');
+        setAuthError(message);
+        toast.error(message);
         setLoading(false);
         return;
       }
 
-      if (response.ok) {
-        /**
-         * 🛡️ OGA PRECISION FIX: 
-         * No 'resultData' here. We map directly to the keys returned by the backend.
-         */
-        localStorage.setItem('token', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken);
-        const id = data.id;
-        if (id) {
-          localStorage.setItem('specialistId', id);
-          localStorage.setItem('userId', id);
-        }
-        localStorage.setItem('specialistName', data.displayName || 'Specialist');
-        const mappedRole = mapSpecializationToLabel(
-          data.specialization || data.type || data.speciality || data.specialty || data.role || data.profession || data.title || 'Specialist'
-        );
-        if (id) {
-          localStorage.setItem(`specialistRole:${id}`, mappedRole);
-          localStorage.setItem('specialistRole', mappedRole);
-        } else localStorage.setItem('specialistRole', mappedRole);
-        localStorage.setItem('specialistStatus', data.isActive ? 'verified' : 'under_review');
-
-        setAuthError('');
-        toast.success(`Access Granted. Welcome, ${data.displayName || 'Doctor'}.`);
-
-        // Rule #5: Hard refresh to ensure layout catches the new session
-        window.location.href = '/dashboard';
-      } else {
-        // Do not reveal which field was wrong — generic auth error only.
-        // Password field is intentionally left filled.
-        setAuthError(
-          'Invalid clinical email or security key. Please check your credentials and try again.'
-        );
-        setLoading(false);
+      /**
+       * 🛡️ OGA PRECISION FIX:
+       * No 'resultData' here. We map directly to the keys returned by the backend.
+       */
+      localStorage.setItem('token', data.accessToken);
+      localStorage.setItem('refreshToken', data.refreshToken);
+      const id = data.id;
+      if (id) {
+        localStorage.setItem('specialistId', id);
+        localStorage.setItem('userId', id);
       }
+      localStorage.setItem('specialistName', data.displayName || 'Specialist');
+      const mappedRole = mapSpecializationToLabel(
+        data.specialization || data.type || data.speciality || data.specialty || data.role || data.profession || data.title || 'Specialist'
+      );
+      if (id) {
+        localStorage.setItem(`specialistRole:${id}`, mappedRole);
+        localStorage.setItem('specialistRole', mappedRole);
+      } else localStorage.setItem('specialistRole', mappedRole);
+      localStorage.setItem('specialistStatus', data.isActive ? 'verified' : 'under_review');
+
+      setAuthError('');
+      toast.success(`Access Granted. Welcome, ${data.displayName || 'Doctor'}.`);
+
+      // Rule #5: Hard refresh to ensure layout catches the new session
+      window.location.href = '/dashboard';
     } catch (error) {
       console.error('Login Error:', error);
-      setAuthError(
-        'Unable to connect to the server. Please check your internet connection and try again.'
-      );
+      const message = 'Unable to connect to the server. Please check your internet connection and try again.';
+      setAuthError(message);
+      toast.error(message);
       setLoading(false);
     }
   };
