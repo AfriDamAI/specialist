@@ -12,7 +12,7 @@ import {
     CheckBadgeIcon,
     VideoCameraIcon,
 } from '@heroicons/react/24/solid';
-import { startAppointmentSession, getSpecialistAppointments, joinAppointmentSession } from '@/lib/api-client';
+import { startAppointmentSession, getSpecialistAppointments, joinAppointmentSession, initiateChat } from '@/lib/api-client';
 import { apiClient } from '@/lib/api-client';
 
 interface ConfirmedAppointment {
@@ -35,7 +35,7 @@ function SessionCard({
     isStarting,
 }: {
     appointment: ConfirmedAppointment;
-    onStart: (id: string) => void;
+    onStart: (id: string, userId: string, alreadyInProgress: boolean) => void;
     isStarting: boolean;
 }) {
     const date = new Date(appointment.scheduledAt || appointment.createdAt);
@@ -120,7 +120,7 @@ function SessionCard({
             {/* CTA */}
             <div className="flex flex-col gap-2 relative z-10">
                 <button
-                    onClick={() => onStart(appointment.id)}
+                    onClick={() => onStart(appointment.id, appointment.userId, isInProgress)}
                     disabled={isStarting}
                     className={`flex items-center justify-center gap-2 ${isInProgress ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-[#FF7A59] hover:bg-[#e56b4a]'
                         } text-white py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed group/btn shadow-lg shadow-black/5`}
@@ -187,13 +187,46 @@ export default function OngoingSessionsPage() {
         loadConfirmedAppointments();
     }, [loadConfirmedAppointments]);
 
-    const handleStartSession = async (appointmentId: string) => {
+    const handleStartSession = async (appointmentId: string, userId: string, alreadyInProgress = false) => {
         setStartingId(appointmentId);
         setError(null);
         try {
-            const result = await startAppointmentSession(appointmentId) as any;
-            const chatId = result?.chatId || result?.resultData?.chatId;
-            const meetLink = result?.meetLink || result?.resultData?.meetLink;
+            let chatId: string | undefined;
+            let meetLink: string | undefined;
+
+            if (alreadyInProgress) {
+                // The session is already live — the backend rejects a second
+                // /session/start call ("Appointment status is IN_PROGRESS"), so just
+                // resolve the existing chat thread and rejoin instead of starting again.
+                const appointment = appointments.find(a => a.id === appointmentId);
+                meetLink = appointment?.meetLink;
+                if (userId) {
+                    const specialistId = localStorage.getItem('specialistId') || localStorage.getItem('userId') || '';
+                    try {
+                        const chat = await initiateChat(specialistId, userId) as any;
+                        chatId = chat?.id || chat?.resultData?.id;
+                    } catch (chatErr) {
+                        console.warn('Could not resolve existing chat thread:', chatErr);
+                    }
+                }
+            } else {
+                const result = await startAppointmentSession(appointmentId) as any;
+                chatId = result?.chatId || result?.resultData?.chatId;
+                meetLink = result?.meetLink || result?.resultData?.meetLink;
+
+                // The backend only creates a chat thread once the patient sends their first
+                // message, which left specialists unable to message first. Pre-create (or
+                // fetch, if it already exists) the thread here so it's ready immediately.
+                if (!chatId && userId) {
+                    const specialistId = localStorage.getItem('specialistId') || localStorage.getItem('userId') || '';
+                    try {
+                        const chat = await initiateChat(specialistId, userId) as any;
+                        chatId = chat?.id || chat?.resultData?.id;
+                    } catch (chatErr) {
+                        console.warn('Could not pre-create chat thread:', chatErr);
+                    }
+                }
+            }
 
             // Store the appointment ID for session management
             localStorage.setItem('activeAppointmentId', appointmentId);
