@@ -214,7 +214,7 @@ export const markMessageAsRead = async (messageId: string): Promise<void> => {
 
 export const getAppointmentById = async (id: string): Promise<any> => {
   const response = await apiClient(`/appointments/${id}`);
-  return response?.data || response;
+  return response?.data || response?.resultData || response;
 };
 
 

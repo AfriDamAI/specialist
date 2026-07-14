@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'react-toastify';
+import { toast } from 'react-hot-toast';
 import { Eye, EyeOff } from 'lucide-react';
 import { API_URL } from '@/lib/config';
 import { mapSpecializationToLabel } from '@/lib/specialist-utils';
@@ -12,6 +12,7 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
   const router = useRouter();
 
   // Rule #3 & #6: Ensuring we hit the correct backend port and path
@@ -20,6 +21,7 @@ export default function LoginForm() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setAuthError('');
 
     try {
       // Humanizing the connection: Reaching out to your local Mac database
@@ -29,60 +31,73 @@ export default function LoginForm() {
         body: JSON.stringify({ email, password }),
       });
 
+      // A Response body can only be consumed once — read it as text, then
+      // attempt to parse it as JSON, so this works whether the error body is
+      // JSON, plain text, or empty.
+      const rawBody = await response.text();
+      let data: any = null;
+      try {
+        data = rawBody ? JSON.parse(rawBody) : null;
+      } catch {
+        data = null;
+      }
+
       if (!response.ok) {
-        const errText = await response.text().catch(() => null);
-        console.error('Login request failed', response.status, errText);
-        toast.error(errText || 'We could not verify these details.');
+        console.error('Login request failed', response.status, rawBody);
+        // Credential/identity failures (wrong password, unknown email) always get
+        // a generic message — the backend's own text here can say "Specialist
+        // with email x@y.com not found", which would leak which emails are
+        // registered. Non-identity failures are safe to show verbatim.
+        const isCredentialError = [400, 401, 404].includes(response.status);
+        const message = isCredentialError
+          ? 'Invalid email or password. Please check your credentials and try again.'
+          : (data?.message || 'We could not verify these details.');
+        setAuthError(message);
+        toast.error(message);
         setLoading(false);
         return;
       }
 
-      const data = await response.json();
+      /**
+       * 🛡️ OGA PRECISION FIX:
+       * Storing the keys to your local workstation
+       */
+      localStorage.setItem('token', data.accessToken);
+      localStorage.setItem('refreshToken', data.refreshToken);
 
-      if (response.ok) {
-        /**
-         * 🛡️ OGA PRECISION FIX: 
-         * Storing the keys to your local workstation
-         */
-        localStorage.setItem('token', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken);
-
-        // 🛡️ Precision Fix: Storing the ID for chat and session consistency
-        const id = data.id || data.specialistId;
-        if (id) {
-          localStorage.setItem('specialistId', id);
-          localStorage.setItem('userId', id);
-        }
-
-        if (data.displayName) {
-          localStorage.setItem('specialistName', data.displayName);
-        }
-
-        const mappedRole = mapSpecializationToLabel(
-          data.specialization || data.type || data.speciality || data.specialty || data.role || data.profession || data.title || 'Specialist'
-        );
-        if (id) {
-          localStorage.setItem(`specialistRole:${id}`, mappedRole);
-          localStorage.setItem('specialistRole', mappedRole);
-        } else {
-          localStorage.setItem('specialistRole', mappedRole);
-        }
-
-        // Mapping status for the specialist dashboard view
-        localStorage.setItem('specialistStatus', data.isActive ? 'verified' : 'under_review');
-
-        toast.success(`Access Granted. Welcome, ${data.displayName || 'Doctor'}`);
-
-        // Rule #5: Forcing a clean entry into the dashboard
-        window.location.href = '/dashboard';
-      } else {
-        // Simple human error message
-        toast.error(data.message || 'We could not verify these details.');
+      // 🛡️ Precision Fix: Storing the ID for chat and session consistency
+      const id = data.id || data.specialistId;
+      if (id) {
+        localStorage.setItem('specialistId', id);
+        localStorage.setItem('userId', id);
       }
+
+      if (data.displayName) {
+        localStorage.setItem('specialistName', data.displayName);
+      }
+
+      const mappedRole = mapSpecializationToLabel(
+        data.specialization || data.type || data.speciality || data.specialty || data.role || data.profession || data.title || 'Specialist'
+      );
+      if (id) {
+        localStorage.setItem(`specialistRole:${id}`, mappedRole);
+        localStorage.setItem('specialistRole', mappedRole);
+      } else {
+        localStorage.setItem('specialistRole', mappedRole);
+      }
+
+      // Mapping status for the specialist dashboard view
+      localStorage.setItem('specialistStatus', data.isActive ? 'verified' : 'under_review');
+
+      toast.success(`Access Granted. Welcome, ${data.displayName || 'Doctor'}`);
+
+      // Rule #5: Forcing a clean entry into the dashboard
+      window.location.href = '/dashboard';
     } catch (error) {
       console.error("Login Error:", error);
-      toast.error('The workstation is offline. Please ensure your backend is running.');
-    } finally {
+      const message = 'The workstation is offline. Please ensure your backend is running.';
+      setAuthError(message);
+      toast.error(message);
       setLoading(false);
     }
   };
@@ -98,9 +113,14 @@ export default function LoginForm() {
           type="email"
           required
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => { setEmail(e.target.value); if (authError) setAuthError(''); }}
           placeholder="specialist@afridam.com"
-          className="w-full px-6 py-4 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-800 rounded-2xl text-gray-900 dark:text-white text-base font-semibold focus:border-[#FF7A59] focus:ring-4 focus:ring-[#FF7A59]/10 outline-none transition-all italic"
+          aria-invalid={Boolean(authError)}
+          className={`w-full px-6 py-4 bg-white dark:bg-gray-800 border-2 rounded-2xl text-gray-900 dark:text-white text-base font-semibold focus:ring-4 outline-none transition-all italic ${
+            authError
+              ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
+              : 'border-gray-100 dark:border-gray-800 focus:border-[#FF7A59] focus:ring-[#FF7A59]/10'
+          }`}
         />
       </div>
 
@@ -122,9 +142,14 @@ export default function LoginForm() {
             type={showPassword ? 'text' : 'password'}
             required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); if (authError) setAuthError(''); }}
             placeholder="••••••••"
-            className="w-full px-6 py-4 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-800 rounded-2xl text-gray-900 dark:text-white text-base font-semibold focus:border-[#FF7A59] focus:ring-4 focus:ring-[#FF7A59]/10 outline-none transition-all pr-14 italic"
+            aria-invalid={Boolean(authError)}
+            className={`w-full px-6 py-4 bg-white dark:bg-gray-800 border-2 rounded-2xl text-gray-900 dark:text-white text-base font-semibold focus:ring-4 outline-none transition-all pr-14 italic ${
+              authError
+                ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
+                : 'border-gray-100 dark:border-gray-800 focus:border-[#FF7A59] focus:ring-[#FF7A59]/10'
+            }`}
           />
           {/* Rule #4: Mobile-balanced eye icon toggle */}
           <button
@@ -135,6 +160,11 @@ export default function LoginForm() {
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
+        {authError && (
+          <p className="text-[11px] font-bold text-red-500 ml-1 mt-1" aria-live="polite">
+            {authError}
+          </p>
+        )}
       </div>
 
       <button

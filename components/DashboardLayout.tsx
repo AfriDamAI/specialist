@@ -28,9 +28,12 @@ import { API_URL } from '@/lib/config';
 
 interface DashboardLayoutProps {
   children?: React.ReactNode;
+  // Skips the default content padding/max-width so pages that manage their
+  // own full-height layout (e.g. chat) can fill the space next to the sidebar.
+  fullBleed?: boolean;
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout({ children, fullBleed = false }: DashboardLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { isDarkMode, toggleTheme } = useTheme();
@@ -417,9 +420,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <main className={`pt-16 min-h-screen relative z-10 transition-all duration-300 ease-in-out ${
         isCollapsed ? 'md:pl-20' : 'md:pl-64'
       }`}>
-        <div className="p-4 md:p-12 pb-28 md:pb-12 max-w-7xl mx-auto">
-          {children}
-        </div>
+        {fullBleed ? (
+          children
+        ) : (
+          <div className="p-4 md:p-12 pb-28 md:pb-12 max-w-7xl mx-auto">
+            {children}
+          </div>
+        )}
       </main>
     </div>
   );
