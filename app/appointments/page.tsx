@@ -16,6 +16,7 @@ import {
   PlayIcon,
   UserCircleIcon,
   XCircleIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/solid';
 import { apiClient } from '@/lib/api-client'; // 🏛️ Rule #6: Centralized Handshake
 import PatientProfileModal from '@/components/PatientProfileModal';
@@ -138,7 +139,7 @@ const AppointmentModal = ({
               onClick={onClose}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
             >
-              <ArrowPathIcon className="w-6 h-6 text-gray-400 rotate-45" />
+              <XMarkIcon className="w-6 h-6 text-gray-400" />
             </button>
           </div>
 
