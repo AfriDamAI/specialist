@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import DashboardLayout from '@/components/DashboardLayout';
 import ChatContainer from './components/ChatContainer';
 
 function ChatPageContent() {
@@ -19,28 +20,31 @@ function ChatPageContent() {
 
   if (!isReady) {
     return (
-      <div className="p-4 md:p-6 h-[calc(100vh-6rem)] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF7A59]"></div>
-      </div>
+      <DashboardLayout fullBleed>
+        <div className="h-[calc(100dvh-4rem)] flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF7A59]"></div>
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="p-0 md:p-6 transition-all duration-200">
-      {/* Container takes full available height without the back button interfering */}
-      <div className="h-[calc(100dvh-4rem)] md:h-[calc(100vh-6rem)]">
+    <DashboardLayout fullBleed>
+      <div className="h-[calc(100dvh-4rem)] p-0 md:p-6 transition-all duration-200">
         <ChatContainer chatId={chatId} />
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
 
 export default function ChatPage() {
   return (
     <Suspense fallback={
-      <div className="p-4 md:p-6 h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF7A59]"></div>
-      </div>
+      <DashboardLayout fullBleed>
+        <div className="h-[calc(100dvh-4rem)] flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF7A59]"></div>
+        </div>
+      </DashboardLayout>
     }>
       <ChatPageContent />
     </Suspense>

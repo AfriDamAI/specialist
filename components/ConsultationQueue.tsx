@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiClient, startAppointmentSession } from '@/lib/api-client'; // 🚀 Re-imported startAppointmentSession
+import { apiClient, startAppointmentSession, initiateChat } from '@/lib/api-client';
 import { toast } from 'react-hot-toast';
 import { 
   UserCircleIcon,
@@ -17,9 +17,10 @@ import {
 interface Consultation {
   id: string;
   patientName: string;
+  patientId?: string;
   status: string;
   appointmentStatus: string;
-  createdAt: string; 
+  createdAt: string;
   rawDate: string;
   urgency: 'HIGH' | 'NORMAL';
   appointmentId?: string | null;
@@ -40,6 +41,7 @@ interface QueueAssignment {
     status?: string;
     scheduledAt?: string;
     user?: {
+      id?: string;
       firstName?: string;
       lastName?: string;
     };
@@ -72,6 +74,7 @@ export default function ConsultationQueue() {
         return {
           id: item.id,
           patientName: user ? `${user.firstName} ${user.lastName}` : (item.name || "Specialist Triage"),
+          patientId: user?.id,
           status: item.status || 'PENDING',
           appointmentStatus: item.appointment?.status || 'PENDING',
           createdAt: new Date(targetDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -118,15 +121,44 @@ export default function ConsultationQueue() {
     }
   };
 
-  // 🚀 RESTORED: Original API logic
-  const handleStartSession = async (appointmentId: string) => {
+  const handleStartSession = async (appointmentId: string, patientId?: string, alreadyInProgress = false) => {
     setStartingId(appointmentId);
     try {
-      const result = await startAppointmentSession(appointmentId) as any;
-      const chatId = result?.chatId || result?.resultData?.chatId;
-      
+      let chatId: string | undefined;
+
+      if (alreadyInProgress) {
+        // The session is already live — the backend rejects a second /session/start
+        // call ("Appointment status is IN_PROGRESS"), so just resolve the existing
+        // chat thread and rejoin instead of starting again.
+        if (patientId) {
+          const specialistId = localStorage.getItem('specialistId') || localStorage.getItem('userId') || '';
+          try {
+            const chat = await initiateChat(specialistId, patientId) as any;
+            chatId = chat?.id || chat?.resultData?.id;
+          } catch (chatErr) {
+            console.warn('Could not resolve existing chat thread:', chatErr);
+          }
+        }
+      } else {
+        const result = await startAppointmentSession(appointmentId) as any;
+        chatId = result?.chatId || result?.resultData?.chatId;
+
+        // The backend only creates a chat thread once the patient sends their first
+        // message, which left specialists unable to message first. Pre-create (or
+        // fetch, if it already exists) the thread here so it's ready immediately.
+        if (!chatId && patientId) {
+          const specialistId = localStorage.getItem('specialistId') || localStorage.getItem('userId') || '';
+          try {
+            const chat = await initiateChat(specialistId, patientId) as any;
+            chatId = chat?.id || chat?.resultData?.id;
+          } catch (chatErr) {
+            console.warn('Could not pre-create chat thread:', chatErr);
+          }
+        }
+      }
+
       localStorage.setItem('activeAppointmentId', appointmentId);
-      
+
       if (chatId) {
         localStorage.setItem('activeChatId', chatId);
         router.push(`/chat?chatId=${chatId}`);
@@ -188,36 +220,53 @@ export default function ConsultationQueue() {
           {pagedConsultations.map((item) => {
             const isAccepted = item.status === 'ACCEPTED';
             const isPending = item.status === 'PENDING';
-            const isInProgress = item.appointmentStatus === 'IN_PROGRESS';
+            const isCancelled = item.status === 'CANCELLED' || item.appointmentStatus === 'CANCELLED';
+            const isEnded = isCancelled || item.status === 'COMPLETED' || item.appointmentStatus === 'COMPLETED';
+            const isInProgress = !isEnded && item.appointmentStatus === 'IN_PROGRESS';
             const targetId = item.appointmentId || item.assignmentId || item.id;
             const isStarting = startingId === targetId;
 
             return (
-              <div key={item.id} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2.5rem] p-6 flex flex-col gap-4 hover:border-[#FF7A59] hover:shadow-xl transition-all group relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-[#FF7A59]/5 rounded-full -mr-20 -mt-20 group-hover:bg-[#FF7A59]/10 transition-colors" />
+              <div key={item.id} className={`border rounded-[2.5rem] p-6 flex flex-col gap-4 transition-all group relative overflow-hidden ${
+                  isEnded
+                  ? 'bg-gray-50 dark:bg-gray-900/60 border-gray-200 dark:border-gray-700'
+                  : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-[#FF7A59] hover:shadow-xl'
+              }`}>
+                <div className={`absolute top-0 right-0 w-40 h-40 rounded-full -mr-20 -mt-20 transition-colors ${
+                    isEnded ? 'bg-gray-200/40 dark:bg-gray-800/30' : 'bg-[#FF7A59]/5 group-hover:bg-[#FF7A59]/10'
+                }`} />
 
                 <div className="flex items-start justify-between relative z-10">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-[#FF7A59]/10 flex items-center justify-center">
-                            <UserCircleIcon className="w-7 h-7 text-[#FF7A59]" />
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isEnded ? 'bg-gray-200 dark:bg-gray-800' : 'bg-[#FF7A59]/10'}`}>
+                            <UserCircleIcon className={`w-7 h-7 ${isEnded ? 'text-gray-400 dark:text-gray-500' : 'text-[#FF7A59]'}`} />
                         </div>
                         <div>
-                            <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase italic tracking-tight group-hover:text-[#FF7A59] transition-colors truncate max-w-[120px]">
+                            <h3 className={`text-sm font-black uppercase italic tracking-tight transition-colors truncate max-w-[120px] ${
+                                isEnded ? 'text-gray-600 dark:text-gray-300' : 'text-gray-900 dark:text-white group-hover:text-[#FF7A59]'
+                            }`}>
                                 {item.patientName}
                             </h3>
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                                 {item.urgency === 'HIGH' ? 'Urgent Case' : 'Routine Case'}
                             </p>
                         </div>
                     </div>
                     <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl ${
-                        isInProgress
+                        isEnded
+                        ? 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+                        : isInProgress
                         ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800'
-                        : isAccepted 
+                        : isAccepted
                         ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800'
                         : 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 border border-yellow-100 dark:border-yellow-800'
                     }`}>
-                        {isInProgress ? (
+                        {isEnded ? (
+                            <>
+                                <div className="w-1.5 h-1.5 rounded-full bg-gray-500 dark:bg-gray-400" />
+                                {isCancelled ? 'Cancelled' : 'Ended'}
+                            </>
+                        ) : isInProgress ? (
                             <>
                                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                                 In Progress
@@ -251,7 +300,15 @@ export default function ConsultationQueue() {
                 </div>
 
                 <div className="flex flex-col gap-2 relative z-10 mt-2">
-                    {isPending ? (
+                    {isEnded ? (
+                      <button
+                          disabled
+                          className="flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300 py-4 rounded-2xl font-black uppercase tracking-widest text-sm cursor-not-allowed border border-gray-300 dark:border-gray-700"
+                      >
+                          <CheckBadgeIcon className="w-4 h-4" />
+                          {isCancelled ? 'Session Cancelled' : 'Session Ended'}
+                      </button>
+                    ) : isPending ? (
                       <button
                           onClick={() => handleAccept(item.assignmentId || item.id)}
                           disabled={isRefreshing}
@@ -261,7 +318,7 @@ export default function ConsultationQueue() {
                       </button>
                     ) : (
                       <button
-                          onClick={() => handleStartSession(targetId)}
+                          onClick={() => handleStartSession(targetId, item.patientId, isInProgress)}
                           disabled={isStarting}
                           className={`flex items-center justify-center gap-2 ${isInProgress ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-[#FF7A59] hover:bg-[#e56b4a]'
                               } text-white py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed group/btn shadow-lg shadow-black/5`}
@@ -272,7 +329,7 @@ export default function ConsultationQueue() {
                             <PlayCircleIcon className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
                           )}
                           {isInProgress
-                              ? (isStarting ? 'Resuming Session…' : 'Resume Session')
+                              ? (isStarting ? 'Rejoining…' : 'Ongoing Session')
                               : (isStarting ? 'Starting Session…' : 'Start Session')}
                       </button>
                     )}

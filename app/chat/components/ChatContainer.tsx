@@ -121,7 +121,7 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
 
   if (isLoading && chats.length === 0) {
     return (
-      <div className="flex h-[calc(100vh-4rem)] md:h-[calc(100vh-11rem)] bg-white dark:bg-gray-950 rounded-none md:rounded-3xl overflow-hidden border-0 md:border border-gray-100 dark:border-gray-800 shadow-sm">
+      <div className="flex h-full bg-white dark:bg-gray-950 rounded-none md:rounded-3xl overflow-hidden border-0 md:border border-gray-100 dark:border-gray-800 shadow-sm">
         <div className="flex items-center justify-center w-full">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF7A59]"></div>
         </div>
@@ -132,7 +132,7 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
   return (
     <>
       {/* ── Desktop layout (md+): side-by-side, unchanged ── */}
-      <div className="hidden md:flex h-[calc(100vh-11rem)] min-h-0 bg-white dark:bg-gray-950 rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm">
+      <div className="hidden md:flex h-full min-h-0 bg-white dark:bg-gray-950 rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm">
         <PatientList
           patients={patients}
           selectedPatientId={selectedChat?.participantId || null}
@@ -165,7 +165,7 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
       </div>
 
       {/* ── Mobile layout: full-screen sliding panels ── */}
-      <div className="flex md:hidden relative w-full h-[calc(100dvh-4rem)] overflow-hidden bg-white dark:bg-gray-950">
+      <div className="flex md:hidden relative w-full h-full overflow-hidden bg-white dark:bg-gray-950">
 
         {/* Panel 1 — Patient list (always behind) */}
         <div

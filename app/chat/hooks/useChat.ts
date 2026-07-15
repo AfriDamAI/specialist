@@ -114,6 +114,9 @@ export function useChat(initialChatId?: string) {
   const scrollRef = useRef<HTMLDivElement>(null);
   // Ref to always have the latest selectedChat inside socket listeners (fixes stale closure)
   const selectedChatRef = useRef<ChatListItem | null>(null);
+  // A status reading that differs from what's currently displayed, awaiting a second
+  // consecutive confirmation before it's applied (see fetchAppointmentStatus)
+  const pendingStatusRef = useRef<{ id: string; status: string } | null>(null);
 
   // Use socket from unified CallContext
   const { socket } = useCall();
@@ -343,27 +346,54 @@ export function useChat(initialChatId?: string) {
   // Fetch real-time appointment status to ensure session controls are accurate
   const fetchAppointmentStatus = useCallback(async (appointmentId?: string, otherUserId?: string) => {
     try {
-      let appointment = null;
-      if (appointmentId) {
-         appointment = await getAppointmentById(appointmentId);
-      } else if (otherUserId) {
-         appointment = await getActiveAppointmentWith(otherUserId);
+      // getActiveAppointmentWith is the proven source (used here since day one).
+      // getAppointmentById is only a fallback for when it comes back empty —
+      // "active" lookups can exclude appointments that just ended.
+      let appointment = otherUserId ? await getActiveAppointmentWith(otherUserId) : null;
+      if (!appointment && appointmentId) {
+        try {
+          appointment = await getAppointmentById(appointmentId);
+        } catch {
+          appointment = null;
+        }
       }
 
       if (appointment) {
-        const sessionActive = appointment.status === 'IN_PROGRESS';
-        
+        const newStatus = appointment.status;
+        const currentKnownStatus = selectedChatRef.current?.appointmentStatus;
+
+        // Cloud Run instances can serve eventually-consistent reads, so a single
+        // reading that differs from what's on screen may just be a stale replica.
+        // Require the SAME new reading twice in a row before applying it — this
+        // stops the session-ended badge and the extend/meet buttons from
+        // flickering between states on every 3s poll.
+        let statusToApply = newStatus;
+        if (currentKnownStatus !== undefined && newStatus !== currentKnownStatus) {
+          const pending = pendingStatusRef.current;
+          if (pending && pending.id === appointment.id && pending.status === newStatus) {
+            statusToApply = newStatus;
+            pendingStatusRef.current = null;
+          } else {
+            pendingStatusRef.current = { id: appointment.id, status: newStatus };
+            statusToApply = currentKnownStatus;
+          }
+        } else {
+          pendingStatusRef.current = null;
+        }
+
+        const sessionActive = statusToApply === 'IN_PROGRESS';
+
         // Update the chats list
-        setChats(prev => prev.map(chat => 
-          (chat.appointmentId === appointment.id || chat.participantId === otherUserId) 
-            ? { ...chat, appointmentId: appointment.id, appointmentStatus: appointment.status, sessionActive } 
+        setChats(prev => prev.map(chat =>
+          (chat.appointmentId === appointment.id || chat.participantId === otherUserId)
+            ? { ...chat, appointmentId: appointment.id, appointmentStatus: statusToApply, sessionActive }
             : chat
         ));
 
         setSelectedChat((prev) => {
           if (prev?.id === selectedChatRef.current?.id && (prev?.appointmentId === appointment.id || prev?.participantId === otherUserId)) {
             if (appointment.meetingLink) setCurrentMeetLink(appointment.meetingLink);
-            return { ...prev, appointmentId: appointment.id, appointmentStatus: appointment.status, sessionActive, meetingLink: appointment.meetingLink } as ChatListItem;
+            return { ...prev, appointmentId: appointment.id, appointmentStatus: statusToApply, sessionActive, meetingLink: appointment.meetingLink } as ChatListItem;
           }
           return prev;
         });
@@ -379,8 +409,9 @@ export function useChat(initialChatId?: string) {
       const currentChat = selectedChatRef.current;
       if (currentChat) {
         fetchChatMessages(currentChat.id, true);
-        // Force fetching active appointment by patient ID
-        fetchAppointmentStatus(undefined, currentChat.participantId);
+        // Prefer the known appointment id (reflects true status incl. COMPLETED);
+        // participantId stays as a fallback for the very first resolution.
+        fetchAppointmentStatus(currentChat.appointmentId, currentChat.participantId);
       }
       fetchUserChats(true);
     }, 3000);
