@@ -230,6 +230,13 @@ export const joinAppointmentSession = async (id: string): Promise<{ meetLink: st
   return response?.data || response;
 };
 
+export const rejoinAppointmentSession = async (id: string): Promise<any> => {
+  const response = await apiClient(`/session/rejoin/${id}`, {
+    method: 'POST',
+  });
+  return response?.data || response;
+};
+
 export const endAppointmentSession = async (id: string): Promise<any> => {
   const response = await apiClient(`/session/end/${id}`, {
     method: 'POST',
