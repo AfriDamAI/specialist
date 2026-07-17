@@ -114,9 +114,10 @@ export function useChat(initialChatId?: string) {
   const scrollRef = useRef<HTMLDivElement>(null);
   // Ref to always have the latest selectedChat inside socket listeners (fixes stale closure)
   const selectedChatRef = useRef<ChatListItem | null>(null);
-  // A status reading that differs from what's currently displayed, awaiting a second
-  // consecutive confirmation before it's applied (see fetchAppointmentStatus)
-  const pendingStatusRef = useRef<{ id: string; status: string } | null>(null);
+  // The last status fetchAppointmentStatus itself confirmed for a given chat, and a
+  // differing reading awaiting a second consecutive confirmation (see fetchAppointmentStatus)
+  const lastConfirmedStatusRef = useRef<{ chatId: string; status: string } | null>(null);
+  const pendingStatusRef = useRef<{ chatId: string; status: string } | null>(null);
 
   // Use socket from unified CallContext
   const { socket } = useCall();
@@ -169,7 +170,7 @@ export function useChat(initialChatId?: string) {
       
       // Always fetch the CURRENT active appointment to avoid stale chat.appointmentId
       if (selectedChat.meetingLink) setCurrentMeetLink(selectedChat.meetingLink);
-      fetchAppointmentStatus(undefined, selectedChat.participantId);
+      fetchAppointmentStatus(undefined, selectedChat.participantId, selectedChat.id);
     } else {
       setMessages([]);
     }
@@ -344,7 +345,7 @@ export function useChat(initialChatId?: string) {
 
   // Silent polling fallback for multi-instance Cloud Run environments
   // Fetch real-time appointment status to ensure session controls are accurate
-  const fetchAppointmentStatus = useCallback(async (appointmentId?: string, otherUserId?: string) => {
+  const fetchAppointmentStatus = useCallback(async (appointmentId?: string, otherUserId?: string, chatId?: string) => {
     try {
       // getActiveAppointmentWith is the proven source (used here since day one).
       // getAppointmentById is only a fallback for when it comes back empty —
@@ -360,25 +361,37 @@ export function useChat(initialChatId?: string) {
 
       if (appointment) {
         const newStatus = appointment.status;
-        const currentKnownStatus = selectedChatRef.current?.appointmentStatus;
+        // Baseline against the last value THIS function confirmed for this chat —
+        // not selectedChat.appointmentStatus, which can still hold the initial,
+        // less-reliable guess from the bulk /chats/me list (that guess is exactly
+        // why this dedicated lookup exists). Comparing against it meant the very
+        // first correct read after opening/starting a chat got held back, leaving
+        // the composer disabled and the "Session Ended" pill showing on a session
+        // that was actually active.
+        const baseline = chatId && lastConfirmedStatusRef.current?.chatId === chatId
+          ? lastConfirmedStatusRef.current.status
+          : undefined;
 
         // Cloud Run instances can serve eventually-consistent reads, so a single
-        // reading that differs from what's on screen may just be a stale replica.
-        // Require the SAME new reading twice in a row before applying it — this
-        // stops the session-ended badge and the extend/meet buttons from
-        // flickering between states on every 3s poll.
+        // reading that differs from an already-established baseline may just be a
+        // stale replica. Require the SAME new reading twice in a row before
+        // applying a CHANGE — but always trust the first-ever read for a chat.
         let statusToApply = newStatus;
-        if (currentKnownStatus !== undefined && newStatus !== currentKnownStatus) {
+        if (baseline !== undefined && newStatus !== baseline) {
           const pending = pendingStatusRef.current;
-          if (pending && pending.id === appointment.id && pending.status === newStatus) {
+          if (pending && pending.chatId === chatId && pending.status === newStatus) {
             statusToApply = newStatus;
             pendingStatusRef.current = null;
           } else {
-            pendingStatusRef.current = { id: appointment.id, status: newStatus };
-            statusToApply = currentKnownStatus;
+            pendingStatusRef.current = chatId ? { chatId, status: newStatus } : null;
+            statusToApply = baseline;
           }
         } else {
           pendingStatusRef.current = null;
+        }
+
+        if (chatId) {
+          lastConfirmedStatusRef.current = { chatId, status: statusToApply };
         }
 
         const sessionActive = statusToApply === 'IN_PROGRESS';
@@ -411,7 +424,7 @@ export function useChat(initialChatId?: string) {
         fetchChatMessages(currentChat.id, true);
         // Prefer the known appointment id (reflects true status incl. COMPLETED);
         // participantId stays as a fallback for the very first resolution.
-        fetchAppointmentStatus(currentChat.appointmentId, currentChat.participantId);
+        fetchAppointmentStatus(currentChat.appointmentId, currentChat.participantId, currentChat.id);
       }
       fetchUserChats(true);
     }, 3000);

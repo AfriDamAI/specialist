@@ -12,7 +12,7 @@ import {
     CheckBadgeIcon,
     VideoCameraIcon,
 } from '@heroicons/react/24/solid';
-import { startAppointmentSession, getSpecialistAppointments, joinAppointmentSession, initiateChat } from '@/lib/api-client';
+import { startAppointmentSession, rejoinAppointmentSession, getSpecialistAppointments, joinAppointmentSession, initiateChat } from '@/lib/api-client';
 import { apiClient } from '@/lib/api-client';
 
 interface ConfirmedAppointment {
@@ -196,11 +196,21 @@ export default function OngoingSessionsPage() {
 
             if (alreadyInProgress) {
                 // The session is already live — the backend rejects a second
-                // /session/start call ("Appointment status is IN_PROGRESS"), so just
-                // resolve the existing chat thread and rejoin instead of starting again.
+                // /session/start call ("Appointment status is IN_PROGRESS"), so use the
+                // dedicated rejoin endpoint instead. It's a newer endpoint, so don't let
+                // a failure there block rejoining — fall back to resolving the chat directly.
                 const appointment = appointments.find(a => a.id === appointmentId);
                 meetLink = appointment?.meetLink;
-                if (userId) {
+
+                try {
+                    const result = await rejoinAppointmentSession(appointmentId) as any;
+                    chatId = result?.chatId || result?.resultData?.chatId;
+                    meetLink = result?.meetLink || result?.resultData?.meetLink || meetLink;
+                } catch (rejoinErr) {
+                    console.warn('Rejoin endpoint failed, falling back to chat resolution:', rejoinErr);
+                }
+
+                if (!chatId && userId) {
                     const specialistId = localStorage.getItem('specialistId') || localStorage.getItem('userId') || '';
                     try {
                         const chat = await initiateChat(specialistId, userId) as any;
