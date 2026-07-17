@@ -147,9 +147,9 @@ export default function ChatContainer({ chatId }: ChatContainerProps) {
           isConnected={isConnected}
           onInputChange={setInputValue}
           onSend={handleSend}
-          onEndSession={() => selectedChat?.appointmentId && endSession(selectedChat.appointmentId)}
+          onEndSession={() => endSession(selectedChat?.appointmentId, selectedChat?.participantId)}
           onStartSession={() => selectedChat?.appointmentId && startSession(selectedChat.appointmentId)}
-          onExtendSession={() => selectedChat?.appointmentId && extendSession(selectedChat.appointmentId)}
+          onExtendSession={() => extendSession(selectedChat?.appointmentId, selectedChat?.participantId)}
           onJoinMeet={handleCreateOrJoinMeet}
           hasMeetLink={!!currentMeetLink}
           onViewProfile={() => selectedPatient?.profile && handleViewProfile(selectedPatient.profile, selectedPatient.name)}
