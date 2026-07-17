@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiClient, startAppointmentSession, initiateChat } from '@/lib/api-client';
+import { apiClient, startAppointmentSession, rejoinAppointmentSession, initiateChat } from '@/lib/api-client';
 import { toast } from 'react-hot-toast';
 import { 
   UserCircleIcon,
@@ -128,9 +128,17 @@ export default function ConsultationQueue() {
 
       if (alreadyInProgress) {
         // The session is already live — the backend rejects a second /session/start
-        // call ("Appointment status is IN_PROGRESS"), so just resolve the existing
-        // chat thread and rejoin instead of starting again.
-        if (patientId) {
+        // call ("Appointment status is IN_PROGRESS"), so use the dedicated rejoin
+        // endpoint instead of starting again. It's a newer endpoint, so don't let
+        // a failure there block rejoining — fall back to resolving the chat directly.
+        try {
+          const result = await rejoinAppointmentSession(appointmentId) as any;
+          chatId = result?.chatId || result?.resultData?.chatId;
+        } catch (rejoinErr) {
+          console.warn('Rejoin endpoint failed, falling back to chat resolution:', rejoinErr);
+        }
+
+        if (!chatId && patientId) {
           const specialistId = localStorage.getItem('specialistId') || localStorage.getItem('userId') || '';
           try {
             const chat = await initiateChat(specialistId, patientId) as any;

@@ -114,9 +114,10 @@ export function useChat(initialChatId?: string) {
   const scrollRef = useRef<HTMLDivElement>(null);
   // Ref to always have the latest selectedChat inside socket listeners (fixes stale closure)
   const selectedChatRef = useRef<ChatListItem | null>(null);
-  // A status reading that differs from what's currently displayed, awaiting a second
-  // consecutive confirmation before it's applied (see fetchAppointmentStatus)
-  const pendingStatusRef = useRef<{ id: string; status: string } | null>(null);
+  // The last status fetchAppointmentStatus itself confirmed for a given chat, and a
+  // differing reading awaiting a second consecutive confirmation (see fetchAppointmentStatus)
+  const lastConfirmedStatusRef = useRef<{ chatId: string; status: string } | null>(null);
+  const pendingStatusRef = useRef<{ chatId: string; status: string } | null>(null);
 
   // Use socket from unified CallContext
   const { socket } = useCall();
@@ -147,15 +148,21 @@ export function useChat(initialChatId?: string) {
     fetchUserChats();
   }, []);
 
-  // Handle initial chatId from props
+  // Handle initial chatId from props — select it once, the first time chats load.
+  // This used to depend on `chats` directly, so it re-ran on every 3s poll refresh
+  // and re-selected the chat from the bulk list's own (less reliable) session
+  // status, stomping over whatever fetchAppointmentStatus had just carefully
+  // resolved for the open conversation — the actual cause of the composer and the
+  // "Session Ended" pill flip-flopping. Guarding on `!selectedChat` makes this a
+  // one-time initial selection instead of a perpetual override.
   useEffect(() => {
-    if (initialChatId && chats.length > 0) {
+    if (initialChatId && !selectedChat && chats.length > 0) {
       const chat = chats.find(c => c.id === initialChatId);
       if (chat) {
         setSelectedChat(chat);
       }
     }
-  }, [initialChatId, chats]);
+  }, [initialChatId, chats, selectedChat]);
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -169,7 +176,7 @@ export function useChat(initialChatId?: string) {
       
       // Always fetch the CURRENT active appointment to avoid stale chat.appointmentId
       if (selectedChat.meetingLink) setCurrentMeetLink(selectedChat.meetingLink);
-      fetchAppointmentStatus(undefined, selectedChat.participantId);
+      fetchAppointmentStatus(undefined, selectedChat.participantId, selectedChat.id);
     } else {
       setMessages([]);
     }
@@ -344,7 +351,7 @@ export function useChat(initialChatId?: string) {
 
   // Silent polling fallback for multi-instance Cloud Run environments
   // Fetch real-time appointment status to ensure session controls are accurate
-  const fetchAppointmentStatus = useCallback(async (appointmentId?: string, otherUserId?: string) => {
+  const fetchAppointmentStatus = useCallback(async (appointmentId?: string, otherUserId?: string, chatId?: string) => {
     try {
       // getActiveAppointmentWith is the proven source (used here since day one).
       // getAppointmentById is only a fallback for when it comes back empty —
@@ -360,25 +367,37 @@ export function useChat(initialChatId?: string) {
 
       if (appointment) {
         const newStatus = appointment.status;
-        const currentKnownStatus = selectedChatRef.current?.appointmentStatus;
+        // Baseline against the last value THIS function confirmed for this chat —
+        // not selectedChat.appointmentStatus, which can still hold the initial,
+        // less-reliable guess from the bulk /chats/me list (that guess is exactly
+        // why this dedicated lookup exists). Comparing against it meant the very
+        // first correct read after opening/starting a chat got held back, leaving
+        // the composer disabled and the "Session Ended" pill showing on a session
+        // that was actually active.
+        const baseline = chatId && lastConfirmedStatusRef.current?.chatId === chatId
+          ? lastConfirmedStatusRef.current.status
+          : undefined;
 
         // Cloud Run instances can serve eventually-consistent reads, so a single
-        // reading that differs from what's on screen may just be a stale replica.
-        // Require the SAME new reading twice in a row before applying it — this
-        // stops the session-ended badge and the extend/meet buttons from
-        // flickering between states on every 3s poll.
+        // reading that differs from an already-established baseline may just be a
+        // stale replica. Require the SAME new reading twice in a row before
+        // applying a CHANGE — but always trust the first-ever read for a chat.
         let statusToApply = newStatus;
-        if (currentKnownStatus !== undefined && newStatus !== currentKnownStatus) {
+        if (baseline !== undefined && newStatus !== baseline) {
           const pending = pendingStatusRef.current;
-          if (pending && pending.id === appointment.id && pending.status === newStatus) {
+          if (pending && pending.chatId === chatId && pending.status === newStatus) {
             statusToApply = newStatus;
             pendingStatusRef.current = null;
           } else {
-            pendingStatusRef.current = { id: appointment.id, status: newStatus };
-            statusToApply = currentKnownStatus;
+            pendingStatusRef.current = chatId ? { chatId, status: newStatus } : null;
+            statusToApply = baseline;
           }
         } else {
           pendingStatusRef.current = null;
+        }
+
+        if (chatId) {
+          lastConfirmedStatusRef.current = { chatId, status: statusToApply };
         }
 
         const sessionActive = statusToApply === 'IN_PROGRESS';
@@ -411,7 +430,7 @@ export function useChat(initialChatId?: string) {
         fetchChatMessages(currentChat.id, true);
         // Prefer the known appointment id (reflects true status incl. COMPLETED);
         // participantId stays as a fallback for the very first resolution.
-        fetchAppointmentStatus(currentChat.appointmentId, currentChat.participantId);
+        fetchAppointmentStatus(currentChat.appointmentId, currentChat.participantId, currentChat.id);
       }
       fetchUserChats(true);
     }, 3000);
@@ -514,23 +533,45 @@ export function useChat(initialChatId?: string) {
     }
   }, [fetchUserChats]);
 // 🚀 Upgraded endSession functionality (No text message, smart redirect)
-  const endSession = useCallback(async (appointmentId: string) => {
+  const endSession = useCallback(async (appointmentId?: string, participantId?: string) => {
+    // appointmentId may not have resolved yet on the open chat (it's populated by a
+    // separate async lookup) — previously the caller silently did nothing in that
+    // case. Fall back to localStorage, then a fresh lookup, before giving up.
+    let targetId = appointmentId
+      || selectedChatRef.current?.appointmentId
+      || localStorage.getItem('activeAppointmentId')
+      || undefined;
+
+    if (!targetId && participantId) {
+      try {
+        const appointment = await getActiveAppointmentWith(participantId);
+        targetId = appointment?.id;
+      } catch (err) {
+        console.warn('Could not resolve appointment to end:', err);
+      }
+    }
+
+    if (!targetId) {
+      toast.error('Could not find an active session to end. Please refresh and try again.');
+      return;
+    }
+
     try {
       setIsLoading(true);
 
       // 1. Hit the backend endpoint to officially close the session (Removed sendMessage)
-      await endAppointmentSession(appointmentId);
-      
+      await endAppointmentSession(targetId);
+
       // 2. Clear the active session data from local storage
       localStorage.removeItem('activeChatId');
       localStorage.removeItem('activeAppointmentId');
 
       // 3. Notify the specialist
       toast.success('Session ended successfully.');
-      
+
       // 4. Instantly redirect back to the dashboard's clinical queue
       router.push('/dashboard');
-      
+
     } catch (err) {
       console.error('Error ending session:', err);
       // If it fails, it's likely because the session is ALREADY ended in the database.
@@ -543,10 +584,29 @@ export function useChat(initialChatId?: string) {
     }
   }, [router]);
 
-  const extendSession = useCallback(async (appointmentId: string) => {
+  const extendSession = useCallback(async (appointmentId?: string, participantId?: string) => {
+    let targetId = appointmentId
+      || selectedChatRef.current?.appointmentId
+      || localStorage.getItem('activeAppointmentId')
+      || undefined;
+
+    if (!targetId && participantId) {
+      try {
+        const appointment = await getActiveAppointmentWith(participantId);
+        targetId = appointment?.id;
+      } catch (err) {
+        console.warn('Could not resolve appointment to extend:', err);
+      }
+    }
+
+    if (!targetId) {
+      toast.error('Could not find an active session to extend. Please refresh and try again.');
+      return;
+    }
+
     try {
       setIsLoading(true);
-      await extendAppointmentSession(appointmentId);
+      await extendAppointmentSession(targetId);
       // Refresh chats
       await fetchUserChats();
       setError(null);
